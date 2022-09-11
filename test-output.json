@@ -1,0 +1,54 @@
+{
+    "op": "-",
+    "left": {
+        "op": "/",
+        "left": {
+            "op": "*",
+            "left": {
+                "number": 1,
+                "type": 1,
+                "line": 1,
+                "col": 0
+            },
+            "right": {
+                "op": "+",
+                "left": {
+                    "number": 2,
+                    "type": 1,
+                    "line": 1,
+                    "col": 5
+                },
+                "right": {
+                    "number": 3,
+                    "type": 1,
+                    "line": 1,
+                    "col": 9
+                },
+                "type": 0,
+                "line": 1,
+                "col": 5
+            },
+            "type": 0,
+            "line": 1,
+            "col": 0
+        },
+        "right": {
+            "number": 4,
+            "type": 1,
+            "line": 1,
+            "col": 14
+        },
+        "type": 0,
+        "line": 1,
+        "col": 0
+    },
+    "right": {
+        "number": 5,
+        "type": 1,
+        "line": 1,
+        "col": 18
+    },
+    "type": 0,
+    "line": 1,
+    "col": 0
+}
