@@ -1,0 +1,9 @@
+{
+    "scripts": {
+        "dev": "npx tsc --watch",
+        "start": "node --trace-warnings --es-module-specifier-resolution=node dist/index.mjs"
+    },
+    "dependencies": {
+        "desmoscript": "^0.1.1"
+    }
+}

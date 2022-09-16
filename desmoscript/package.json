@@ -1,0 +1,26 @@
+{
+  "name": "desmoscript",
+  "version": "0.1.1",
+  "description": "A programming language that compiles to Desmos expression.",
+  "main": "dist/index.mjs",
+  "types": "dist/index.d.mts",
+  "type": "module",
+  "scripts": {
+    "antlr": "npx antlr4ts -visitor grammar/Desmoscript.g4 -o ./src",
+    "dev": "npx tsc --watch",
+    "start": "node --trace-warnings --es-module-specifier-resolution=node dist/index.mjs",
+    "build": "npx tsc",
+    "prepare": "npm run build"
+  },
+  "dependencies": {
+    "@types/node": "^18.7.16",
+    "antlr4": "^4.10.1",
+    "antlr4ts": "^0.5.0-alpha.4",
+    "typescript": "^4.8.3",
+    "zod": "^3.19.0"
+  },
+  "devDependencies": {
+    "@types/antlr4": "^4.7.2",
+    "antlr4ts-cli": "^0.5.0-alpha.4"
+  }
+}
