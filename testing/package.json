@@ -5,5 +5,8 @@
     },
     "dependencies": {
         "desmoscript": "file:../desmoscript"
+    },
+    "devDependencies": {
+        "typescript": "^4.8.4"
     }
 }

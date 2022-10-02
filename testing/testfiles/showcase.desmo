@@ -47,7 +47,7 @@ fn absolute(x) {
 "Functions with multiple steps"
 fn plusTwo(x) {
     temp = x + 1;
-    temp + 1;
+    temp + 1
 }
 
 

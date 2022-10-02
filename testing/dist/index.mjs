@@ -1,2 +1,2 @@
 import * as desmoscript from "desmoscript";
-await desmoscript.compileDesmoscriptFromFile("testfiles/in.desmo", "testfiles/out.json");
+await desmoscript.compileDesmoscriptFromFile("testfiles/showcase.desmo", "testfiles/out.json");
