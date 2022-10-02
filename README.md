@@ -8,3 +8,6 @@ Desmoscript is a programming language that compiles to Desmos graph state. It is
 - **Catch as many errors at compile-time as possible.**
 - **Allow Desmos to interface with the outside world**&mdash; An extensible macro system should allow Desmoscript to import external data&mdash; for instance, Desmoscript macros could be used to add 3D models, SVG paths, or CSV data to a Desmos graph, automatically formatted as Desmos data.
 
+## Features
+(See the compiled output of this graph here.)[https://www.desmos.com/calculator/uwggjgonyn]
+https://github.com/radian628/desmoscript/blob/48e83b7fecc9fffa7d099c9d6198a1c6fb8ed2e6/testing/testfiles/showcase.desmo#L1-L85
