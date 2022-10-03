@@ -4,6 +4,9 @@
         "start": "node --trace-warnings --es-module-specifier-resolution=node dist/index.mjs"
     },
     "dependencies": {
+        "@types/chokidar": "^2.1.3",
+        "@types/node": "^18.8.0",
+        "chokidar": "^3.5.3",
         "desmoscript": "file:../desmoscript"
     },
     "devDependencies": {

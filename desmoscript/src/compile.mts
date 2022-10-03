@@ -110,6 +110,7 @@ export function compileDesmoscriptScopeTree(code: AnalyzedDesmoscript): GraphSta
             }
             switch (e.type) {
             case ASTType.BINOP:
+                if (e.op == "^") return `${c(e.left)}^{${c(e.right)}}`;
                 if (e.op == "[") return `${c(e.left)}\\left[${c(e.right)}\\right]`;
                 if (e.op == "/") return `\\frac{${c(e.left)}}{${c(e.right)}}`;
                 if (e.op == "%") return `\\operatorname{mod}\\left(${c(e.left)},${c(e.right)}\\right)`
@@ -210,7 +211,7 @@ export function compileDesmoscriptScopeTree(code: AnalyzedDesmoscript): GraphSta
                     expr: e,
                     reason: "A derivative must have an inner scope! Contact the dev if this error occurs!"
                 }
-                const varname = toDesmosVar(getScopeChain(e.innerScope) + "NSSEP" + e.variable);
+                const varname = toDesmosVar(getScopeChain(e.innerScope).join("NSSEP") + "NSSEP" + e.variable);
                 return `\\left(\\frac{d}{d${varname}}\\left(${c(e.body)}\\right)\\right)`;
             case ASTType.MEMBERACCESS:
                 return `${c(e.left)}.${e.right}`;
@@ -271,6 +272,7 @@ export function compileDesmoscriptScopeTree(code: AnalyzedDesmoscript): GraphSta
                 graphState.expressions.list.push({
                     type: "expression",
                     color: "black",
+                    hidden: true,
                     id: makeExprID(),
                     latex: compileSingleExpression(content.root)
                 });

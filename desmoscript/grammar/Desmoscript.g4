@@ -15,6 +15,7 @@ djson
 
 expression 
     : call=functionCall                                             # FunctionCallExpr
+    | qualifier=IDENTIFIER_SEGMENT expr=expression 'with' jsonval=expression          # DecoratedExpr
     | str=STRING                        # StringExpr
     | '@' jsonval=djson               # JSONExpr
     | call=macroCall                                             # MacroCallExpr
@@ -29,6 +30,7 @@ expression
     | '(' x=expression ',' y=expression ')'                        # PointExpr
     | left=expression op='\\' right=IDENTIFIER_SEGMENT             # MemberAccessExpr
     | left=expression op='[' right=expression ']'                     # ListMemberAccessExpr
+    | left=expression op='^' right=expression                  # MultOrDivExpr
     | left=expression op=('*' | '/' | '%') right=expression                  # MultOrDivExpr
     | left=expression op=('+' | '-') right=expression                        # AddOrSubExpr
     | left=expression op=('==' | '>' | '<' | '>=' | '<=') right=expression   # LogicalExpr
@@ -42,7 +44,6 @@ expression
     | 'macro' macroname=identifier '(' macroargs=functionDefArgList ')' '{' exprs+=expression+ '}' # MacroDefinitionExpr 
     | 'fn' fnname=identifier '(' fnargs=functionDefArgList ')' '{' exprs+=expression+ '}' # FunctionDefinitionExpr
     | 'ns' nsname=IDENTIFIER_SEGMENT '{' exprs+=expression+ '}' # NamespaceDefinitionExpr
-    | qualifier=IDENTIFIER_SEGMENT expr=expression 'with' jsonval=expression          # DecoratedExpr
     | '{' exprs+=expression+ '}' # BlockExpr
     | 'match' '{' (predicate+=expression '=>' result+=expression ';')* (fallback+=expression ';')? '}' # MatchExpr
     | left=expression op='->' right=expression                               # ActionExpr

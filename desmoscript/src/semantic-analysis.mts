@@ -105,10 +105,12 @@ function findDeclaration(enclosingScope: Scope | undefined, ident: ASTIdentifier
 export async function calculateScopes(e: ScopedASTExpr, scope: Scope, isTopLevel: boolean, options?: { noCodeGen: boolean }): 
 Promise<void> {
     e.equivalentScope = scope;
-    if (isTopLevel) scope.contents.set(anonScope(), {
-        type: Identifier.EXPRESSION,
-        root: e
-    });
+    if (isTopLevel) {
+        scope.contents.set(anonScope(), {
+            type: Identifier.EXPRESSION,
+            root: e
+        });
+    }
     switch (e.type) {
     case ASTType.BINOP:
         await calculateScopes(e.left, scope, false);
@@ -306,7 +308,7 @@ Promise<void> {
         break;
     case ASTType.DECORATOR:
         scope.contents.set(anonScope(), { type: Identifier.DECORATOR, root: e });
-        calculateScopes(e.expr, scope, true, { noCodeGen: true });
+        await calculateScopes(e.expr, scope, true, { noCodeGen: true });
         calculateScopes(e.json, scope, false);
         break;
     case ASTType.NAMED_JSON:

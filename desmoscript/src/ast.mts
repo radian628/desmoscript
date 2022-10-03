@@ -19,7 +19,7 @@ export type LineCol = {
 };
 
 export type ASTBinop<T> = {
-    op: "+" | "-" | "*" | "/" | "%" | "==" | ">" | "<" | ">=" | "<=" | ".." | "=" | "->" | "[",
+    op: "+" | "-" | "*" | "/" | "%" | "==" | ">" | "<" | ">=" | "<=" | ".." | "=" | "->" | "[" | "^",
     left: T & RawASTExpr<T>,
     right: T & RawASTExpr<T>,
     type: ASTType.BINOP
