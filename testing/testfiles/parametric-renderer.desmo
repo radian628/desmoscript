@@ -1,3 +1,5 @@
+import "./lib.desmo" as lib;
+
 lowerBoundU = -3.141592;
 upperBoundU = 3.141592;
 lowerBoundV = -3.141592;
@@ -156,16 +158,6 @@ polygonColors = sort([
 ], depthSorting.negDepths);
 
 
-/*
-polygonColors = sort([
-    { 
-        temp=i+1; 
-        temp
-    } for i=[2,3,4]
-], 
-depthSorting.negDepths);*/
-
-
 show polygons = 
     sort(polygon(
         proj[polyVertex1],
@@ -180,4 +172,4 @@ with @{
     colorLatex: ds(polygonColors)
 }
 
-
+/* thisShouldBeThree = three!(); */

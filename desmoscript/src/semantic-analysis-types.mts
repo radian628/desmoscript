@@ -9,6 +9,11 @@ export enum Identifier {
     FUNCTION, MACRO, VARIABLE, EXPRESSION, SCOPE, BUILTIN_FUNCTION, FUNCTION_ARG, DECORATOR, NAMED_JSON, NOTE, BUILTIN_VARIABLE
 }
 
+export type MacroDefinition = {
+    type: Identifier.MACRO,
+    fn: (expr: ASTFunctionCall<ScopeInfo>, ctx: DesmoscriptContext) => ASTExpr
+}
+
 export type ScopeContent = { 
     type: Identifier.VARIABLE,
     root: ASTBinop<{}>,
@@ -18,10 +23,7 @@ export type ScopeContent = {
     type: Identifier.FUNCTION,
     root: ASTFunctionDef<{}>
 }
-| {
-    type: Identifier.MACRO,
-    fn: (expr: ASTFunctionCall<ScopeInfo>) => ASTExpr
-}
+| MacroDefinition
 | {
     type: Identifier.EXPRESSION,
     root: ASTExpr
@@ -53,7 +55,8 @@ export type Scope = {
 };
 
 export type DesmoscriptContext = {
-    builtins: Scope
+    builtins: Scope,
+    files: string[]
 }
 
 export type ScopeInfo = { equivalentScope?: Scope, innerScope?: Scope };
@@ -66,5 +69,6 @@ export type ScopedASTExpr = RawASTExpr<ScopeInfo>;
 
 export type AnalyzedDesmoscript = {
     rootExpr: ScopedASTExpr,
-    rootScope: Scope
+    rootScope: Scope,
+    files: string[]
 };

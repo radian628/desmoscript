@@ -30,7 +30,7 @@ function err(expr: ASTExpr, reason: string): never {
 }
 
 
-export async function getDesmoscriptScopes(filename: string): Promise<AnalyzedDesmoscript> {
+export async function getDesmoscriptScopes(filename: string, additionalDefines?: Map<string, ScopeContent>): Promise<AnalyzedDesmoscript> {
     const src = (await fs.readFile(filename)).toString();
     let lexer = new DesmoscriptLexer(CharStreams.fromString(src));
     let tokenStream = new CommonTokenStream(lexer);
@@ -47,16 +47,23 @@ export async function getDesmoscriptScopes(filename: string): Promise<AnalyzedDe
 
     process.chdir(path.dirname(path.join(oldcwd, filename)));
 
-    const ctx = makeDefaultDesmoscriptContext();
-    await calculateScopes(ast, ctx.builtins, true);
+    const ctx = makeDefaultDesmoscriptContext(filename);
+    if (additionalDefines) {
+        for (let [k, v] of additionalDefines.entries()) {
+            ctx.builtins.contents.set(k, v);
+        }
+    }
+    await calculateScopes(ctx, ast, ctx.builtins, true);
 
     process.chdir(oldcwd);
+
 
     //console.log(ctx.builtins);
 
     return {
         rootExpr: ast as ScopedASTExpr,
-        rootScope: ctx.builtins
+        rootScope: ctx.builtins,
+        files: ctx.files
     };;
 }
 
@@ -102,7 +109,7 @@ function findDeclaration(enclosingScope: Scope | undefined, ident: ASTIdentifier
     };
 }
 
-export async function calculateScopes(e: ScopedASTExpr, scope: Scope, isTopLevel: boolean, options?: { noCodeGen: boolean }): 
+export async function calculateScopes(ctx: DesmoscriptContext, e: ScopedASTExpr, scope: Scope, isTopLevel: boolean, options?: { noCodeGen: boolean }): 
 Promise<void> {
     e.equivalentScope = scope;
     if (isTopLevel) {
@@ -113,8 +120,8 @@ Promise<void> {
     }
     switch (e.type) {
     case ASTType.BINOP:
-        await calculateScopes(e.left, scope, false);
-        await calculateScopes(e.right, scope, false);
+        await calculateScopes(ctx, e.left, scope, false);
+        await calculateScopes(ctx, e.right, scope, false);
         if (e.op == "=") {
             if (e.left.type != ASTType.IDENTIFIER) {
                 err(e, `Invalid left-hand side of assignment.`);
@@ -134,25 +141,25 @@ Promise<void> {
         break;
     case ASTType.ROOT:
         for (let expr of e.expressions) {
-            await calculateScopes(expr, scope, true);
+            await calculateScopes(ctx, expr, scope, true);
         }
         break;
     case ASTType.NUMBER:
     case ASTType.IDENTIFIER:
         break;
     case ASTType.POINT:
-        await calculateScopes(e.x, scope, false);
-        await calculateScopes(e.y, scope, false);
+        await calculateScopes(ctx, e.x, scope, false);
+        await calculateScopes(ctx, e.y, scope, false);
         break;
     case ASTType.FNCALL:
-        await calculateScopes(e.name, scope, false);
+        await calculateScopes(ctx, e.name, scope, false);
         for (let arg of e.args) {
-            await calculateScopes(arg, scope, false);
+            await calculateScopes(ctx, arg, scope, false);
         }
         break;
     case ASTType.MACROCALL:
         // for (let arg of e.args) {
-        //     await calculateScopes(arg, scope, false);
+        //     await calculateScopes(ctx, arg, scope, false);
         // }
         if (e.name.type != ASTType.IDENTIFIER) throw {
             expr: e,
@@ -163,22 +170,22 @@ Promise<void> {
             expr: e,
             reason: "This identifier does not represent a macro."
         };
-        e.substitution = macroInfo.fn(e);
-        await calculateScopes(e.substitution, scope, false);
+        e.substitution = macroInfo.fn(e, ctx);
+        await calculateScopes(ctx, e.substitution, scope, false);
         break;
     case ASTType.LIST:
         for (let elem of e.elements) {
-            await calculateScopes(elem, scope, false);
+            await calculateScopes(ctx, elem, scope, false);
         }
         break;
     case ASTType.STEP_RANGE:
-        await calculateScopes(e.left, scope, false);
-        await calculateScopes(e.step, scope, false);
-        await calculateScopes(e.right, scope, false);
+        await calculateScopes(ctx, e.left, scope, false);
+        await calculateScopes(ctx, e.step, scope, false);
+        await calculateScopes(ctx, e.right, scope, false);
         break;
     case ASTType.FNDEF:
     //case ASTType.MACRODEF:
-        await calculateScopes(e.name, scope, false);
+        await calculateScopes(ctx, e.name, scope, false);
     case ASTType.NAMESPACE:
     case ASTType.BLOCK:
         const isFunctionOrMacro = e.type == ASTType.FNDEF;
@@ -214,7 +221,7 @@ Promise<void> {
             }
         }
         for (let expr of e.bodyExprs) {
-            await calculateScopes(expr, innerScope, true);
+            await calculateScopes(ctx, expr, innerScope, true);
         }
         e.innerScope = innerScope;
 
@@ -222,13 +229,14 @@ Promise<void> {
         break;
     case ASTType.MATCH:
         for (let [predicate, result] of e.branches) {
-            await calculateScopes(predicate, scope, false);
-            await calculateScopes(result, scope, false);
+            await calculateScopes(ctx, predicate, scope, false);
+            await calculateScopes(ctx, result, scope, false);
         }
-        if (e.fallback) await calculateScopes(e.fallback, scope, false);
+        if (e.fallback) await calculateScopes(ctx, e.fallback, scope, false);
         break;
     case ASTType.IMPORT:
         const otherFileCtx = (await getDesmoscriptScopes(e.filename));
+        ctx.files.push(e.filename);
         if (e.alias) {
             otherFileCtx.rootScope.parent = scope;
             otherFileCtx.rootScope.scopeName = e.alias;
@@ -259,10 +267,10 @@ Promise<void> {
             innerScope2.contents.set(varName, {
                 type: Identifier.FUNCTION_ARG
             });
-            await calculateScopes(list, innerScope2, false);
+            await calculateScopes(ctx, list, innerScope2, false);
         }
 
-        await calculateScopes(e.body, innerScope2, false);
+        await calculateScopes(ctx, e.body, innerScope2, false);
 
         scope.contents.set(scopeName2, { type: Identifier.SCOPE, root: innerScope2 });
 
@@ -273,9 +281,9 @@ Promise<void> {
         e.innerScope = innerScope3;
 
         innerScope3.contents.set(e.varName, { type: Identifier.FUNCTION_ARG});
-        await calculateScopes(e.lo, innerScope3, false);
-        await calculateScopes(e.hi, innerScope3, false);
-        await calculateScopes(e.body, innerScope3, false);
+        await calculateScopes(ctx, e.lo, innerScope3, false);
+        await calculateScopes(ctx, e.hi, innerScope3, false);
+        await calculateScopes(ctx, e.body, innerScope3, false);
 
         scope.contents.set(scopeName3, { type: Identifier.SCOPE, root: innerScope3 });
         break;
@@ -285,35 +293,35 @@ Promise<void> {
         e.innerScope = innerScope4;
 
         innerScope4.contents.set(e.variable, { type: Identifier.FUNCTION_ARG });
-        await calculateScopes(e.body, innerScope4, false);
+        await calculateScopes(ctx, e.body, innerScope4, false);
 
         scope.contents.set(scopeName4, { type: Identifier.SCOPE, root: innerScope4 });
         break;
     case ASTType.MEMBERACCESS:
-        calculateScopes(e.left, scope, false);
+        calculateScopes(ctx, e.left, scope, false);
         break;
     case ASTType.JSON:
         switch (e.data.jsontype) {
         case JSONType.OBJECT:
             //console.log("got here! DJSON object");
-            Object.values(e.data.data).forEach(v => calculateScopes(v, scope, false));
+            Object.values(e.data.data).forEach(v => calculateScopes(ctx, v, scope, false));
             break;
         case JSONType.ARRAY:
-            e.data.data.forEach(v => calculateScopes(v, scope, false));
+            e.data.data.forEach(v => calculateScopes(ctx, v, scope, false));
             break;
         case JSONType.DESMOSCRIPT:
             //console.log("got here! DJSON Desmoscript");
-            calculateScopes(e.data.data, scope, true, { noCodeGen: true });
+            calculateScopes(ctx, e.data.data, scope, true, { noCodeGen: true });
         }
         break;
     case ASTType.DECORATOR:
         scope.contents.set(anonScope(), { type: Identifier.DECORATOR, root: e });
-        await calculateScopes(e.expr, scope, true, { noCodeGen: true });
-        calculateScopes(e.json, scope, false);
+        await calculateScopes(ctx, e.expr, scope, true, { noCodeGen: true });
+        calculateScopes(ctx, e.json, scope, false);
         break;
     case ASTType.NAMED_JSON:
         scope.contents.set(anonScope(), { type: Identifier.NAMED_JSON, root: e });
-        calculateScopes(e.json, scope, false);
+        calculateScopes(ctx, e.json, scope, false);
         break;
     case ASTType.NOTE:
         scope.contents.set(anonScope(), { type: Identifier.NOTE, root: e.text });
@@ -325,11 +333,12 @@ Promise<void> {
 
 
 export async function semanticallyAnalyzeDesmoscript(expr: ASTExpr, ctx: DesmoscriptContext): Promise<AnalyzedDesmoscript> {
-    await calculateScopes(expr, ctx.builtins, true);
+    await calculateScopes(ctx, expr, ctx.builtins, true);
 
     return {
         rootExpr: expr as ScopedASTExpr,
-        rootScope: ctx.builtins
+        rootScope: ctx.builtins,
+        files: ctx.files
     };
 }
 

@@ -15,8 +15,9 @@ function getExprContext(expr: RawASTExpr<ScopeInfo>) {
     };
 }
 
-export function makeDefaultDesmoscriptContext(): DesmoscriptContext {
+export function makeDefaultDesmoscriptContext(entry: string): DesmoscriptContext {
     return {
+        files: [entry],
         builtins: {
             scopeName: "",
             contents: new Map<string, ScopeContent>()

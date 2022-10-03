@@ -71,6 +71,7 @@ show displayedColorLatex = 2 * x; with @{
 }
 
 
+
 "Graph Settings"
 settings @{
     viewport: {

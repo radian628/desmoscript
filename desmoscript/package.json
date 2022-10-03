@@ -1,9 +1,12 @@
 {
   "name": "desmoscript",
-  "version": "0.1.4",
+  "version": "0.1.6",
   "description": "A programming language that compiles to Desmos expression.",
   "main": "dist/index.mjs",
-  "files": ["dist"],
+  "files": [
+    "dist",
+    "dist/grammar"
+  ],
   "types": "dist/index.d.mts",
   "type": "module",
   "scripts": {
@@ -17,6 +20,7 @@
     "@types/node": "^18.7.16",
     "antlr4": "^4.10.1",
     "antlr4ts": "^0.5.0-alpha.4",
+    "chokidar": "^3.5.3",
     "typescript": "^4.8.3",
     "zod": "^3.19.0"
   },
