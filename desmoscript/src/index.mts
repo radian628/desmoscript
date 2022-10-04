@@ -87,9 +87,8 @@ export async function runCompilerWebServer(infile: string, serverOptions?: Compi
     await compile();
 
     const server = http.createServer((req, res) => {
-        res
-            .setHeader("Access-Control-Allow-Origin", "*")
-            .end(output);
+        res.setHeader("Access-Control-Allow-Origin", "*")
+        res.end(output);
     });
     server.listen(options.port);
     console.log(`Desmoscript server listening on port ${options.port}.`);
