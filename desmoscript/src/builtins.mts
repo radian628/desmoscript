@@ -66,7 +66,7 @@ export function makeDefaultDesmoscriptContext(entry: string): DesmoscriptContext
                         ...getExprContext(expr),
                         type: ASTType.NOTE,
                         text: ""
-                    }
+                    };
                 }
             })
 

@@ -57,7 +57,6 @@ export async function getDesmoscriptScopes(filename: string, additionalDefines?:
 
     process.chdir(oldcwd);
 
-
     //console.log(ctx.builtins);
 
     return {
@@ -171,7 +170,7 @@ Promise<void> {
             reason: "This identifier does not represent a macro."
         };
         e.substitution = macroInfo.fn(e, ctx);
-        await calculateScopes(ctx, e.substitution, scope, false);
+        await calculateScopes(ctx, e.substitution, scope, isTopLevel);
         break;
     case ASTType.LIST:
         for (let elem of e.elements) {
@@ -334,6 +333,7 @@ Promise<void> {
 
 export async function semanticallyAnalyzeDesmoscript(expr: ASTExpr, ctx: DesmoscriptContext): Promise<AnalyzedDesmoscript> {
     await calculateScopes(ctx, expr, ctx.builtins, true);
+
 
     return {
         rootExpr: expr as ScopedASTExpr,

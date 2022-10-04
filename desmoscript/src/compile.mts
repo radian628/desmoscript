@@ -312,6 +312,9 @@ export function compileDesmoscriptScopeTree(code: AnalyzedDesmoscript): GraphSta
                     text: content.root
                 });
                 break;
+            case Identifier.EXPRESSION:
+                if (typeof content.root != "string" && content.root.type == ASTType.MACROCALL) compileSingleExpression(content.root);
+                break;
             // case Identifier.EXPRESSION:
             //     console.log(content.root);
             //     switch (content.root.type) {

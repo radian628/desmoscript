@@ -47,7 +47,7 @@ expression
     | '{' exprs+=expression+ '}' # BlockExpr
     | 'match' '{' (predicate+=expression '=>' result+=expression ';')* (fallback+=expression ';')? '}' # MatchExpr
     | left=expression op='->' right=expression                               # ActionExpr
-    | left=expression op='=' right=expression ';'                              # AssignmentExpr
+    | left=expression op='=' right=expression         ';'                     # AssignmentExpr
     ;
 
 expressionList : expression+ ;

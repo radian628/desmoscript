@@ -5,7 +5,7 @@ import { DesmoscriptContext, Identifier, MacroDefinition, Scope, ScopedASTExpr, 
 import { ASTFunctionCall, ASTType } from "desmoscript/dist/ast.mjs";
 //import * as chokidar from "chokidar";
 
-const entryPoint = "./testfiles/showcase.desmo";
+const entryPoint = "./testfiles/parametric-renderer.desmo";
 
 const additionalDefines = new Map<string, MacroDefinition>();
 

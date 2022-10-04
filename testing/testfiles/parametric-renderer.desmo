@@ -1,5 +1,9 @@
 import "./lib.desmo" as lib;
 
+makeBuiltin!(mean)
+
+meantest = mean(1,2,3);
+
 lowerBoundU = -3.141592;
 upperBoundU = 3.141592;
 lowerBoundV = -3.141592;
@@ -50,7 +54,7 @@ zValues = parametricZ(pairs) - view.zpos;
 
 xValuesR1 = xValues * cos(view.rotation\x) - zValues * sin(view.rotation\x);
 yValuesR1 = yValues;
-zValuesR1 = xValues * sin(view.rotation\x) + zValues * cos(view.rotation\x); 
+zValuesR1 = xValues * sin(view.rotation\x) + zValues * cos(view.rotation\x);
 
 xValuesR2 = xValuesR1;
 yValuesR2 = yValuesR1 * cos(view.rotation\y) - zValuesR1 * sin(view.rotation\y);
@@ -147,6 +151,7 @@ polygonColors = sort([
         yLightOffsetN = yLightOffset / lightDist;
         zLightOffsetN = zLightOffset / lightDist;
         brightness = max(xLightOffsetN * normal.x[i] + yLightOffsetN * normal.y[i] + zLightOffsetN * normal.z[i], 0) / lightDist / lightDist;
+        
         rgb(
             total(brightness * light.rvalue) * 256,
             total(brightness * light.gvalue) * 256,
@@ -157,6 +162,7 @@ polygonColors = sort([
     i=1 .. length(polyVertex1)
 ], depthSorting.negDepths);
 
+//sidfksdjjdhfjhsdjf
 
 show polygons = 
     sort(polygon(
@@ -170,6 +176,6 @@ with @{
     lines: false,
     fillOpacity: ds(1),
     colorLatex: ds(polygonColors)
-}
+};
 
-/* thisShouldBeThree = three!(); */
+/* thisShouldBeThree = three!() */

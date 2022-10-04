@@ -2,7 +2,7 @@ import * as desmoscript from "desmoscript";
 import { Identifier } from "desmoscript/dist/semantic-analysis-types.mjs";
 import { ASTType } from "desmoscript/dist/ast.mjs";
 //import * as chokidar from "chokidar";
-const entryPoint = "./testfiles/showcase.desmo";
+const entryPoint = "./testfiles/parametric-renderer.desmo";
 const additionalDefines = new Map();
 additionalDefines.set("three", {
     type: Identifier.MACRO,
