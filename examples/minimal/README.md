@@ -1,5 +1,7 @@
 # How to get started with Desmoscript
 
+Tested on NodeJS version v16.13.0. **Known to not work on NodeJS version 14 and below.**
+
 This is a fairly minimal example of Desmoscript. Try it yourself by following these steps:
 1. Navigate to this folder ((repository root)/`examples/minimal`)
 2. Install required NPM packages (including the `desmoscript` module):
