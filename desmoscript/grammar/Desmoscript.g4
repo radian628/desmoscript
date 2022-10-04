@@ -50,7 +50,7 @@ expression
     | left=expression op='=' right=expression         ';'                     # AssignmentExpr
     ;
 
-expressionList : expression+ ;
+expressionList : expression+ EOF ;
 
 functionDefArgList 
     : (args+=IDENTIFIER_SEGMENT ',')* args+=IDENTIFIER_SEGMENT ;

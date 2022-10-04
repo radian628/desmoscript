@@ -3,6 +3,6 @@
         "start": "node --experimental-specifier-resolution=node server.mjs"
     },
     "dependencies": {
-        "desmoscript": "^0.1.8"
+        "desmoscript": "^0.1.9"
     }
 }

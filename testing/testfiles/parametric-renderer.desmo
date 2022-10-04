@@ -176,6 +176,6 @@ with @{
     lines: false,
     fillOpacity: ds(1),
     colorLatex: ds(polygonColors)
-};
+}
 
 /* thisShouldBeThree = three!() */

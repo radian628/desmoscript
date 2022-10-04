@@ -1,6 +1,6 @@
 {
   "name": "desmoscript",
-  "version": "0.1.8",
+  "version": "0.1.10",
   "description": "A programming language that compiles to Desmos expression.",
   "main": "dist/index.mjs",
   "files": [
