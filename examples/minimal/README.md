@@ -1,7 +1,7 @@
 # How to get started with Desmoscript
 
 This is a fairly minimal example of Desmoscript. Try it yourself by following these steps:
-1. Navigate to this folder (e.g. with `cd`).
+1. Navigate to this folder ((repository root)/`examples/minimal`)
 2. Install required NPM packages (including the `desmoscript` module):
 ```
 npm install
