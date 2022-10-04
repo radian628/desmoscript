@@ -16,6 +16,7 @@ npm start
 ```js
 Calc.setState(await (await fetch("http://localhost:8081")).text());
 ```
+Alternatively, you can use [this tampermonkey extension](https://gist.github.com/radian628/d89a6868f57f425f8a355467bce93eda). You will then have to put `http://localhost:8081` into the box in the bottom right and press the button.
 
 
 If you want to set up a Desmoscript environment yourself, do be aware that as of right now, there are a few conditions to its use, which are currently being resolved:
