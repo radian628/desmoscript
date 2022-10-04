@@ -1,4 +1,4 @@
-import { ASTBinop, ASTType, RawASTExpr } from "./ast.mjs";
+import { ASTBinop, ASTNote, ASTType, RawASTExpr } from "./ast.mjs";
 import { DesmoscriptContext, Identifier, ScopeContent, ScopeInfo } from "./semantic-analysis-types.mjs";
 
 const builtin: ScopeContent = { type: Identifier.BUILTIN_FUNCTION };
@@ -28,6 +28,7 @@ export function makeDefaultDesmoscriptContext(entry: string): DesmoscriptContext
             .set("hsv", builtin)
             .set("polygon", builtin)
             .set("floor", builtin)
+            .set("ceil", builtin)
             .set("mod", builtin)
             .set("join", builtin)
             .set("sort", builtin)
@@ -52,6 +53,19 @@ export function makeDefaultDesmoscriptContext(entry: string): DesmoscriptContext
                             type: ASTType.NUMBER,
                             number: 1
                         }
+                    }
+                }
+            })
+            .set("makeBuiltin", {
+                type: Identifier.MACRO,
+                fn: (expr, ctx): ASTNote<ScopeInfo> => {
+                    if (expr.args[0].type == ASTType.IDENTIFIER) {
+                        ctx.builtins.contents.set(expr.args[0].segments[0], builtin);
+                    }
+                    return {
+                        ...getExprContext(expr),
+                        type: ASTType.NOTE,
+                        text: ""
                     }
                 }
             })

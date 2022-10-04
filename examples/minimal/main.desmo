@@ -1,4 +1,7 @@
 "Desmoscript minimal example"
 y = x;
 
-z = 2*x;
+z = match {
+    (x == 1) => 5;
+    3;
+};

@@ -12,7 +12,8 @@ const optable: { [key: string]: string } = {
     "<=": "\\le ",
     "->": "\\to ",
     "..": "...",
-    "=": "="
+    "=": "=",
+    "==": "="
 }
 
 function opToLatex<T>(expr: ASTBinop<T>) {
