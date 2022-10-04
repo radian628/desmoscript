@@ -9,6 +9,13 @@ Desmoscript is a programming language that compiles to Desmos graph state. It is
 - **Catch as many errors at compile-time as possible.**
 - **Allow Desmos to interface with the outside world**&mdash; An extensible macro system should allow Desmoscript to import external data&mdash; for instance, Desmoscript macros could be used to add 3D models, SVG paths, or CSV data to a Desmos graph, automatically formatted as Desmos data.
 
+## Notable Desmoscript Projects
+Want to see your project here? Send me a message or open an issue!
+| Creator | Description | Source | Graph |
+| ------- | ----------- | ------ | ----- |
+| Lenny-the-burger | 3-space Engine | https://gist.github.com/Lenny-the-burger/64e0157dd17902ca71e27a05e15bda7a | https://www.desmos.com/calculator/rwtgjjwktb |
+| radian628 | 3D Parametric Editor | https://github.com/radian628/desmoscript/blob/main/testing/testfiles/parametric-renderer.desmo | https://www.desmos.com/calculator/puxqfklrpa |
+
 ## Features (non-exhaustive)
 - arithmetic
 - functions
