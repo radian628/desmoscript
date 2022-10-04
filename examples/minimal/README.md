@@ -13,7 +13,7 @@ npm install
 npm start
 ```
 4. Go to Desmos and paste the following into the browser console. This will request the Desmos state from the Desmoscript web server and move it to the calculator:
-```
+```js
 Calc.setState(await (await fetch("http://localhost:8081")).text());
 ```
 
