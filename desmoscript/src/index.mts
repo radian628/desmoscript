@@ -21,6 +21,13 @@ export type CompileOptions = {
     additionalDefines?: Map<string, MacroDefinition>
 }
 
+function logError(content: string) {
+    console.log('\u001b[' + 31 + 'm' + content + '\u001b[0m');
+}
+function logSuccess(content: string) {
+    console.log('\u001b[' + 32 + 'm' + content + '\u001b[0m')
+}
+
 export async function compileDesmoscriptToString(infile: string, options?: CompileOptions, files?: string[]): Promise<string> {
 
     const input = (await fs.readFile(infile)).toString();
@@ -40,8 +47,8 @@ export async function compileDesmoscriptToString(infile: string, options?: Compi
         return JSON.stringify(compiledAST);
     } catch (err) {
         const dserr: DesmoscriptError = err as DesmoscriptError;
-        if (!dserr.expr) console.error(`err: ${JSON.stringify(dserr)}`);
-        console.error(`line ${dserr.expr.line}; col ${dserr.expr.col}; ${dserr.reason}`);
+        if (!dserr.expr) logError(`err: ${JSON.stringify(dserr)}`);
+        logError(`line ${dserr.expr.line}; col ${dserr.expr.col}; ${dserr.reason}`);
         return "";
     }
 }
@@ -81,7 +88,7 @@ export async function runCompilerWebServer(infile: string, serverOptions?: Compi
             watcher.on("unlink", compile);
         }
         output = str;
-        console.log("Compiled.");
+        if (output) logSuccess("Compiled.");
     }
 
     await compile();

@@ -27,3 +27,7 @@ Desmoscript is a programming language that compiles to Desmos graph state. It is
 ## Example of (almost) all features
 (See the compiled output of this graph here.)[https://www.desmos.com/calculator/uwggjgonyn]
 https://github.com/radian628/desmoscript/blob/48e83b7fecc9fffa7d099c9d6198a1c6fb8ed2e6/testing/testfiles/showcase.desmo#L1-L85
+
+## Additional Contributors
+Big thanks to the following people for helping with this project:
+- @Lenny-the-burger on GitHub.

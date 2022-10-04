@@ -2,7 +2,7 @@ import { ASTBinop, ASTExpr, ASTFunctionDef, ASTIdentifier, ASTType, LineCol, Raw
 import * as fs from "fs/promises";
 import * as path from "path";
 import { DesmoscriptLexer } from "./grammar/DesmoscriptLexer.js";
-import { CharStreams, CommonTokenStream } from "antlr4ts";
+import { CharStreams, CommonTokenStream, ConsoleErrorListener } from "antlr4ts";
 import { DesmoscriptParser } from "./grammar/DesmoscriptParser.js";
 import { DesmoscriptASTBuilder } from "./parse.mjs";
 import { AnalyzedDesmoscript, DesmoscriptContext, Identifier, Scope, ScopeContent, ScopedASTExpr, ScopeInfo } from "./semantic-analysis-types.mjs";
@@ -35,6 +35,20 @@ export async function getDesmoscriptScopes(filename: string, additionalDefines?:
     let lexer = new DesmoscriptLexer(CharStreams.fromString(src));
     let tokenStream = new CommonTokenStream(lexer);
     let parser = new DesmoscriptParser(tokenStream);
+
+    parser.removeErrorListener(ConsoleErrorListener.INSTANCE);
+    parser.addErrorListener({
+        syntaxError(recognizer, offendingSymbol, line, charPositionInLine, msg, e) {
+            throw {
+                reason: msg, 
+                expr: {
+                    file: filename,
+                    line,
+                    col: charPositionInLine
+                }
+            }
+        },
+    });
 
     const oldcwd = process.cwd();
 
