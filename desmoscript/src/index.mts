@@ -21,9 +21,15 @@ export type CompileOptions = {
     additionalDefines?: Map<string, MacroDefinition>
 }
 
+// coloured logging functions
+function logInfo(content: string) {
+    console.log('\u001b[' + 90 + 'm' + content + '\u001b[0m');
+}
+
 function logError(content: string) {
     console.log('\u001b[' + 31 + 'm' + content + '\u001b[0m');
 }
+
 function logSuccess(content: string) {
     console.log('\u001b[' + 32 + 'm' + content + '\u001b[0m')
 }
@@ -32,18 +38,18 @@ export async function compileDesmoscriptToString(infile: string, options?: Compi
 
     const input = (await fs.readFile(infile)).toString();
     try {
-        if (options?.logProgress) console.log("Parsing...");
+        if (options?.logProgress) logInfo("Parsing...");
         const analyzedAST = (await getDesmoscriptScopes(infile, options?.additionalDefines));
 
         if (files) {
             files?.push(...analyzedAST.files);
         }
     
-        if (options?.logProgress) console.log("Compiling...");
+        if (options?.logProgress) logInfo("Compiling...");
         const compiledAST = compileDesmoscriptScopeTree(analyzedAST);
     
-        if (options?.logProgress) console.log("Writing...");
-        if (options?.logProgress) console.log("Done!");
+        if (options?.logProgress) logInfo("Writing...");
+        if (options?.logProgress) logInfo("Done!");
         return JSON.stringify(compiledAST);
     } catch (err) {
         const dserr: DesmoscriptError = err as DesmoscriptError;
@@ -82,7 +88,7 @@ export async function runCompilerWebServer(infile: string, serverOptions?: Compi
             await watcher.close();
         }
         if (options.watch) {
-            console.log(`Watching the following files: ${files.join("\n")}`);
+            logInfo(`Watching the following files: ${files.join("\n")}`);
             watcher = chokidar.watch(files);
             watcher.on("change", compile);
             watcher.on("unlink", compile);
