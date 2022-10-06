@@ -54,7 +54,7 @@ export async function compileDesmoscriptToString(infile: string, options?: Compi
     } catch (err) {
         const dserr: DesmoscriptError = err as DesmoscriptError;
         if (!dserr.expr) logError(`err: ${JSON.stringify(dserr)}`);
-        logError(`line ${dserr.expr.line}; col ${dserr.expr.col}; ${dserr.reason}`);
+        logError(`${dserr.expr.file} line ${dserr.expr.line}; col ${dserr.expr.col}; ${dserr.reason}`);
         return "";
     }
 }
