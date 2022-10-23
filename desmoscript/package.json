@@ -12,7 +12,7 @@
   "scripts": {
     "antlr": "npx antlr4ts -visitor grammar/Desmoscript.g4 -o ./src/grammar",
     "dev": "npx tsc --watch",
-    "start": "node --trace-warnings --es-module-specifier-resolution=node dist/index.mjs",
+    "start": "node --trace-warnings --es-module-specifier-resolution=node server.mjs",
     "build": "npx tsc",
     "prepare": "npm run antlr && npm run build"
   },
