@@ -14,7 +14,7 @@ Want to see your project here? Send me a message or open an issue!
 | Creator | Description | Source | Graph |
 | ------- | ----------- | ------ | ----- |
 | Lenny-the-burger | 3-space Engine | [Link](https://gist.github.com/Lenny-the-burger/64e0157dd17902ca71e27a05e15bda7a) | [Link](https://www.desmos.com/calculator/rwtgjjwktb) |
-| radian628 | 3D Parametric Editor | [Link](https://github.com/radian628/desmoscript/blob/main/testing/testfiles/parametric-renderer.desmo) | [Link](https://www.desmos.com/calculator/puxqfklrpa) |
+| radian628 | 3D Parametric Editor | [Link](https://github.com/radian628/desmoscript/blob/main/examples/parametric-renderer/main.desmo) | [Link](https://www.desmos.com/calculator/puxqfklrpa) |
 
 ## Features (non-exhaustive)
 - arithmetic

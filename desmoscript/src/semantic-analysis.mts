@@ -5,8 +5,8 @@ import { DesmoscriptLexer } from "./grammar/DesmoscriptLexer.js";
 import { CharStreams, CommonTokenStream, ConsoleErrorListener } from "antlr4ts";
 import { DesmoscriptParser } from "./grammar/DesmoscriptParser.js";
 import { DesmoscriptASTBuilder } from "./parse.mjs";
-import { AnalyzedDesmoscript, DesmoscriptContext, Identifier, Scope, ScopeContent, ScopedASTExpr, ScopeInfo } from "./semantic-analysis-types.mjs";
-import { makeDefaultDesmoscriptContext } from "./builtins.mjs";
+import { AnalyzedDesmoscript, DesmoscriptContext, Identifier, MacroAPI, Scope, ScopeContent, ScopedASTExpr, ScopeInfo } from "./semantic-analysis-types.mjs";
+import { getExprContext, makeDefaultDesmoscriptContext } from "./builtins.mjs";
 
 //how do I represent generics in a type system?
 
@@ -122,6 +122,60 @@ function findDeclaration(enclosingScope: Scope | undefined, ident: ASTIdentifier
     };
 }
 
+
+export async function getMacroAPI(e: ScopedASTExpr): Promise<MacroAPI> {
+  let ctx = getExprContext(e);
+  
+  return {
+    number: n => {
+      return {
+        ...ctx,
+        type: ASTType.NUMBER,
+        number: n
+      }
+    },
+    binop: (left, op, right) => {
+      return {
+        ...ctx,
+        type: ASTType.BINOP,
+        left, op, right
+      }
+    },
+    list: (...elements) => {
+      return {
+        ...ctx,
+        type: ASTType.LIST,
+        elements
+      }
+    },
+    fndef: (name, args, body) => {
+      return {
+        ...ctx,
+        type: ASTType.FNDEF,
+        name: { ...ctx, type: ASTType.IDENTIFIER, segments: [name] },
+        args,
+        bodyExprs: body
+      }
+    },
+    fn: (name, ...args) => {
+      return {
+        ...ctx,
+        type: ASTType.FNCALL,
+        name,
+        args
+      }
+    },
+    note: text => {
+      return {
+        ...ctx,
+        type: ASTType.NOTE,
+        text
+      }
+    }
+  };
+}
+
+
 export async function calculateScopes(ctx: DesmoscriptContext, e: ScopedASTExpr, scope: Scope, isTopLevel: boolean, options?: { noCodeGen: boolean }): 
 Promise<void> {
     e.equivalentScope = scope;
@@ -183,7 +237,7 @@ Promise<void> {
             expr: e,
             reason: "This identifier does not represent a macro."
         };
-        e.substitution = macroInfo.fn(e, ctx);
+        e.substitution = await macroInfo.fn(e, ctx, await getMacroAPI(e));
         await calculateScopes(ctx, e.substitution, scope, isTopLevel);
         break;
     case ASTType.LIST:

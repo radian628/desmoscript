@@ -216,7 +216,7 @@ export class DesmoscriptASTBuilder extends AbstractParseTreeVisitor<ds.ASTExpr> 
     visitMacroCall(ctx: MacroCallContext): ds.ASTExpr {
         return this.withLineCol<ds.ASTFunctionCall<{}>>(ctx, {
             name: this.visit(ctx._fnname),
-            args: ctx._fnargs._args.map(arg => this.visit(arg)),
+            args: ctx._fnargs ? ctx._fnargs._args.map(arg => this.visit(arg)) : [],
             type: ds.ASTType.MACROCALL
         });
     }

@@ -3,9 +3,8 @@ import * as http from "node:http";
 import * as fs from "node:fs/promises";
 import { DesmoscriptContext, Identifier, MacroDefinition, Scope, ScopedASTExpr, ScopeInfo } from "desmoscript/dist/semantic-analysis-types.mjs";
 import { ASTFunctionCall, ASTType } from "desmoscript/dist/ast.mjs";
-//import * as chokidar from "chokidar";
 
-const entryPoint = "./testfiles/parametric-renderer.desmo";
+const entryPoint = "./testfiles/macro.desmo";
 
 const additionalDefines = new Map<string, MacroDefinition>();
 
@@ -13,11 +12,20 @@ additionalDefines.set("three", {
     type: Identifier.MACRO,
     fn: (ast: ASTFunctionCall<ScopeInfo>, ctx: DesmoscriptContext) => {
         return {
-            ...ast,
+            ...desmoscript.getExprContext(ast),
             type: ASTType.NUMBER,
             number: 3
         };
     }
+});
+
+additionalDefines.set("apiTest", {
+  type: Identifier.MACRO,
+  fn: (ast, ctx, m) => {
+    return new Promise((resolve) => {
+      resolve(m.number(12345));
+    })
+  }
 });
 
 desmoscript.runCompilerWebServer(entryPoint, {
@@ -25,17 +33,3 @@ desmoscript.runCompilerWebServer(entryPoint, {
     port: 8081,
     additionalDefines
 });
-
-// async function compile() {
-//     await desmoscript.compileDesmoscriptFromFile(entryPoint, "testfiles/out.json");
-//     console.log("Compiled!");
-// }
-
-// compile();
-
-// chokidar.watch(entryPoint).on("change", path => compile());
-
-// http.createServer(async (req, res) => {
-//     res.setHeader("Access-Control-Allow-Origin", "*");
-//     res.end(await fs.readFile("./testfiles/out.json"));
-// }).listen(8082);

@@ -5,7 +5,7 @@ const builtin: ScopeContent = { type: Identifier.BUILTIN_FUNCTION };
 
 const builtinVar: ScopeContent = { type: Identifier.BUILTIN_VARIABLE };
 
-function getExprContext(expr: RawASTExpr<ScopeInfo>) {
+export function getExprContext(expr: RawASTExpr<ScopeInfo>) {
     return {
         line: expr.line,
         col: expr.col,

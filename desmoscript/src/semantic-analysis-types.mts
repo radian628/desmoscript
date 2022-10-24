@@ -1,4 +1,4 @@
-import { ASTBinop, ASTDecorator, ASTExpr, ASTFunctionCall, ASTFunctionDef, ASTNamedJSON, RawASTExpr } from "./ast.mjs";
+import { ASTBinop, ASTDecorator, ASTExpr, ASTFunctionCall, ASTFunctionDef, ASTIdentifier, ASTList, ASTNamedJSON, ASTNote, ASTNumber, RawASTExpr } from "./ast.mjs";
 
 export type DesmoscriptError = {
     expr: ASTExpr,
@@ -9,9 +9,18 @@ export enum Identifier {
     FUNCTION, MACRO, VARIABLE, EXPRESSION, SCOPE, BUILTIN_FUNCTION, FUNCTION_ARG, DECORATOR, NAMED_JSON, NOTE, BUILTIN_VARIABLE
 }
 
+export type MacroAPI = {
+  number: (n: number) => ASTNumber<ScopeInfo>,
+  binop: (left: RawASTExpr<ScopeInfo>, op: ASTBinop<ScopeInfo>["op"], right: RawASTExpr<ScopeInfo>) => ASTBinop<ScopeInfo>,
+  list: (...args: RawASTExpr<ScopeInfo>[]) => ASTList<ScopeInfo>,
+  fndef: (name: string, args: string[], body: RawASTExpr<ScopeInfo>[]) => ASTFunctionDef<ScopeInfo>,
+  fn: (name: ASTIdentifier<ScopeInfo>, ...args: RawASTExpr<ScopeInfo>[]) => ASTFunctionCall<ScopeInfo>,
+  note: (content: string) => ASTNote<ScopeInfo>
+}
+
 export type MacroDefinition = {
     type: Identifier.MACRO,
-    fn: (expr: ASTFunctionCall<ScopeInfo>, ctx: DesmoscriptContext) => ASTExpr
+    fn: (expr: ASTFunctionCall<ScopeInfo>, ctx: DesmoscriptContext, api: MacroAPI) => ASTExpr | Promise<ASTExpr>
 }
 
 export type ScopeContent = { 

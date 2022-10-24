@@ -11,6 +11,8 @@ import { makeDefaultDesmoscriptContext } from "./builtins.mjs";
 import * as chokidar from "chokidar";
 import * as http from "node:http";
 
+export { getExprContext } from "./builtins.mjs";
+
 process.on("unhandledRejection", (reason, p) => {
     //@ts-ignore
     console.log("Unhandled rejection: ", reason);
@@ -53,7 +55,7 @@ export async function compileDesmoscriptToString(infile: string, options?: Compi
         return JSON.stringify(compiledAST);
     } catch (err) {
         const dserr: DesmoscriptError = err as DesmoscriptError;
-        if (!dserr.expr) logError(`err: ${JSON.stringify(dserr)}`);
+        if (!dserr.expr) logError(`err: ${JSON.stringify(dserr)} ${(err as Error).stack}`);
         logError(`${dserr.expr.file} line ${dserr.expr.line}; col ${dserr.expr.col}; ${dserr.reason}`);
         return "";
     }
