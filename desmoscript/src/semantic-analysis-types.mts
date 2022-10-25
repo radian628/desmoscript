@@ -29,6 +29,7 @@ export type MacroAPI = {
   member: (left: ScopedASTExpr, right: string) => ASTMemberAccess<ScopeInfo>,
   json: (json: any) => ASTJSON<ScopeInfo>,
   namedjson: (name: string, json: ScopedASTExpr) => ASTNamedJSON<ScopeInfo>,
+  error: (message: string) => never
 }
 
 export type MacroDefinition = {

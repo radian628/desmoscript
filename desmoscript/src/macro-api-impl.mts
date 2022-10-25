@@ -124,6 +124,12 @@ export async function getMacroAPI(e: ScopedASTExpr): Promise<MacroAPI> {
       },
       namedjson: (name, json) => {
         return { ...ctx, name, type: ASTType.NAMED_JSON, json }
+      },
+      error: message => {
+        throw {
+          expr: ctx,
+          reason: message
+        };
       }
     };
   }

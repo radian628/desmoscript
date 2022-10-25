@@ -1,5 +1,6 @@
 import { ASTBinop, ASTNote, ASTType, RawASTExpr } from "./ast.mjs";
 import { DesmoscriptContext, Identifier, ScopeContent, ScopeInfo } from "./semantic-analysis-types.mjs";
+import { loadObj, objVertexIndices, objVertices } from "./stdlib/obj-importer.mjs";
 
 const builtin: ScopeContent = { type: Identifier.BUILTIN_FUNCTION };
 
@@ -69,6 +70,9 @@ export function makeDefaultDesmoscriptContext(entry: string): DesmoscriptContext
                     };
                 }
             })
+            .set("loadObj", { fn: loadObj, type: Identifier.MACRO })
+            .set("objVertices", { fn: objVertices, type: Identifier.MACRO })
+            .set("objVertexIndices", { fn: objVertexIndices, type: Identifier.MACRO })
 
             // .set("sum", {
             //     type: Identifier.MACRO,
