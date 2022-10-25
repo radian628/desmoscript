@@ -1,0 +1,45 @@
+{
+    "autorun": true,
+    "autokill": true,
+    "terminals": [
+        {
+            "name": "Module Watch",
+            "description": "Watches the desmoscript module.",
+            "open": true,
+            "focus": false,
+            "commands": [
+                "cd desmoscript",
+                "npm run dev"
+            ]
+        },
+        {
+            "name": "Module Build",
+            "description": "Build the desmoscript module grammar or other assorted tasks.",
+            "open": true,
+            "focus": false,
+            "commands": [
+                "cd desmoscript",
+                "npm run dev"
+            ]
+        },
+        {
+            "name": "Testing Build",
+            "description": "Builds the testing typescript module.",
+            "open": true,
+            "focus": false,
+            "commands": [
+                "cd testing",
+                "npm run dev"
+            ]
+        },
+        {
+            "name": "Testing",
+            "description": "Run the testing typescript module.",
+            "open": true,
+            "focus": true,
+            "commands": [
+                "cd testing"
+            ]
+        }
+    ]
+}

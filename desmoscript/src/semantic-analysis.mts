@@ -7,6 +7,7 @@ import { DesmoscriptParser } from "./grammar/DesmoscriptParser.js";
 import { DesmoscriptASTBuilder } from "./parse.mjs";
 import { AnalyzedDesmoscript, DesmoscriptContext, Identifier, MacroAPI, Scope, ScopeContent, ScopedASTExpr, ScopeInfo } from "./semantic-analysis-types.mjs";
 import { getExprContext, makeDefaultDesmoscriptContext } from "./builtins.mjs";
+import { getMacroAPI } from "./macro-api-impl.mjs";
 
 //how do I represent generics in a type system?
 
@@ -122,58 +123,6 @@ function findDeclaration(enclosingScope: Scope | undefined, ident: ASTIdentifier
     };
 }
 
-
-export async function getMacroAPI(e: ScopedASTExpr): Promise<MacroAPI> {
-  let ctx = getExprContext(e);
-  
-  return {
-    number: n => {
-      return {
-        ...ctx,
-        type: ASTType.NUMBER,
-        number: n
-      }
-    },
-    binop: (left, op, right) => {
-      return {
-        ...ctx,
-        type: ASTType.BINOP,
-        left, op, right
-      }
-    },
-    list: (...elements) => {
-      return {
-        ...ctx,
-        type: ASTType.LIST,
-        elements
-      }
-    },
-    fndef: (name, args, body) => {
-      return {
-        ...ctx,
-        type: ASTType.FNDEF,
-        name: { ...ctx, type: ASTType.IDENTIFIER, segments: [name] },
-        args,
-        bodyExprs: body
-      }
-    },
-    fn: (name, ...args) => {
-      return {
-        ...ctx,
-        type: ASTType.FNCALL,
-        name,
-        args
-      }
-    },
-    note: text => {
-      return {
-        ...ctx,
-        type: ASTType.NOTE,
-        text
-      }
-    }
-  };
-}
 
 
 export async function calculateScopes(ctx: DesmoscriptContext, e: ScopedASTExpr, scope: Scope, isTopLevel: boolean, options?: { noCodeGen: boolean }): 

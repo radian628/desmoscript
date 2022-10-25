@@ -1,0 +1,34 @@
+{
+    "tasks": [
+        {
+            "label": "Create all terminals",
+            "type": "shell",
+            "command": "",
+            "problemMatcher": [],
+            "dependsOn": [
+                "Module Watch",
+                "Testing Watch"
+            ]
+        },
+        {
+            "label": "Module Watch",
+            "type": "shell",
+            "command": "cd desmoscript && npm run dev",
+            "presentation": {
+              "reveal": "always",
+              "panel": "new",
+              "close": false
+            },
+        },
+        {
+            "label": "Testing Watch",
+            "type": "shell",
+            "command": "cd testing && npm run dev",
+            "presentation": {
+              "reveal": "always",
+              "panel": "new",
+              "close": false
+            }
+        },
+    ]
+}

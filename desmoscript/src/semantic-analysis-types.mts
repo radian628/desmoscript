@@ -1,4 +1,4 @@
-import { ASTBinop, ASTDecorator, ASTExpr, ASTFunctionCall, ASTFunctionDef, ASTIdentifier, ASTList, ASTNamedJSON, ASTNote, ASTNumber, RawASTExpr } from "./ast.mjs";
+import { ASTBinop, ASTBlock, ASTDecorator, ASTDerivative, ASTExpr, ASTFunctionCall, ASTFunctionDef, ASTIdentifier, ASTImport, ASTJSON, ASTList, ASTListComp, ASTMatch, ASTMemberAccess, ASTNamedJSON, ASTNamespace, ASTNote, ASTNumber, ASTPoint, ASTStepRange, ASTSumProdInt, RawASTExpr } from "./ast.mjs";
 
 export type DesmoscriptError = {
     expr: ASTExpr,
@@ -15,7 +15,20 @@ export type MacroAPI = {
   list: (...args: RawASTExpr<ScopeInfo>[]) => ASTList<ScopeInfo>,
   fndef: (name: string, args: string[], body: RawASTExpr<ScopeInfo>[]) => ASTFunctionDef<ScopeInfo>,
   fn: (name: ASTIdentifier<ScopeInfo>, ...args: RawASTExpr<ScopeInfo>[]) => ASTFunctionCall<ScopeInfo>,
-  note: (content: string) => ASTNote<ScopeInfo>
+  note: (content: string) => ASTNote<ScopeInfo>,
+  ident: (...segments: string[]) => ASTIdentifier<ScopeInfo>,
+  point: (x: ScopedASTExpr, y: ScopedASTExpr) => ASTPoint<ScopeInfo>
+  range: (start: ScopedASTExpr, step: ScopedASTExpr, end: ScopedASTExpr) => ASTStepRange<ScopeInfo>,
+  ns: (name: string, args: ScopedASTExpr[]) => ASTNamespace<ScopeInfo>,
+  block: (args: ScopedASTExpr[]) => ASTBlock<ScopeInfo>,
+  match: (branches: [ScopedASTExpr, ScopedASTExpr][], fallback?: ScopedASTExpr) => ASTMatch<ScopeInfo>,
+  import: (filename: string, alias?: string) => ASTImport<ScopeInfo>,
+  sumprodint: (op: ASTSumProdInt<ScopeInfo>["opType"], varName: string, lo: ScopedASTExpr, hi: ScopedASTExpr, body: ScopedASTExpr) => ASTSumProdInt<ScopeInfo>,
+  derivative: (varName: string, body: ScopedASTExpr) => ASTDerivative<ScopeInfo>,
+  listcomp: (variables: [string, ScopedASTExpr][], body: ScopedASTExpr) => ASTListComp<ScopeInfo>,
+  member: (left: ScopedASTExpr, right: string) => ASTMemberAccess<ScopeInfo>,
+  json: (json: any) => ASTJSON<ScopeInfo>,
+  namedjson: (name: string, json: ScopedASTExpr) => ASTNamedJSON<ScopeInfo>,
 }
 
 export type MacroDefinition = {
