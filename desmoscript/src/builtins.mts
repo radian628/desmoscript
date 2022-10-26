@@ -1,5 +1,6 @@
 import { ASTBinop, ASTNote, ASTType, RawASTExpr } from "./ast.mjs";
 import { DesmoscriptContext, Identifier, ScopeContent, ScopeInfo } from "./semantic-analysis-types.mjs";
+import { sub } from "./stdlib/macroutils.mjs";
 import { loadObj } from "./stdlib/obj-importer.mjs";
 
 const builtin: ScopeContent = { type: Identifier.BUILTIN_FUNCTION };
@@ -71,6 +72,7 @@ export function makeDefaultDesmoscriptContext(entry: string): DesmoscriptContext
                 }
             })
             .set("loadObj", { fn: loadObj, type: Identifier.MACRO })
+            .set("sub", sub)
 
             // .set("sum", {
             //     type: Identifier.MACRO,

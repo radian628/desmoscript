@@ -21,3 +21,7 @@ show
         persp[obj.vertexIndices[3, 6 .. length(obj.vertexIndices)]]
     );
 with @{ color: "black", colorLatex: ds(colors) }
+
+sub!(doubleThis, macroVar, macroVar * 2)
+
+macrotestagain = doubleThis!(4);

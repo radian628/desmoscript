@@ -1,6 +1,7 @@
 import { ASTFunctionCall, ASTType } from "../ast.mjs";
 import { MacroAPI, MacroDefinition, ScopedASTExpr, ScopeInfo } from "../semantic-analysis-types.mjs";
 import * as fs from "node:fs/promises";
+import { parseIdentList, parseIdentSingleString, parseNoteString } from "./macroutils.mjs"
 
 
 export type ParsedOBJ = {
@@ -143,7 +144,7 @@ export async function parseObj(src: string) {
         case "mtllib":
             let mtls = (await Promise.all(
                 line.slice(1)
-                .map(async l => await fs.readFile(l))
+                .map(async l => await fs.readFile(l.replace(/\r/g, "")))
             )).map(mtl => mtl.toString())
                 .map(mtl => parseMtl(mtl));
             for (let mtl of mtls) {
@@ -159,31 +160,6 @@ export async function parseObj(src: string) {
         }
     }
     return output;
-}
-
-function parseNoteString(expr: ScopedASTExpr | undefined, a: MacroAPI, errctx: string): string {
-    if (!expr || expr.type != ASTType.NOTE) {
-        a.error(`Error in ${errctx}: Expected a string literal.`);
-    }
-    return expr.text;
-}
-
-function parseIdentSingleString(expr: ScopedASTExpr | undefined, a: MacroAPI, errctx: string): string {
-    if (!expr || expr.type != ASTType.IDENTIFIER) {
-        a.error(`Error in ${errctx}: Expected an identifier.`);
-    }
-    if (expr.segments.length != 1) {
-        a.error(`Error in ${errctx}: Expected the provided identifier to have only one segment (no '.')`);
-    }
-    return expr.segments[0];
-}
-
-
-function parseIdentList(expr: ScopedASTExpr | undefined, a: MacroAPI, errctx: string): string[] {
-    if (!expr || expr.type != ASTType.LIST) {
-        a.error(`Error in ${errctx}: Expected a list of identifiers.`);
-    }
-    return expr.elements.map((elem, i) => parseIdentSingleString(elem, a, `${errctx}, element ${i}`))
 }
 
 
