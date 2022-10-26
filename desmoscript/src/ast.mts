@@ -1,3 +1,4 @@
+import { never } from "zod";
 
 export enum ASTType {
     BINOP, NUMBER, ROOT, IDENTIFIER, POINT, FNCALL, LIST, STEP_RANGE, FNDEF, NAMESPACE, BLOCK, MATCH, MACRODEF, MACROCALL, IMPORT,
@@ -292,7 +293,79 @@ export function traverseAST<T>(e: RawASTExpr<T>, callback: (expr: RawASTExpr<T>)
 }
 
 
+function unreachable(x: never): never {
+    throw new Error("Unreachable code reached")
+}
 
+export enum MapASTOrder {
+    PRE, POST
+}
+
+function mapAST<T, U>(e: RawASTExpr<T>, callback: (expr: RawASTExpr<T>) => RawASTExpr<T>, order: MapASTOrder): RawASTExpr<T> {
+    function m(expr: RawASTExpr<T>) {
+        return mapAST(expr, callback, order);
+    }
+    
+    let e2 = { ...e };
+    if (order == MapASTOrder.PRE) e2 = callback(e2);
+    switch (e2.type) {
+        case ASTType.BINOP:
+            e2.left = m(e2.left);
+            e2.right = m(e2.right);
+            break;
+        case ASTType.BLOCK:
+            e2.bodyExprs = e2.bodyExprs.map(expr => m(expr));
+            break;
+        case ASTType.DECORATOR:
+            e2.json = m(e2.json);
+            e2.expr = m(e2.expr);
+            break;
+        case ASTType.DERIVATIVE:
+            e2.body = m(e2.body);
+            break;
+        case ASTType.FNCALL:
+            e2.args = e2.args.map(arg => m(arg));
+            e2.name = m(e2.name);
+            break;
+        case ASTType.FNDEF:
+            break;
+        case ASTType.IDENTIFIER:
+            break;
+        case ASTType.IMPORT:
+            break;
+        case ASTType.JSON:
+            break;
+        case ASTType.LIST:
+            break;
+        case ASTType.LISTCOMP:
+            break;
+        case ASTType.MACROCALL:
+            break;
+        case ASTType.MACRODEF:
+            break;
+        case ASTType.MATCH:
+            break;
+        case ASTType.MEMBERACCESS:
+            break;
+        case ASTType.NAMED_JSON:
+            break;
+        case ASTType.NAMESPACE:
+            break;
+        case ASTType.NOTE:
+            break;
+        case ASTType.NUMBER:
+            break;
+        case ASTType.POINT:
+            break;
+        case ASTType.ROOT:
+            break;
+        case ASTType.STEP_RANGE:
+            break;
+        case ASTType.SUMPRODINT:
+            break;
+    }
+    return (order == MapASTOrder.POST) ? callback(e2) : e2;
+}
 
 
 

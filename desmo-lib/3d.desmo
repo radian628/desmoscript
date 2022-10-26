@@ -1,0 +1,50 @@
+fn rayTriangleIntersection(
+    xray, yray, zray,
+    xdir, ydir, zdir,
+    xtri1, ytri1, ztri1,
+    xtri2, ytri2, ztri2,
+    xtri3, ytri3, ztri3
+) {
+    xe1 = xtri2 - xtri1;
+    ye1 = ytri2 - ytri1;
+    ze1 = ztri2 - ztri1;
+    xe2 = xtri3 - xtri1;
+    ye2 = ytri3 - ytri1;
+    ze2 = ztri3 - ztri1;
+    xnormal = ye1 * ze2 - ye2 * ze1;
+    ynormal = ze1 * xe2 - ze2 * xe1;
+    znormal = xe1 * ye2 - xe2 * ye1;
+    det = -1 * (
+        xdir * xnormal
+        + ydir * ynormal
+        + zdir * znormal
+    );
+    invdet = 1 / det;
+    xao = xray - xtri1;
+    yao = yray - ytri1;
+    zao = zray - ztri1;
+    xdao = yao * zdir - ydir * zao;
+    ydao = zao * xdir - zdir * xao;
+    zdao = xao * ydir - xdir * yao;
+    u = (xe2 * xdao 
+      + ye2 * ydao
+      + ze2 * zdao) * invdet;
+    v = -1 * (
+        xe1 * xdao
+      + ye1 * ydao
+      + ze1 * zdao
+    ) * invdet;
+    t = (
+        xao * xnormal
+      + yao * ynormal
+      + zao * znormal
+    ) * invdet;
+    (match
+        (det < 0.00001) => -1;
+        (t < 0) => -1;
+        (u < 0) => -1;
+        (v < 0) => -1;
+        ((u + v) > 1) => -1;
+        (t)
+    )
+}

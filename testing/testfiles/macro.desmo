@@ -1,5 +1,23 @@
-y = x;
+// load a .obj file
+loadObj!(obj, "./icosahedron.obj")
 
-macroTest = three!();
+// perspective-projected vertices of obj
+persp = (
+    obj.vertices.x / (obj.vertices.z + 10), 
+    obj.vertices.y / (obj.vertices.z + 10)
+);
 
-anotherMacroTest = apiTest!();
+colors = rgb(
+    obj.materials.diffuse.r[obj.faceMaterials] * 256,
+    obj.materials.diffuse.g[obj.faceMaterials] * 256,
+    obj.materials.diffuse.b[obj.faceMaterials] * 256
+);
+
+// display obj triangles using vertex indices
+show
+    polygons = polygon(
+        persp[obj.vertexIndices[1, 4 .. length(obj.vertexIndices)]],
+        persp[obj.vertexIndices[2, 5 .. length(obj.vertexIndices)]],
+        persp[obj.vertexIndices[3, 6 .. length(obj.vertexIndices)]]
+    );
+with @{ color: "black", colorLatex: ds(colors) }

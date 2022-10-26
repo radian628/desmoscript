@@ -9,7 +9,27 @@ export type ParsedOBJ = {
     texcoords: [number, number][],
     vertexIndices: number[],
     normalIndices: number[],
-    texcoordIndices: number[]
+    texcoordIndices: number[],
+    materials: MTLMaterial[],
+    faceMaterials: number[],
+    materialMap: {
+        [str: string]: number
+    }
+}
+
+export type MTLMaterial = {
+    ambient?: [number, number, number],
+    diffuse?: [number, number, number],
+    specular?: [number, number, number],
+    specularExponent?: number,
+    dissolve?: number,
+    illuminationModel?: number
+};
+
+export type ParsedMTL = {
+    materials: {
+        [materialName: string]: MTLMaterial
+    }
 }
 
 export const parsedOBJKeys: (keyof ParsedOBJ)[] = [
@@ -18,7 +38,9 @@ export const parsedOBJKeys: (keyof ParsedOBJ)[] = [
     "texcoords",
     "vertexIndices",
     "normalIndices",
-    "texcoordIndices"
+    "texcoordIndices",
+    "materials",
+    "faceMaterials"
 ];
 
 function rest2num(l: string[]) {
@@ -36,15 +58,68 @@ function is2long<T>(l: T[]): [T, T] {
     return l;
 }
 
-export function parseObj(src: string) {
+function is1long<T>(l: T[]): T {
+    if (l.length != 1) throw new Error("Malformed input: Expected 1 number.");
+    //@ts-ignore
+    return l;
+}
+
+export function parseMtl(src: string) {
+    const output: ParsedMTL = {
+        materials: {}
+    }
+    let currentMaterial: MTLMaterial | undefined;
+    
+    
+    const splitSrc = src.split("\n").map(s => s.split(" "));
+    for (let line of splitSrc) {
+        switch (line[0]) {
+        case "newmtl":
+            currentMaterial = {};
+            output.materials[line[1]] = currentMaterial;
+            break;
+        }
+
+        if (!currentMaterial) continue;
+
+        switch (line[0]) {
+        case "Ns":
+            currentMaterial.specularExponent = is1long(rest2num(line));
+            break;
+        case "d":
+            currentMaterial.dissolve = is1long(rest2num(line));
+            break;
+        case "illum":
+            currentMaterial.illuminationModel = is1long(rest2num(line));
+            break;
+        case "Ka":
+            currentMaterial.ambient = is3long(rest2num(line));
+            break;
+        case "Kd":
+            currentMaterial.diffuse = is3long(rest2num(line));
+            break;
+        case "Ks":
+            currentMaterial.specular = is3long(rest2num(line));
+            break;
+        }
+    }
+
+    return output;
+}
+
+export async function parseObj(src: string) {
     const output: ParsedOBJ = {
         vertices: [],
         normals: [],
         texcoords: [],
         vertexIndices: [],
         normalIndices: [],
-        texcoordIndices: []
+        texcoordIndices: [],
+        faceMaterials: [],
+        materials: [],
+        materialMap: {}
     };
+    let currentMaterial = -1;
     const splitSrc = src.split("\n").map(s => s.split(" "));
     for (let line of splitSrc) {
         switch (line[0]) {
@@ -63,6 +138,23 @@ export function parseObj(src: string) {
             output.vertexIndices.push(coords[0][0], coords[1][0], coords[2][0]);
             output.texcoordIndices.push(coords[0][1], coords[1][1], coords[2][1]);
             output.normalIndices.push(coords[0][2], coords[1][2], coords[2][2]);
+            output.faceMaterials.push(currentMaterial);
+            break;
+        case "mtllib":
+            let mtls = (await Promise.all(
+                line.slice(1)
+                .map(async l => await fs.readFile(l))
+            )).map(mtl => mtl.toString())
+                .map(mtl => parseMtl(mtl));
+            for (let mtl of mtls) {
+                for (let [mtlname, mtldata] of Object.entries(mtl.materials)) {
+                    output.materials.push(mtldata);
+                    output.materialMap[mtlname] = output.materials.length - 1;
+                }
+            }
+            break;
+        case "usemtl":
+            currentMaterial = output.materialMap[line[1]] ?? -1;
             break;
         }
     }
@@ -131,13 +223,27 @@ export let loadObj: MacroDefinition["fn"] = async function (expr, ctx, a) {
         a.error("Failed to get OBJ file.");
     }
 
-    const obj = tryParseObj(objFileStr, a);
+    const obj = await tryParseObj(objFileStr, a);
 
     return a.ns(namespace,
         includeArg.map(arg => {
             switch (arg) {
             case "vertices":
                 return desmoscriptObjVertices(obj, a);
+            case "normals":
+                return desmoscriptObjNormals(obj, a);
+            case "texcoords":
+                return desmoscriptObjTexcoords(obj, a);
+            case "vertexIndices":
+                return desmoscriptObjVertexIndices(obj, a);
+            case "normalIndices":
+                return desmoscriptObjNormalIndices(obj, a);
+            case "texcoordIndices":
+                return desmoscriptObjTexcoordIndices(obj, a);
+            case "materials":
+                return desmoscriptObjMaterials(obj, a);
+            case "faceMaterials":
+                return desmoscriptObjFaceMaterials(obj, a);
             default:
                 return a.note("INVALID OBJ DATA");
             }
@@ -152,6 +258,83 @@ function desmoscriptObjVertices(obj: ParsedOBJ, a: MacroAPI) {
             a.binop(a.ident("x"), "=", a.list(...obj.vertices.map(v => a.number(v[0])))),
             a.binop(a.ident("y"), "=", a.list(...obj.vertices.map(v => a.number(v[1])))),
             a.binop(a.ident("z"), "=", a.list(...obj.vertices.map(v => a.number(v[2])))),
+        ]
+    )
+}
+
+function desmoscriptObjNormals(obj: ParsedOBJ, a: MacroAPI) {
+    return a.ns(
+        "normals",
+        [
+            a.binop(a.ident("x"), "=", a.list(...obj.normals.map(v => a.number(v[0])))),
+            a.binop(a.ident("y"), "=", a.list(...obj.normals.map(v => a.number(v[1])))),
+            a.binop(a.ident("z"), "=", a.list(...obj.normals.map(v => a.number(v[2])))),
+        ]
+    )
+}
+
+function desmoscriptObjTexcoords(obj: ParsedOBJ, a: MacroAPI) {
+    return a.ns(
+        "texcoords",
+        [
+            a.binop(a.ident("x"), "=", a.list(...obj.texcoords.map(v => a.number(v[0])))),
+            a.binop(a.ident("y"), "=", a.list(...obj.texcoords.map(v => a.number(v[1])))),
+        ]
+    )
+}
+
+function desmoscriptObjVertexIndices(obj: ParsedOBJ, a: MacroAPI) {
+    return a.binop(a.ident("vertexIndices"), "=", a.list(...obj.vertexIndices.map(v => a.number(v))));
+}
+
+function desmoscriptObjNormalIndices(obj: ParsedOBJ, a: MacroAPI) {
+    return a.binop(a.ident("normalIndices"), "=", a.list(...obj.normalIndices.map(v => a.number(v))));
+}
+
+function desmoscriptObjTexcoordIndices(obj: ParsedOBJ, a: MacroAPI) {
+    return a.binop(a.ident("texcoordIndices"), "=", a.list(...obj.texcoordIndices.map(v => a.number(v))));
+}
+
+function desmoscriptObjFaceMaterials(obj: ParsedOBJ, a: MacroAPI) {
+    return a.binop(a.ident("faceMaterials"), "=", a.list(...obj.faceMaterials.map(v => a.number(v + 1))));
+}
+
+function desmoscriptObjMaterials(obj: ParsedOBJ, a: MacroAPI) {
+
+    function rgbProperty(name: string, data: [number, number, number][]) {
+        return a.ns(
+            name,
+            [
+                a.binop(a.ident("r"), "=", a.list(...data.map(d => a.number(d[0])))),
+                a.binop(a.ident("g"), "=", a.list(...data.map(d => a.number(d[1])))),
+                a.binop(a.ident("b"), "=", a.list(...data.map(d => a.number(d[2]))))
+            ]
+        );
+    }
+
+    return a.ns(
+        "materials",
+        [
+            rgbProperty("diffuse", 
+            obj.materials
+            .map(mat => mat.diffuse ?? [-1,-1,-1])),
+
+            rgbProperty("ambient", 
+            obj.materials
+            .map(mat => mat.ambient ?? [-1,-1,-1])),
+
+            rgbProperty("specular", 
+            obj.materials
+            .map(mat => mat.specular ?? [-1,-1,-1])),
+
+            a.binop(a.ident("specularExponent"), "=",
+            a.list(...obj.materials.map(mat => a.number(mat.specularExponent ?? -1)))),
+
+            a.binop(a.ident("illuminationModel"), "=",
+            a.list(...obj.materials.map(mat => a.number(mat.illuminationModel ?? -1)))),
+
+            a.binop(a.ident("dissolve"), "=",
+            a.list(...obj.materials.map(mat => a.number(mat.dissolve ?? -1)))),
         ]
     )
 }
