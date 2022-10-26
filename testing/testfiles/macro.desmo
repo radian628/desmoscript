@@ -24,4 +24,13 @@ with @{ color: "black", colorLatex: ds(colors) }
 
 sub!(doubleThis, macroVar, macroVar * 2)
 
+sub!(rect, corner1, corner2, polygon(
+  (corner1\x, corner1\y),
+  (corner2\x, corner1\y),
+  (corner2\x, corner2\y),
+  (corner1\x, corner2\y)
+))
+
 macrotestagain = doubleThis!(4);
+
+recttest = rect!((2,2), (4,4));
