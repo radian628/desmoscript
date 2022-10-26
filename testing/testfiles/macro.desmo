@@ -1,3 +1,5 @@
+import "../../desmo-lib/3d.desmo" as threeD;
+
 // load a .obj file
 loadObj!(obj, "./icosahedron.obj")
 
@@ -34,3 +36,5 @@ sub!(rect, corner1, corner2, polygon(
 macrotestagain = doubleThis!(4);
 
 recttest = rect!((2,2), (4,4));
+
+threeD.cross!(a, 1, 2, 3, 4, 5, 6)

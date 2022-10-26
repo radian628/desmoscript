@@ -1,3 +1,14 @@
+sub!(cross,
+  outvar,
+  ax, ay, az,
+  bx, by, bz,
+  ns outvar {
+    x = ay * bz - az * by;
+    y = az * bx - ax * bz;
+    z = ax * by - ay * bx;
+  }
+)
+
 fn rayTriangleIntersection(
     xray, yray, zray,
     xdir, ydir, zdir,
@@ -39,12 +50,12 @@ fn rayTriangleIntersection(
       + yao * ynormal
       + zao * znormal
     ) * invdet;
-    (match
+    match {
         (det < 0.00001) => -1;
         (t < 0) => -1;
         (u < 0) => -1;
         (v < 0) => -1;
         ((u + v) > 1) => -1;
-        (t)
-    )
+        t;
+    }
 }
