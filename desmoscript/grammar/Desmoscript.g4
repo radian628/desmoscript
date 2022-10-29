@@ -20,7 +20,7 @@ expression
     | '@' jsonval=djson               # JSONExpr
     | call=macroCall                                             # MacroCallExpr
     | 'import' filename=STRING ('as' alias=IDENTIFIER_SEGMENT)? ';'   # ImportExpr
-    | namedjsontype='settings' jsonval=expression                         # NamedJsonExpr
+    | namedjsontype=('settings' | 'ticker') jsonval=expression                         # NamedJsonExpr
     | ident=identifier                                               # IdentifierExpr
     | '[' body=expression 
         'for' (variables+=IDENTIFIER_SEGMENT '=' lists+=expression ';')* 
@@ -46,9 +46,11 @@ expression
     | 'ns' nsname=IDENTIFIER_SEGMENT '{' exprs+=expression+ '}' # NamespaceDefinitionExpr
     | '{' exprs+=expression+ '}' # BlockExpr
     | 'match' '{' (predicate+=expression '=>' result+=expression ';')* (fallback+=expression ';')? '}' # MatchExpr
-    | left=expression op='->' right=expression                               # ActionExpr
+    | '&' (((lefts+=expression op='->' rights+=expression) | singles+=expression) ',')* ((lefts+=expression op='->' rights+=expression) | singles+=expression)           # ActionExpr
     | left=expression op='=' right=expression         ';'                     # AssignmentExpr
     ;
+
+
 
 expressionList : expression+ EOF ;
 

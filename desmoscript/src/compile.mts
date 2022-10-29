@@ -1,5 +1,5 @@
 import { ASTBinop, ASTIdentifier, ASTJSON, ASTNamedJSON, ASTType, JSONType } from "./ast.mjs";
-import { ExpressionState, expressionStateParser, expressionStateWithoutColumnParser, GrapherStateParser, GraphState } from "./graphstate.mjs";
+import { ExpressionState, expressionStateParser, expressionStateWithoutColumnParser, GrapherStateParser, GraphState, tickerParser } from "./graphstate.mjs";
 import { DesmoscriptContext, ScopedASTExpr, AnalyzedDesmoscript, ScopeContent, Identifier, Scope, ScopeInfo } from "./semantic-analysis-types.mjs";
 
 const optable: { [key: string]: string } = {
@@ -192,7 +192,7 @@ export function compileDesmoscriptScopeTree(code: AnalyzedDesmoscript): GraphSta
                 return `\\left[${c(e.body)}\\operatorname{for}${
                     e.variables.map(([varname, list]) => `${
                         //@ts-ignore
-                        toDesmosVar(`${getScopeChain(e.innerScope)}NSSEP${varname}`)
+                        toDesmosVar(`${getScopeChain(e.innerScope).join("NSSEP")}NSSEP${varname}`)
                     }=${c(list)}`).join(",")
                 }\\right]`;
             case ASTType.SUMPRODINT:
@@ -216,6 +216,10 @@ export function compileDesmoscriptScopeTree(code: AnalyzedDesmoscript): GraphSta
                 return `\\left(\\frac{d}{d${varname}}\\left(${c(e.body)}\\right)\\right)`;
             case ASTType.MEMBERACCESS:
                 return `${c(e.left)}.${e.right}`;
+            case ASTType.ACTIONS:
+                return e.actions.map(([l, r]) => `${c(l)}\\to ${c(r)}`)
+                    .concat(e.actionAliases.map(a => c(a)))
+                    .join(",");
             default:
                 return "UNHANDLEDVARIANT";
             }
@@ -301,9 +305,15 @@ export function compileDesmoscriptScopeTree(code: AnalyzedDesmoscript): GraphSta
                     expr: content,
                     reason: "Body must be JSON!"
                 }
-                const json = compileJSONExpression(content.root.json);
-                const parsedJSON = GrapherStateParser.parse(json);
-                graphState.graph = parsedJSON;
+                if (content.root.name == "settings") {
+                    const json = compileJSONExpression(content.root.json);
+                    const parsedJSON = GrapherStateParser.parse(json);
+                    graphState.graph = parsedJSON;
+                } else if (content.root.name == "ticker") {
+                    const json = compileJSONExpression(content.root.json);
+                    const parsedJSON = tickerParser.parse(json);
+                    graphState.expressions.ticker = parsedJSON;
+                }
                 break;
             case Identifier.NOTE:
                 graphState.expressions.list.push({

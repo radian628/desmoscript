@@ -1,7 +1,7 @@
 import { CharStreams, CommonTokenStream, ParserRuleContext, Token } from "antlr4ts";
 import {ParseTreeWalker} from "antlr4ts/tree/ParseTreeWalker";
 import { DesmoscriptLexer } from "./grammar/DesmoscriptLexer";
-import { AddOrSubExprContext, ArrayDJsonContext, AssignmentExprContext, BlockExprContext, BooleanDJsonContext, DecoratedExprContext, DerivativeExprContext, DesmoscriptDJsonContext, DesmoscriptParser, ExpressionContext, ExpressionListContext, FunctionCallContext, FunctionCallExprContext, FunctionDefinitionExprContext, IdentifierContext, IdentifierExprContext, ImportExprContext, JSONExprContext, ListCompExprContext, ListExprContext, ListMemberAccessExprContext, LogicalExprContext, MacroCallContext, MacroCallExprContext, MacroDefinitionExprContext, MatchExprContext, MemberAccessExprContext, MultOrDivExprContext, NamedJsonExprContext, NamespaceDefinitionExprContext, NullDJsonContext, NumberDJsonContext, NumberExprContext, ObjectDJsonContext, ParentheticalExprContext, PointExprContext, RangeExprContext, StepRangeExprContext, StringDJsonContext, StringExprContext, SumProdIntegralExprContext } from "./grammar/DesmoscriptParser";
+import { ActionExprContext, AddOrSubExprContext, ArrayDJsonContext, AssignmentExprContext, BlockExprContext, BooleanDJsonContext, DecoratedExprContext, DerivativeExprContext, DesmoscriptDJsonContext, DesmoscriptParser, ExpressionContext, ExpressionListContext, FunctionCallContext, FunctionCallExprContext, FunctionDefinitionExprContext, IdentifierContext, IdentifierExprContext, ImportExprContext, JSONExprContext, ListCompExprContext, ListExprContext, ListMemberAccessExprContext, LogicalExprContext, MacroCallContext, MacroCallExprContext, MacroDefinitionExprContext, MatchExprContext, MemberAccessExprContext, MultOrDivExprContext, NamedJsonExprContext, NamespaceDefinitionExprContext, NullDJsonContext, NumberDJsonContext, NumberExprContext, ObjectDJsonContext, ParentheticalExprContext, PointExprContext, RangeExprContext, StepRangeExprContext, StringDJsonContext, StringExprContext, SumProdIntegralExprContext } from "./grammar/DesmoscriptParser";
 import { DesmoscriptListener } from "./grammar/DesmoscriptListener";
 import { DesmoscriptVisitor } from "./grammar/DesmoscriptVisitor";
 import { ParseTreeListener } from "antlr4ts/tree/ParseTreeListener";
@@ -87,8 +87,12 @@ export class DesmoscriptASTBuilder extends AbstractParseTreeVisitor<ds.ASTExpr> 
         return this.parseBinop(ctx);
     }
 
-    visitActionExpr(ctx: AssignmentExprContext): ds.ASTExpr {
-        return this.parseBinop(ctx);
+    visitActionExpr(ctx: ActionExprContext): ds.ASTExpr {
+        return this.withLineCol<ds.ASTActions<{}>>(ctx, {
+            type: ds.ASTType.ACTIONS,
+            actions: ctx._lefts.map((left, i) => [this.visit(left), this.visit(ctx._rights[i])]),
+            actionAliases: ctx._singles.map((s) => this.visit(s))
+        })
     }
 
     visitRangeExpr(ctx: RangeExprContext): ds.ASTExpr {

@@ -1,6 +1,7 @@
 import { ASTFunctionCall, ASTType } from "../ast.mjs";
 import { MacroAPI, MacroDefinition, ScopedASTExpr, ScopeInfo } from "../semantic-analysis-types.mjs";
 import * as fs from "node:fs/promises";
+import * as path from "node:path";
 import { parseIdentList, parseIdentSingleString, parseNoteString } from "./macroutils.mjs"
 
 
@@ -108,7 +109,7 @@ export function parseMtl(src: string) {
     return output;
 }
 
-export async function parseObj(src: string) {
+export async function parseObj(src: string, objdir: string) {
     const output: ParsedOBJ = {
         vertices: [],
         normals: [],
@@ -144,7 +145,9 @@ export async function parseObj(src: string) {
         case "mtllib":
             let mtls = (await Promise.all(
                 line.slice(1)
-                .map(async l => await fs.readFile(l.replace(/\r/g, "")))
+                .map(async l => await fs.readFile(
+                    path.join(objdir, l.replace(/\r/g, ""))
+                ))
             )).map(mtl => mtl.toString())
                 .map(mtl => parseMtl(mtl));
             for (let mtl of mtls) {
@@ -163,9 +166,9 @@ export async function parseObj(src: string) {
 }
 
 
-function tryParseObj(str: string, a: MacroAPI) {
+function tryParseObj(str: string, objdir: string, a: MacroAPI) {
     try {
-        return parseObj(str);
+        return parseObj(str, objdir);
     } catch (err) {
         a.error(`Failed to parse OBJ file: ${(err as Error).message}`);
     }
@@ -199,7 +202,7 @@ export let loadObj: MacroDefinition["fn"] = async function (expr, ctx, a) {
         a.error("Failed to get OBJ file.");
     }
 
-    const obj = await tryParseObj(objFileStr, a);
+    const obj = await tryParseObj(objFileStr, path.dirname(filepathArg), a);
 
     return a.ns(namespace,
         includeArg.map(arg => {

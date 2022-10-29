@@ -550,6 +550,7 @@ export const GraphStateParser = z.object({
     randomSeed: z.string().optional(),
     graph: GrapherStateParser,
     expressions: z.object({
-        list: z.array(itemStateParser)
+        list: z.array(itemStateParser),
+        ticker: z.optional(tickerParser)
     })
 })

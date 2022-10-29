@@ -60,9 +60,9 @@ export async function getDesmoscriptScopes(filename: string, additionalDefines?:
 
     const ast = astBuilder.visit(tree);
 
+    const ctx = makeDefaultDesmoscriptContext(filename);
     process.chdir(path.dirname(path.join(oldcwd, filename)));
 
-    const ctx = makeDefaultDesmoscriptContext(filename);
     if (additionalDefines) {
         for (let [k, v] of additionalDefines.entries()) {
             ctx.builtins.contents.set(k, v);
@@ -252,7 +252,7 @@ Promise<void> {
         break;
     case ASTType.IMPORT:
         const otherFileCtx = (await getDesmoscriptScopes(e.filename));
-        ctx.files.push(e.filename);
+        ctx.files.push(path.join(process.cwd(), e.filename));
         if (e.alias) {
             otherFileCtx.rootScope.parent = scope;
             otherFileCtx.rootScope.scopeName = e.alias;
@@ -341,6 +341,14 @@ Promise<void> {
         break;
     case ASTType.NOTE:
         scope.contents.set(anonScope(), { type: Identifier.NOTE, root: e.text });
+        break;
+    case ASTType.ACTIONS:
+        for (let [l, r] of e.actions) {
+            await calculateScopes(ctx, l, scope, false);
+            await calculateScopes(ctx, r, scope, false);
+        }
+        e.actionAliases.forEach(v => calculateScopes(ctx, v, scope, false));
+
     default:
         break;
     }

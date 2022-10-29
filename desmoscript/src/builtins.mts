@@ -2,6 +2,7 @@ import { ASTBinop, ASTNote, ASTType, RawASTExpr } from "./ast.mjs";
 import { DesmoscriptContext, Identifier, ScopeContent, ScopeInfo } from "./semantic-analysis-types.mjs";
 import { sub } from "./stdlib/macroutils.mjs";
 import { loadObj } from "./stdlib/obj-importer.mjs";
+import * as path from "node:path";
 
 const builtin: ScopeContent = { type: Identifier.BUILTIN_FUNCTION };
 
@@ -19,7 +20,7 @@ export function getExprContext(expr: RawASTExpr<ScopeInfo>) {
 
 export function makeDefaultDesmoscriptContext(entry: string): DesmoscriptContext {
     return {
-        files: [entry],
+        files: [path.join(process.cwd(), entry)],
         builtins: {
             scopeName: "",
             contents: new Map<string, ScopeContent>()

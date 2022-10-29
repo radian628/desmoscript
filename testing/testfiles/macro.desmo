@@ -1,12 +1,12 @@
-import "../../desmo-lib/3d.desmo" as threeD;
+import "../../desmo-lib/3d.desmo" as t;
 
 // load a .obj file
 loadObj!(obj, "./icosahedron.obj")
 
 // perspective-projected vertices of obj
 persp = (
-    obj.vertices.x / (obj.vertices.z + 10), 
-    obj.vertices.y / (obj.vertices.z + 10)
+    (obj.vertices.x + translation\x) / (obj.vertices.z + 5), 
+    (obj.vertices.y + translation\y) / (obj.vertices.z + 5)
 );
 
 colors = rgb(
@@ -14,6 +14,26 @@ colors = rgb(
     obj.materials.diffuse.g[obj.faceMaterials] * 256,
     obj.materials.diffuse.b[obj.faceMaterials] * 256
 );
+
+i1 = obj.vertexIndices[1, 4 .. length(obj.vertexIndices)];
+i2 = obj.vertexIndices[2, 5 .. length(obj.vertexIndices)];
+i3 = obj.vertexIndices[3, 6 .. length(obj.vertexIndices)];
+
+translation = (0, 0);
+
+rtis = max(t.rayTriangleIntersection(
+    0, 0, 0,
+    0, 0, 1,
+    obj.vertices.x[i1] + translation\x, 
+    obj.vertices.y[i1] + translation\y, 
+    obj.vertices.z[i1] + 5, 
+    obj.vertices.x[i2] + translation\x, 
+    obj.vertices.y[i2] + translation\y, 
+    obj.vertices.z[i2] + 5, 
+    obj.vertices.x[i3] + translation\x, 
+    obj.vertices.y[i3] + translation\y, 
+    obj.vertices.z[i3] + 5
+));
 
 // display obj triangles using vertex indices
 show
@@ -37,4 +57,4 @@ macrotestagain = doubleThis!(4);
 
 recttest = rect!((2,2), (4,4));
 
-threeD.cross!(a, 1, 2, 3, 4, 5, 6)
+t.cross!(aaaa, 1, 2, 3, 4, 5, 6)

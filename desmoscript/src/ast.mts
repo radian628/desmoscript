@@ -25,6 +25,7 @@ export enum ASTType {
   DECORATOR,
   NAMED_JSON,
   NOTE,
+  ACTIONS
 }
 
 export type LineCol = {
@@ -236,6 +237,12 @@ export type ASTNote<T> = {
 } & LineCol &
   T;
 
+export type ASTActions<T> = {
+  type: ASTType.ACTIONS;
+  actions: [T & RawASTExpr<T>, T & RawASTExpr<T>][],
+  actionAliases: (T & RawASTExpr<T>)[]
+} & LineCol & T;
+
 export type RawASTExpr<T> =
   | ASTBinop<T>
   | ASTNumber<T>
@@ -257,7 +264,8 @@ export type RawASTExpr<T> =
   | ASTJSON<T>
   | ASTDecorator<T>
   | ASTNamedJSON<T>
-  | ASTNote<T>;
+  | ASTNote<T>
+  | ASTActions<T>;
 
 export type ASTExpr = RawASTExpr<{}>;
 
@@ -480,6 +488,8 @@ export function mapAST<T, U>(
       e2.body = m(e2.body);
       e2.lo = m(e2.lo);
       break;
+    case ASTType.ACTIONS:
+      e2.actions = e2.actions.map(([l, r]) => [m(l), m(r)]);
   }
   return (order == MapASTOrder.POST) ? callback(e2) : e2;
 }

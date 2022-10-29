@@ -9,6 +9,13 @@ sub!(cross,
   }
 )
 
+fn dot(
+    ax, ay, az,
+    bx, by, bz
+) {
+    ax * bx + ay * by + az * bz
+}
+
 fn rayTriangleIntersection(
     xray, yray, zray,
     xdir, ydir, zdir,
@@ -37,19 +44,9 @@ fn rayTriangleIntersection(
     xdao = yao * zdir - ydir * zao;
     ydao = zao * xdir - zdir * xao;
     zdao = xao * ydir - xdir * yao;
-    u = (xe2 * xdao 
-      + ye2 * ydao
-      + ze2 * zdao) * invdet;
-    v = -1 * (
-        xe1 * xdao
-      + ye1 * ydao
-      + ze1 * zdao
-    ) * invdet;
-    t = (
-        xao * xnormal
-      + yao * ynormal
-      + zao * znormal
-    ) * invdet;
+    u = dot(xe2, ye2, ze2, xdao, ydao, zdao) * invdet;
+    v = -1 * dot(xe1, ye1, ze1, xdao, ydao, zdao) * invdet;
+    t = dot(xao, yao, zao, xnormal, ynormal, znormal) * invdet;
     match {
         (det < 0.00001) => -1;
         (t < 0) => -1;

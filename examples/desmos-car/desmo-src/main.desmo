@@ -1,0 +1,355 @@
+import "../../../desmo-lib/3d.desmo" as t;
+
+sub!(mulMat3,
+    outVector,
+    matrix, vector,
+    ns outVector {
+        x = matrix.x.x * vector.x + matrix.y.x * vector.y + matrix.z.x * vector.z;
+        y = matrix.x.y * vector.x + matrix.y.y * vector.y + matrix.z.y * vector.z;
+        z = matrix.x.z * vector.x + matrix.y.z * vector.y + matrix.z.z * vector.z;
+    }
+)
+
+sub!(transform,
+    outVector,
+    vector,
+    translation,
+    matrix,
+    ns outVector {
+        x = matrix.x.x * vector.x + matrix.y.x * vector.y + matrix.z.x * vector.z + translation.x;
+        y = matrix.x.y * vector.x + matrix.y.y * vector.y + matrix.z.y * vector.z + translation.y;
+        z = matrix.x.z * vector.x + matrix.y.z * vector.y + matrix.z.z * vector.z + translation.z;
+    }
+)
+
+sub!(vec3,
+    name,
+    xvalues, yvalues, zvalues,
+    ns name { x=xvalues; y=yvalues; z=zvalues; }
+)
+
+sub!(mat3,
+    name,
+    xx, xy, xz,
+    yx, yy, yz,
+    zx, zy, zz,
+    ns name {
+        ns x { x=xx; y=xy; z=xz; }
+        ns y { x=yx; y=yy; z=yz; }
+        ns z { x=zx; y=zy; z=zz; }
+    }
+)
+
+sub!(mat3identity,
+    name,
+    mat3!(
+        name,
+        1, 0, 0,
+        0, 1, 0,
+        0, 0, 1
+    ))
+
+sub!(mat3FirstPerson,
+    name,
+    c,
+    ns name {
+        xx = cos(c\x); // x's contribution to x
+        xz = -1 * sin(c\x); // x's contribution to z
+        zx = sin(c\x);
+        zz = cos(c\x);
+        ns x { x=xx; y=0; z=zx; }
+        ns y { x=-1*zx*sin(c\y); y=cos(c\y); z=-1*zz*sin(c\y); }
+        ns z { x=zx*cos(c\y); y=sin(c\y); z=zz*cos(c\y); }
+    }
+)
+
+sub!(cross,
+    outvec,
+    v1, v2,
+    vec3!(
+        outvec,
+        v1.y * v2.z - v1.z * v2.y,
+        v1.z * v2.x - v1.x * v2.z,
+        v1.x * v2.y - v1.y * v2.x
+    )
+)
+
+
+sub!(rodrigues,
+    outvec,
+    v, angle, axis,
+    ns outvec {
+        cosAngle = cos(angle);
+        sinAngle = sin(angle);
+        cross!(crossKV, v, axis)
+        dotKV = v.x * axis.x + v.y * axis.y + v.z * axis.z;
+        x = v.x * cosAngle + crossKV.x * sinAngle + axis.x * dotKV * (1 - cosAngle);
+        y = v.y * cosAngle + crossKV.y * sinAngle + axis.y * dotKV * (1 - cosAngle);
+        z = v.z * cosAngle + crossKV.z * sinAngle + axis.z * dotKV * (1 - cosAngle);
+    }
+)
+
+sub!(rotateMat3,
+    outmat,
+    matrix, angle, axis,
+    ns outmat {
+        rodrigues!(x, matrix.x, angle, axis)
+        rodrigues!(y, matrix.y, angle, axis)
+        rodrigues!(z, matrix.z, angle, axis)
+    }
+)
+
+sub!(rodriguesAction,
+    actionName,
+    v, angle, axis,
+    ns actionName {
+        cosAngle = cos(angle);
+        sinAngle = sin(angle);
+        cross!(crossKV, v, axis)
+        dotKV = v.x * axis.x + v.y * axis.y + v.z * axis.z;
+        action = & v.x -> v.x * cosAngle + crossKV.x * sinAngle + axis.x * dotKV * (1 - cosAngle),
+                   v.y -> v.y * cosAngle + crossKV.y * sinAngle + axis.y * dotKV * (1 - cosAngle),
+                   v.z -> v.z * cosAngle + crossKV.z * sinAngle + axis.z * dotKV * (1 - cosAngle);
+    }
+)
+
+sub!(rotateMat3Action,
+    actionName,
+    matrix, angle, axis,
+    ns actionName {
+        rodriguesAction!(x, matrix.x, angle, axis)
+        rodriguesAction!(y, matrix.y, angle, axis)
+        rodriguesAction!(z, matrix.z, angle, axis)
+        action = & x.action, y.action, z.action;
+    }
+)
+
+sub!(normalize,
+    outvec, v,
+    ns outvec {
+        mag = (v.x * v.x + v.y * v.y + v.z * v.z) ^ 0.5;
+        x = v.x / mag;
+        y = v.y / mag;
+        z = v.z / mag;
+    }
+)
+
+mat3identity!(identityMatrix)
+
+
+
+fn getClippedPolygon(
+    near,
+    x1, y1, z1,
+    x2, y2, z2,
+    x3, y3, z3
+) {
+    sortedDepths = sort([z1, z2, z3]);
+    nonClippedCount = length(sortedDepths[sortedDepths > near]);
+    match {
+        (nonClippedCount == 3) => polygon(
+            (x1 / z1, y1 / z1),
+            (x2 / z2, y2 / z2),
+            (x3 / z3, y3 / z3)
+        );
+        (nonClippedCount == 2) => polygon((0/0,0/0));
+        (nonClippedCount == 1) => polygon((0/0,0/0));
+        polygon((0/0,0/0));
+    }
+}
+
+ns view {
+    show rotationView = (0, 0); with @{ color: "black" }
+
+    rotationController = 10 * rotationView;
+
+    mat3FirstPerson!(matrix, rotationController)
+
+    vec3!(pos, 0, 0, 0)
+}
+
+ns ground {
+    loadObj!(mesh, "../assets/ground.obj")
+    transform!(viewSpace, mesh.vertices, view.pos, view.matrix)
+
+    persp = (
+        (viewSpace.x) / (viewSpace.z), 
+        (viewSpace.y) / (viewSpace.z)
+    );
+
+    ns i {
+        t1 = mesh.vertexIndices[1, 4 .. length(mesh.vertexIndices)];
+        t2 = mesh.vertexIndices[2, 5 .. length(mesh.vertexIndices)];
+        t3 = mesh.vertexIndices[3, 6 .. length(mesh.vertexIndices)];
+    }
+
+    show
+        polygons = polygon(
+            persp[i.t1],
+            persp[i.t2],
+            persp[i.t3]
+        );
+    with @{ color: "black" }
+
+}
+
+
+ns car {
+    loadObj!(mesh, "../assets/desmos-car-assets.obj")
+
+    ns i {
+        t1 = mesh.vertexIndices[1, 4 .. length(mesh.vertexIndices)];
+        t2 = mesh.vertexIndices[2, 5 .. length(mesh.vertexIndices)];
+        t3 = mesh.vertexIndices[3, 6 .. length(mesh.vertexIndices)];
+    }
+
+    ns body {
+        momentOfInertia = 10;
+        mass = 1;
+        vec3!(pos, 0, 0, 10)
+
+        // rotation matrix
+        mat3identity!(rotation)
+
+        vec3!(linearVel, 0, 0.001, 0)
+        ns angularVel {
+            x = 0.003;
+            y = 0.004;
+            z = 0.005;
+        }
+        normalize!(angularVelN, angularVel)
+
+        rotateMat3Action!(rotateMatrix, rotation, angularVelN.mag, angularVelN)
+
+        ns force {
+            // inputs
+            vec3!(offset, 1, 0, 0)
+            vec3!(vector, 0, 0, 0)
+
+            // result
+            cross!(torque, offset, vector)
+        }
+
+        move = & 
+            pos.x -> pos.x + linearVel.x, 
+            pos.y -> pos.y + linearVel.y, 
+            pos.z -> pos.z + linearVel.z;
+
+
+        ns wheels {
+            x = [-0.7, 0.7, -0.7, 0.7];
+            y = [-2, -2, -2, -2];
+            z = [-1, -1, 1, 1];
+        }
+
+        ns wheelOffsets {
+            x = [-1.1, 1.1, -1.1, 1.1];
+            y = [-1.1, -1.1, -1.1, -1.1];
+            z = [-1.5, -1.5, 1.5, 1.5];
+        }
+
+        transform!(transformedWheelOffsets, wheelOffsets, car.body.pos, car.body.rotation)
+        transform!(rotatedWheelOffsets, wheelOffsets, origin, car.body.rotation)
+
+        vec3!(origin, 0, 0, 0)
+
+        rti = [
+            {
+                allIntersects = t.rayTriangleIntersection(
+                    transformedWheelOffsets.x[index],
+                    transformedWheelOffsets.y[index],
+                    transformedWheelOffsets.z[index],
+                    0, -1, 0,
+                    ground.mesh.vertices.x[ground.i.t1],
+                    ground.mesh.vertices.y[ground.i.t1],
+                    ground.mesh.vertices.z[ground.i.t1],
+                    ground.mesh.vertices.x[ground.i.t2],
+                    ground.mesh.vertices.y[ground.i.t2],
+                    ground.mesh.vertices.z[ground.i.t2],
+                    ground.mesh.vertices.x[ground.i.t3],
+                    ground.mesh.vertices.y[ground.i.t3],
+                    ground.mesh.vertices.z[ground.i.t3]
+                );
+                positiveIntersects = allIntersects[allIntersects > 0];
+                min(positiveIntersects)
+            }
+            for
+            index=[1,2,3,4]
+        ];
+
+        vec3!(wheelNormalForces, 0, match {
+            (rti < 0.5) => 0.04;
+            0;
+        }, 0)
+
+        cross!(torqueFromWheels, wheelNormalForces, rotatedWheelOffsets)
+
+        accelerate = & 
+            angularVel.x -> 0.98 * angularVel.x + total(torqueFromWheels.x) / momentOfInertia,
+            angularVel.y -> 0.98 * angularVel.y + total(torqueFromWheels.y) / momentOfInertia,
+            angularVel.z -> 0.98 * angularVel.z + total(torqueFromWheels.z) / momentOfInertia,
+            linearVel.x -> 0.98 * linearVel.x + total(wheelNormalForces.x) / mass,
+            linearVel.y -> 0.98 * linearVel.y + total(wheelNormalForces.y) / mass - 0.01,
+            linearVel.z -> 0.98 * linearVel.z + total(wheelNormalForces.z) / mass;
+    }
+
+    transform!(worldSpace, car.mesh.vertices, car.body.pos, car.body.rotation)
+
+    transform!(viewSpace, car.worldSpace, view.pos, view.matrix)
+}
+
+
+/*
+persp = (
+    car.viewSpace.x / car.viewSpace.z, 
+    car.viewSpace.y / car.viewSpace.z
+);*/
+
+show /*
+    polygons = polygon(
+        persp[car.mesh.vertexIndices[1, 4 .. length(car.mesh.vertexIndices)]],
+        persp[car.mesh.vertexIndices[2, 5 .. length(car.mesh.vertexIndices)]],
+        persp[car.mesh.vertexIndices[3, 6 .. length(car.mesh.vertexIndices)]]
+    ); */
+    polygons = [getClippedPolygon(0.001,
+        car.viewSpace.x[car.i.t1[index]],
+        car.viewSpace.y[car.i.t1[index]],
+        car.viewSpace.z[car.i.t1[index]],
+        car.viewSpace.x[car.i.t2[index]],
+        car.viewSpace.y[car.i.t2[index]],
+        car.viewSpace.z[car.i.t2[index]],
+        car.viewSpace.x[car.i.t3[index]],
+        car.viewSpace.y[car.i.t3[index]],
+        car.viewSpace.z[car.i.t3[index]]
+    ) for index=1 .. length(car.i.t1)];
+with @{ color: "black"  }
+
+run = &  
+    car.body.rotateMatrix.action,
+    car.body.move,
+    car.body.accelerate;
+
+setOX = & car.body.force.offset.x -> 0;
+setOY = & car.body.force.offset.y -> 0;
+setOZ = & car.body.force.offset.z -> 0;
+setVX = & car.body.force.vector.x -> 0;
+setVY = & car.body.force.vector.y -> 0;
+setVZ = & car.body.force.vector.z -> 0;
+
+settings @{
+    viewport: {
+        xmin: -2,
+        ymin: -2,
+        xmax: 2,
+        ymax: 2
+    },
+    showGrid: false,
+    showXAxis: false,
+    showYAxis: false
+}
+
+ticker @{
+    handlerLatex: ds(run),
+    open: true
+}
+

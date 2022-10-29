@@ -84,8 +84,10 @@ export async function runCompilerWebServer(infile: string, serverOptions?: Compi
     let watcher: chokidar.FSWatcher | undefined;
     let output: string | undefined;
     async function compile() {
-        files = [];
+        let oldcwd = process.cwd();
         const str = await compileDesmoscriptToString(infile, options, files);
+        files = Array.from(new Set<string>(files));
+        process.chdir(oldcwd);
         if (watcher) {
             await watcher.close();
         }
