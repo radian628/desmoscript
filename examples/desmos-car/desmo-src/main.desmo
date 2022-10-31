@@ -236,7 +236,7 @@ updateCamera = &
 ns car {
 
     show carControllerView = (0, 0); with @{ color: "black" }
-    show carController = 0.1 * carControllerView;
+    show carController = 0.002 * carControllerView;
 
     loadObj!(mesh, "../assets/desmos-car-assets.obj")
 
@@ -257,7 +257,7 @@ ns car {
         vec3!(linearVel, 0, 0.001, 0)
         ns angularVel {
             x = 0.003;
-            y = 0.03;
+            y = 0.003;
             z = 0.005;
         }
         normalize!(angularVelN, angularVel)
@@ -339,17 +339,18 @@ ns car {
         cross!(torqueFromWheels, wheelNormalForces, rotatedWheelOffsets)
 
         accelerate = & 
-            angularVel.x -> 1 * angularVel.x + total(torqueFromWheels.x) / momentOfInertia,
-            angularVel.y -> 1 * angularVel.y + total(torqueFromWheels.y) / momentOfInertia,
-            angularVel.z -> 1 * angularVel.z + total(torqueFromWheels.z) / momentOfInertia,
-            linearVel.x -> 0.5 * linearVel.x + total(wheelNormalForces.x) / mass 
-                + (carController\x / mass * cos(-1 * cameraAngle + 0* 1.57079633)
-                - carController\y / mass * sin(-1 * cameraAngle + 0* 1.57079633)) * 5.0
+            angularVel.x -> 0.99 * angularVel.x + total(torqueFromWheels.x) / momentOfInertia,
+            angularVel.y -> 0.99 * angularVel.y + total(torqueFromWheels.y) / momentOfInertia
+            - carController\x * 0.4,
+            angularVel.z -> 0.99 * angularVel.z + total(torqueFromWheels.z) / momentOfInertia,
+            linearVel.x -> 0.98 * linearVel.x + total(wheelNormalForces.x) / mass 
+                + (0
+                - carController\y / mass * sin(1 * cameraAngle + 1* 1.57079633)) * -5.0
                 ,
-            linearVel.y -> 0.5 * linearVel.y + total(wheelNormalForces.y) / mass - 0.002,
-            linearVel.z -> 0.5 * linearVel.z + total(wheelNormalForces.z) / mass
-                + (carController\x / mass * sin(-1 * cameraAngle + 0*1.57079633)
-                + carController\x / mass * cos(-1 * cameraAngle + 0*1.57079633)) * 5.0;
+            linearVel.y -> 0.98 * linearVel.y + total(wheelNormalForces.y) / mass - 0.002,
+            linearVel.z -> 0.98 * linearVel.z + total(wheelNormalForces.z) / mass
+                + (0
+                + carController\y / mass * cos(1 * cameraAngle + 1*1.57079633)) * -5.0;
     }
 
     transform!(worldSpace, car.mesh.vertices, car.body.pos, car.body.rotation)
