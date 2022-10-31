@@ -155,13 +155,39 @@ export function compileDesmoscriptScopeTree(code: AnalyzedDesmoscript): GraphSta
                     expr: e,
                     reason: "A function must have an inner scope! Contact the dev if this error occurs!"
                 }
-                const fnBody = lastof<ScopeContent>(Array.from(e.innerScope?.contents.values()));
-                if (fnBody.type != Identifier.EXPRESSION) throw {
+                // const fnBody = lastof<ScopeContent>(Array.from(e.innerScope?.contents.values()));
+                // //console.log(fnBody);
+                // if (fnBody.type != Identifier.EXPRESSION) throw {
+                //     expr: e,
+                //     reason: "A function body must end with an expression that resolves to a value!"
+                // }
+                // let body = fnBody;
+
+                const body = e.lastExpr;
+
+                if (!body) throw {
                     expr: e,
-                    reason: "A function body must end with an expression that resolves to a value!"
+                    reason: "A function must end with an expression that resolves to a value!"
                 }
+
+                /// TODO: FIX "BLOCK INSIDE MATCH" BUG
+
+
+                // while (body.type != Identifier.EXPRESSION) {
+                //     let body2 = lastof<ScopeContent>(Array.from(body.root.contents.values()));
+                //     if (body2.type != Identifier.EXPRESSION && body2.type != Identifier.SCOPE) throw {
+                //         expr: e,
+                //         reason: "A function body must end with an expression that resolves to a value!"
+                //     }
+                //     console.log(body2);
+                //     body = body2;
+                //     depth++;
+                //     if (depth > 10000) {
+                //         throw { expr: e, reason: "Nesting depth exceeded." };
+                //     }
+                // }
                 return `${c(e.name)}\\left(${e.args.map(arg => toDesmosVar(getScopeChain(e.innerScope as Scope).join("NSSEP") + "NSSEP" + arg)).join(",")}\\right)=` +
-                    `${c(fnBody.root)}`;
+                    `${c(body)}`;
             case ASTType.NAMESPACE:
                 return "";
             case ASTType.BLOCK:

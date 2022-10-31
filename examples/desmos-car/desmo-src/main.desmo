@@ -162,13 +162,50 @@ fn getClippedPolygon(
     sortedDepths = sort([z1, z2, z3]);
     nonClippedCount = length(sortedDepths[sortedDepths > near]);
     match {
-        (nonClippedCount == 3) => polygon(
+        (nonClippedCount == 3) => {polygon(
             (x1 / z1, y1 / z1),
             (x2 / z2, y2 / z2),
             (x3 / z3, y3 / z3)
-        );
-        (nonClippedCount == 2) => polygon((0/0,0/0));
-        (nonClippedCount == 1) => polygon((0/0,0/0));
+        )};
+        (nonClippedCount == 2) => {
+            sortedXs = sort([x1, x2, x3], [z1, z2, z3]);
+            sortedYs = sort([y1, y2, y3], [z1, z2, z3]);
+            t1 = (near - sortedDepths[1]) / (sortedDepths[2] - sortedDepths[1]);
+            t2 = (near - sortedDepths[1]) / (sortedDepths[3] - sortedDepths[1]);
+
+            polygon(
+                (sortedXs[2] / sortedDepths[2], sortedYs[2] / sortedDepths[2]),
+                (sortedXs[3] / sortedDepths[3], sortedYs[3] / sortedDepths[3]),
+
+                (
+                    (t2 * (sortedXs[1] + (sortedXs[3] - sortedXs[1])) / near), 
+                    (t2 * (sortedYs[1] + (sortedYs[3] - sortedYs[1])) / near)
+                ),
+                (
+                    (t1 * (sortedXs[1] + (sortedXs[2] - sortedXs[1])) / near), 
+                    (t1 * (sortedYs[1] + (sortedYs[2] - sortedYs[1])) / near)
+                )
+            )
+        };
+        (nonClippedCount == 1) => {
+            sortedXs = sort([x1, x2, x3], [z1, z2, z3]);
+            sortedYs = sort([y1, y2, y3], [z1, z2, z3]);
+            t1 = (near - sortedDepths[3]) / (sortedDepths[1] - sortedDepths[3]);
+            t2 = (near - sortedDepths[3]) / (sortedDepths[2] - sortedDepths[3]);
+
+            polygon(
+                (sortedXs[3] / sortedDepths[3], sortedYs[3] / sortedDepths[3]),
+
+                (
+                    (t2 * (sortedXs[3] + (sortedXs[2] - sortedXs[3])) / near), 
+                    (t2 * (sortedYs[3] + (sortedYs[2] - sortedYs[3])) / near)
+                ),
+                (
+                    (t1 * (sortedXs[3] + (sortedXs[1] - sortedXs[3])) / near), 
+                    (t1 * (sortedYs[3] + (sortedYs[1] - sortedYs[3])) / near)
+                )
+            )
+        };
         polygon((0/0,0/0));
     }
 }

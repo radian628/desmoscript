@@ -239,9 +239,15 @@ Promise<void> {
         for (let expr of e.bodyExprs) {
             await calculateScopes(ctx, expr, innerScope, true);
         }
+        if (isFunctionOrMacro || e.type == ASTType.BLOCK) {
+            e.lastExpr = e.bodyExprs[e.bodyExprs.length - 1];
+        }
         e.innerScope = innerScope;
 
-        scope.contents.set(scopeName + (isFunctionOrMacro ? "SCOPE" : ""), { type: Identifier.SCOPE, root: innerScope });
+        scope.contents.set(
+            scopeName + (isFunctionOrMacro ? "SCOPE" : ""), 
+            { type: Identifier.SCOPE, root: innerScope }
+        );
         break;
     case ASTType.MATCH:
         for (let [predicate, result] of e.branches) {

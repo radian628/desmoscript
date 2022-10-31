@@ -108,6 +108,7 @@ export type ASTFunctionDef<T> = {
   name: T & RawASTExpr<T>;
   args: string[];
   bodyExprs: (T & RawASTExpr<T>)[];
+  lastExpr?: T & RawASTExpr<T>;
   type: ASTType.FNDEF | ASTType.MACRODEF;
 } & LineCol &
   T;
@@ -122,6 +123,7 @@ export type ASTNamespace<T> = {
 export type ASTBlock<T> = {
   bodyExprs: (T & RawASTExpr<T>)[];
   type: ASTType.BLOCK;
+  lastExpr?: T & RawASTExpr<T>;
 } & LineCol &
   T;
 
