@@ -43,7 +43,7 @@ export function makeDefaultDesmoscriptContext(entry: string): DesmoscriptContext
             .set("t", builtinVar)
 
             .set("plusOne", { 
-                type: Identifier.MACRO, 
+                type: Identifier.BUILTIN_MACRO, 
                 fn: (expr): ASTBinop<ScopeInfo> => {
                     let ctx = getExprContext(expr);
                     return {
@@ -60,7 +60,7 @@ export function makeDefaultDesmoscriptContext(entry: string): DesmoscriptContext
                 }
             })
             .set("makeBuiltin", {
-                type: Identifier.MACRO,
+                type: Identifier.BUILTIN_MACRO,
                 fn: (expr, ctx): ASTNote<ScopeInfo> => {
                     if (expr.args[0].type == ASTType.IDENTIFIER) {
                         ctx.builtins.contents.set(expr.args[0].segments[0], builtin);
@@ -72,7 +72,7 @@ export function makeDefaultDesmoscriptContext(entry: string): DesmoscriptContext
                     };
                 }
             })
-            .set("loadObj", { fn: loadObj, type: Identifier.MACRO })
+            .set("loadObj", { fn: loadObj, type: Identifier.BUILTIN_MACRO })
             .set("sub", sub)
 
             // .set("sum", {

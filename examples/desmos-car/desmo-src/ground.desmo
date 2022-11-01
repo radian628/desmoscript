@@ -1,2 +1,4 @@
 import "../../../desmo-lib/3d.desmo" as t;
-import "ground.desmo" as ground;
+import "./view.desmo" as view;
+
+

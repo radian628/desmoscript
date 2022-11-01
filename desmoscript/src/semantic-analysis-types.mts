@@ -6,7 +6,7 @@ export type DesmoscriptError = {
 };
 
 export enum Identifier {
-    FUNCTION, MACRO, VARIABLE, EXPRESSION, SCOPE, BUILTIN_FUNCTION, FUNCTION_ARG, DECORATOR, NAMED_JSON, NOTE, BUILTIN_VARIABLE
+    FUNCTION, MACRO, VARIABLE, EXPRESSION, SCOPE, BUILTIN_FUNCTION, FUNCTION_ARG, DECORATOR, NAMED_JSON, NOTE, BUILTIN_VARIABLE, BUILTIN_MACRO
 }
 
 export type MacroAPI = {
@@ -69,6 +69,9 @@ export type ScopeContent = {
 } | {
     type: Identifier.NOTE,
     root: string
+} | {
+    type: Identifier.BUILTIN_MACRO,
+    fn: (expr: ASTFunctionCall<ScopeInfo>, ctx: DesmoscriptContext, api: MacroAPI) => ASTExpr | Promise<ASTExpr>
 };
 
 export type Scope = {

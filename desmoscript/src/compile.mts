@@ -75,6 +75,7 @@ function findIdentifier(ident: ASTIdentifier<{ equivalentScope?: Scope, innerSco
                     if ([
                         Identifier.BUILTIN_FUNCTION, 
                         Identifier.BUILTIN_VARIABLE, 
+                        Identifier.BUILTIN_MACRO, 
                         Identifier.FUNCTION, 
                         Identifier.MACRO, 
                         Identifier.VARIABLE, 

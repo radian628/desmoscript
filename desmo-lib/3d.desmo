@@ -56,3 +56,164 @@ fn rayTriangleIntersection(
         t;
     }
 }
+
+
+sub!(mulMat3,
+    outVector,
+    matrix, vector,
+    ns outVector {
+        x = matrix.x.x * vector.x + matrix.y.x * vector.y + matrix.z.x * vector.z;
+        y = matrix.x.y * vector.x + matrix.y.y * vector.y + matrix.z.y * vector.z;
+        z = matrix.x.z * vector.x + matrix.y.z * vector.y + matrix.z.z * vector.z;
+    }
+)
+
+sub!(transform,
+    outVector,
+    vector,
+    translation,
+    matrix,
+    ns outVector {
+        x = matrix.x.x * vector.x + matrix.y.x * vector.y + matrix.z.x * vector.z + translation.x;
+        y = matrix.x.y * vector.x + matrix.y.y * vector.y + matrix.z.y * vector.z + translation.y;
+        z = matrix.x.z * vector.x + matrix.y.z * vector.y + matrix.z.z * vector.z + translation.z;
+    }
+)
+
+sub!(transform2,
+    outVector,
+    vector,
+    translation,
+    matrix,
+    ns outVector {
+        xt = vector.x + translation.x;
+        yt = vector.y + translation.y;
+        zt = vector.z + translation.z;
+        x = matrix.x.x * xt + matrix.y.x * yt + matrix.z.x * zt;
+        y = matrix.x.y * xt + matrix.y.y * yt + matrix.z.y * zt;
+        z = matrix.x.z * xt + matrix.y.z * yt + matrix.z.z * zt;
+    }
+)
+
+sub!(vec3,
+    name,
+    xvalues, yvalues, zvalues,
+    ns name { x=xvalues; y=yvalues; z=zvalues; }
+)
+
+sub!(mat3,
+    name,
+    xx, xy, xz,
+    yx, yy, yz,
+    zx, zy, zz,
+    ns name {
+        ns x { x=xx; y=xy; z=xz; }
+        ns y { x=yx; y=yy; z=yz; }
+        ns z { x=zx; y=zy; z=zz; }
+    }
+)
+
+sub!(mat3identity,
+    name,
+    mat3!(
+        name,
+        1, 0, 0,
+        0, 1, 0,
+        0, 0, 1
+    ))
+
+sub!(mat3FirstPerson,
+    name,
+    c,
+    ns name {
+        xx = cos(c\x); // x's contribution to x
+        xz = -1 * sin(c\x); // x's contribution to z
+        zx = sin(c\x);
+        zz = cos(c\x);
+        ns x { x=xx; y=0; z=zx; }
+        ns y { x=-1*xz*sin(c\y); y=cos(c\y); z=-1*zz*sin(c\y); }
+        ns z { x=xz*cos(c\y); y=sin(c\y); z=zz*cos(c\y); }
+    }
+)
+
+sub!(cross,
+    outvec,
+    v1, v2,
+    vec3!(
+        outvec,
+        v1.y * v2.z - v1.z * v2.y,
+        v1.z * v2.x - v1.x * v2.z,
+        v1.x * v2.y - v1.y * v2.x
+    )
+)
+
+
+sub!(rodrigues,
+    outvec,
+    v, angle, axis,
+    ns outvec {
+        cosAngle = cos(angle);
+        sinAngle = sin(angle);
+        cross!(crossKV, v, axis)
+        dotKV = v.x * axis.x + v.y * axis.y + v.z * axis.z;
+        x = v.x * cosAngle + crossKV.x * sinAngle + axis.x * dotKV * (1 - cosAngle);
+        y = v.y * cosAngle + crossKV.y * sinAngle + axis.y * dotKV * (1 - cosAngle);
+        z = v.z * cosAngle + crossKV.z * sinAngle + axis.z * dotKV * (1 - cosAngle);
+    }
+)
+
+sub!(rotateMat3,
+    outmat,
+    matrix, angle, axis,
+    ns outmat {
+        rodrigues!(x, matrix.x, angle, axis)
+        rodrigues!(y, matrix.y, angle, axis)
+        rodrigues!(z, matrix.z, angle, axis)
+    }
+)
+
+sub!(rodriguesAction,
+    actionName,
+    v, angle, axis,
+    ns actionName {
+        cosAngle = cos(angle);
+        sinAngle = sin(angle);
+        cross!(crossKV, v, axis)
+        dotKV = v.x * axis.x + v.y * axis.y + v.z * axis.z;
+        action = & v.x -> v.x * cosAngle + crossKV.x * sinAngle + axis.x * dotKV * (1 - cosAngle),
+                   v.y -> v.y * cosAngle + crossKV.y * sinAngle + axis.y * dotKV * (1 - cosAngle),
+                   v.z -> v.z * cosAngle + crossKV.z * sinAngle + axis.z * dotKV * (1 - cosAngle);
+    }
+)
+
+sub!(rotateMat3Action,
+    actionName,
+    matrix, angle, axis,
+    ns actionName {
+        rodriguesAction!(x, matrix.x, angle, axis)
+        rodriguesAction!(y, matrix.y, angle, axis)
+        rodriguesAction!(z, matrix.z, angle, axis)
+        action = & x.action, y.action, z.action;
+    }
+)
+
+sub!(normalize,
+    outvec, v,
+    ns outvec {
+        mag = (v.x * v.x + v.y * v.y + v.z * v.z) ^ 0.5;
+        x = v.x / mag;
+        y = v.y / mag;
+        z = v.z / mag;
+    }
+)
+
+sub!(projection, outvec, u, v,
+    ns outvec {
+        vDotV = v.x * v.x + v.y * v.y + v.z * v.z;
+        uDotV = u.x * v.x + u.y * v.y + u.z * v.z;
+        factor = uDotV / vDotV;
+        x = v.x * factor;
+        y = v.y * factor;
+        z = v.z * factor;
+    }
+)

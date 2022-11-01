@@ -1,0 +1,13 @@
+import "../../../desmo-lib/3d.desmo";
+
+// control rotation
+show rotationView = (0, 0); with @{ color: "black" }
+rotationController = 10 * rotationView;
+mat3FirstPerson!(matrix, rotationController)
+
+// control position
+show xzSliderView = (0, 0); with @{ color: "black" }
+show ySliderView = (0, 0.01 * ySliderController); with @{ color: "black" }
+xzSliderController = 30 * xzSliderView;
+ySliderController = 0;
+vec3!(pos, xzSliderController\x, ySliderController, xzSliderController\y)

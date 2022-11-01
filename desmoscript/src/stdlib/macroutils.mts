@@ -1,4 +1,4 @@
-import { Identifier, MacroAPI, MacroDefinition, ScopedASTExpr } from "../semantic-analysis-types.mjs";
+import { Identifier, MacroAPI, MacroDefinition, ScopeContent, ScopedASTExpr } from "../semantic-analysis-types.mjs";
 import { mapAST, ASTType, MapASTOrder } from "../ast.mjs";
 
 export function parseNoteString(expr: ScopedASTExpr | undefined, a: MacroAPI, errctx: string): string {
@@ -31,8 +31,8 @@ export function parseIdentUnpackedList(expr: ScopedASTExpr[], a: MacroAPI, errct
 }
 
 
-export const sub: MacroDefinition = {
-  type: Identifier.MACRO,
+export const sub: ScopeContent = {
+  type: Identifier.BUILTIN_MACRO,
   fn: (expr, ctx, a) => {
     if (expr.args.length < 2) {
         a.error("Substitution macro must contain at least a name and a body!");

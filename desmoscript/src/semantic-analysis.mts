@@ -106,6 +106,7 @@ function findDeclaration(enclosingScope: Scope | undefined, ident: ASTIdentifier
                 if ([
                     Identifier.FUNCTION, 
                     Identifier.MACRO, 
+                    Identifier.BUILTIN_MACRO, 
                     Identifier.BUILTIN_FUNCTION, 
                     Identifier.VARIABLE
                 ].indexOf(declaration.type) != undefined) {
@@ -182,7 +183,7 @@ Promise<void> {
             reason: "Macro name is not an identifer. Contact a dev if this error occurs."
         }
         const macroInfo = findDeclaration(scope, e.name);
-        if (macroInfo.type != Identifier.MACRO) throw {
+        if (macroInfo.type != Identifier.MACRO && macroInfo.type != Identifier.BUILTIN_MACRO) throw {
             expr: e,
             reason: "This identifier does not represent a macro."
         };
@@ -269,13 +270,19 @@ Promise<void> {
                     return;
                     //err(e, "Undefined key/value! This error should not occur; contact a dev if it does.");
                 }
-                if (scope.contents.has(k)) {
+                const isBuiltin = 
+                    v.type == Identifier.BUILTIN_FUNCTION 
+                    || v.type == Identifier.BUILTIN_VARIABLE
+                    || v.type == Identifier.BUILTIN_MACRO;
+                if (!isBuiltin && scope.contents.has(k)) {
                     err(e, `Namespace collision in imported file '${e.filename}': Identifier '${k}' is already defined.`);
                 }
                 if (v.type == Identifier.SCOPE) {
                     v.root.parent = scope;
                 }
-                scope.contents.set(k, v);
+                if (!isBuiltin) {
+                    scope.contents.set(k, v);
+                }
             });
         }
         break;
