@@ -149,6 +149,17 @@ sub!(normalize,
     }
 )
 
+sub!(projection, outvec, u, v,
+    ns outvec {
+        vDotV = v.x * v.x + v.y * v.y + v.z * v.z;
+        uDotV = u.x * v.x + u.y * v.y + u.z * v.z;
+        factor = uDotV / vDotV;
+        x = v.x * factor;
+        y = v.y * factor;
+        z = v.z * factor;
+    }
+)
+
 mat3identity!(identityMatrix)
 
 
@@ -178,12 +189,12 @@ fn getClippedPolygon(
                 (sortedXs[3] / sortedDepths[3], sortedYs[3] / sortedDepths[3]),
 
                 (
-                    (t2 * (sortedXs[1] + (sortedXs[3] - sortedXs[1])) / near), 
-                    (t2 * (sortedYs[1] + (sortedYs[3] - sortedYs[1])) / near)
+                    ((sortedXs[1] + t2 * (sortedXs[3] - sortedXs[1])) / near), 
+                    ((sortedYs[1] + t2 * (sortedYs[3] - sortedYs[1])) / near)
                 ),
                 (
-                    (t1 * (sortedXs[1] + (sortedXs[2] - sortedXs[1])) / near), 
-                    (t1 * (sortedYs[1] + (sortedYs[2] - sortedYs[1])) / near)
+                    ((sortedXs[1] + t1 * (sortedXs[2] - sortedXs[1])) / near), 
+                    ((sortedYs[1] + t1 * (sortedYs[2] - sortedYs[1])) / near)
                 )
             )
         };
@@ -197,12 +208,12 @@ fn getClippedPolygon(
                 (sortedXs[3] / sortedDepths[3], sortedYs[3] / sortedDepths[3]),
 
                 (
-                    (t2 * (sortedXs[3] + (sortedXs[2] - sortedXs[3])) / near), 
-                    (t2 * (sortedYs[3] + (sortedYs[2] - sortedYs[3])) / near)
+                    ((sortedXs[3] + t2 * (sortedXs[2] - sortedXs[3])) / near), 
+                    ((sortedYs[3] + t2 * (sortedYs[2] - sortedYs[3])) / near)
                 ),
                 (
-                    (t1 * (sortedXs[3] + (sortedXs[1] - sortedXs[3])) / near), 
-                    (t1 * (sortedYs[3] + (sortedYs[1] - sortedYs[3])) / near)
+                    ((sortedXs[3] + t1 * (sortedXs[1] - sortedXs[3])) / near), 
+                    ((sortedYs[3] + t1 * (sortedYs[1] - sortedYs[3])) / near)
                 )
             )
         };
@@ -235,7 +246,7 @@ ns ground {
     transform2!(viewSpace, mesh.vertices, view.pos, view.matrix)
 
     ns i {
-        t1 = mesh.vertexIndices[1, 4 .. length(mesh.vertexIndices)];
+        t1 = mesh.vertexIndices[1, 4 .. (length(mesh.vertexIndices) - 1)];
         t2 = mesh.vertexIndices[2, 5 .. length(mesh.vertexIndices)];
         t3 = mesh.vertexIndices[3, 6 .. length(mesh.vertexIndices)];
     }
@@ -284,18 +295,18 @@ ns car {
     }
 
     ns body {
-        momentOfInertia = 10;
+        momentOfInertia = 6;
         mass = 1;
-        vec3!(pos, 0, 0, 10)
+        vec3!(pos, 0, 3, -10)
 
         // rotation matrix
         mat3identity!(rotation)
 
         vec3!(linearVel, 0, 0.001, 0)
         ns angularVel {
-            x = 0.003;
-            y = 0.003;
-            z = 0.005;
+            x = -0.003;
+            y = -0.003;
+            z = -0.005;
         }
         normalize!(angularVelN, angularVel)
 
@@ -317,19 +328,50 @@ ns car {
 
 
         ns wheels {
-            x = [-0.7, 0.7, -0.7, 0.7];
-            y = [-1, -1, -1, -1];
-            z = [-1, -1, 1, 1];
+            x = [-1.1, 1.1, -1.1, 1.1] + pos.x;
+            y = [-1.1, -1.1, -1.1, -1.1] + pos.y;
+            z = [-1.5, -1.5, 1.5, 1.5] + pos.z;
+            ns prev {
+                x = [-1.1, 1.1, -1.1, 1.1] + pos.x;
+                y = [-1.1, -1.1, -1.1, -1.1] + pos.y;
+                z = [-1.5, -1.5, 1.5, 1.5] + pos.z;
+            }
         }
 
         ns wheelOffsets {
             x = [-1.1, 1.1, -1.1, 1.1];
             y = [-1.1, -1.1, -1.1, -1.1];
             z = [-1.5, -1.5, 1.5, 1.5];
+            ns prev {
+                x = [-1.1, 1.1, -1.1, 1.1];
+                y = [-1.1, -1.1, -1.1, -1.1];
+                z = [-1.5, -1.5, 1.5, 1.5];
+            }
         }
+
+        ns wheelDiscrepancy {
+            x = wheelOffsets.x - wheels.x;
+            y = wheelOffsets.y - wheels.y;
+            z = wheelOffsets.z - wheels.z;
+        }
+        normalize!(nWheelDiscrepancy, wheelDiscrepancy)
 
         transform!(transformedWheelOffsets, wheelOffsets, car.body.pos, car.body.rotation)
         transform!(rotatedWheelOffsets, wheelOffsets, origin, car.body.rotation)
+
+        updateWheelOffsets = &
+            wheelOffsets.prev.x -> transformedWheelOffsets.x, 
+            wheelOffsets.prev.y -> transformedWheelOffsets.y, 
+            wheelOffsets.prev.z -> transformedWheelOffsets.z
+        ;
+        
+        ns wheelOffsetDelta {
+            x = transformedWheelOffsets.x - wheelOffsets.prev.x;
+            y = transformedWheelOffsets.y - wheelOffsets.prev.y;
+            z = transformedWheelOffsets.z - wheelOffsets.prev.z;
+        }
+
+        normalize!(wheelOffsetDirections, wheelOffsetDelta)
 
         vec3!(origin, 0, 0, 0)
 
@@ -339,7 +381,7 @@ ns car {
                     transformedWheelOffsets.x[index],
                     transformedWheelOffsets.y[index],
                     transformedWheelOffsets.z[index],
-                    0, -1, 0,
+                    wheelOffsetDirections.x[index], wheelOffsetDirections.y[index], wheelOffsetDirections.z[index],
                     ground.mesh.vertices.x[ground.i.t1],
                     ground.mesh.vertices.y[ground.i.t1],
                     ground.mesh.vertices.z[ground.i.t1],
@@ -359,23 +401,26 @@ ns car {
             index=[1,2,3,4]
         ];
 
+        normalForceMag = 0.02;
+        normalIndices = ground.mesh.normalIndices[rti\y * 3];
         vec3!(wheelNormalForces, 
         match {
-            (rti\x < 0.5) => ground.mesh.normals.x[rti\y] * 0.01;
+            (rti\x < wheelOffsetDirections.mag) => ground.mesh.normals.x[normalIndices] * wheelOffsetDirections.mag * 1;
             0;
         }, 
         match {
-            (rti\x < 0.5) => ground.mesh.normals.y[rti\y] * 0.01;
+            (rti\x < wheelOffsetDirections.mag) => ground.mesh.normals.y[normalIndices] * wheelOffsetDirections.mag * 1;
             0;
         },
         match {
-            (rti\x < 0.5) => ground.mesh.normals.z[rti\y] * 0.01;
+            (rti\x < wheelOffsetDirections.mag) => ground.mesh.normals.z[normalIndices] * wheelOffsetDirections.mag * 1;
             0;
         })
 
         cross!(torqueFromWheels, wheelNormalForces, rotatedWheelOffsets)
 
         accelerate = & 
+            updateWheelOffsets,
             angularVel.x -> 0.99 * angularVel.x + total(torqueFromWheels.x) / momentOfInertia,
             angularVel.y -> 0.99 * angularVel.y + total(torqueFromWheels.y) / momentOfInertia
             - carController\x * 0.4,
