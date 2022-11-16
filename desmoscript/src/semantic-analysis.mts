@@ -53,7 +53,6 @@ export async function getDesmoscriptScopes(filename: string, additionalDefines?:
 
     const oldcwd = process.cwd();
 
-    // Parse the input, where `compilationUnit` is whatever entry point you defined
     let tree = parser.expressionList();
 
     const astBuilder = new DesmoscriptASTBuilder(path.resolve(filename));
@@ -71,8 +70,6 @@ export async function getDesmoscriptScopes(filename: string, additionalDefines?:
     await calculateScopes(ctx, ast, ctx.builtins, true);
 
     process.chdir(oldcwd);
-
-    //console.log(ctx.builtins);
 
     return {
         rootExpr: ast as ScopedASTExpr,
@@ -175,9 +172,6 @@ Promise<void> {
         }
         break;
     case ASTType.MACROCALL:
-        // for (let arg of e.args) {
-        //     await calculateScopes(ctx, arg, scope, false);
-        // }
         if (e.name.type != ASTType.IDENTIFIER) throw {
             expr: e,
             reason: "Macro name is not an identifer. Contact a dev if this error occurs."
@@ -201,7 +195,6 @@ Promise<void> {
         await calculateScopes(ctx, e.right, scope, false);
         break;
     case ASTType.FNDEF:
-    //case ASTType.MACRODEF:
         await calculateScopes(ctx, e.name, scope, false);
     case ASTType.NAMESPACE:
     case ASTType.BLOCK:
