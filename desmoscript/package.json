@@ -1,31 +1,16 @@
 {
-  "name": "desmoscript",
-  "version": "0.1.11",
-  "description": "A programming language that compiles to Desmos expression.",
-  "main": "dist/index.mjs",
-  "files": [
-    "dist",
-    "dist/grammar"
-  ],
-  "types": "dist/index.d.mts",
-  "type": "module",
-  "scripts": {
-    "antlr": "npx antlr4ts -visitor grammar/Desmoscript.g4 -o ./src/grammar",
-    "dev": "npx tsc --watch",
-    "start": "node --trace-warnings --es-module-specifier-resolution=node server.mjs",
-    "build": "npx tsc",
-    "prepare": "npm run antlr && npm run build"
-  },
-  "dependencies": {
-    "@types/node": "^18.7.16",
-    "antlr4": "^4.10.1",
-    "antlr4ts": "^0.5.0-alpha.4",
-    "chokidar": "^3.5.3",
-    "typescript": "^4.8.3",
-    "zod": "^3.19.0"
-  },
-  "devDependencies": {
-    "@types/antlr4": "^4.7.2",
-    "antlr4ts-cli": "^0.5.0-alpha.4"
-  }
+    "name": "desmoscript",
+    "version": "0.1.12",
+    "scripts": {
+        "nearley": "npx nearleyc src/grammar/grammar.ne -o src/grammar/grammar.mts",
+        "dev": "npx tsc --watch",
+        "build": "npx tsc",
+        "prepare": "npm run nearley && npm run build"
+    },
+    "devDependencies": {
+        "@types/nearley": "^2.11.2"
+    },
+    "dependencies": {
+        "nearley": "^2.20.1"
+    }
 }
