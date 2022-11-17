@@ -1,0 +1,168 @@
+import { DesmoscriptCompilationUnit, DesmoscriptCompileContext, Scope, ScopeContent } from "../semantic-analysis/analysis-types.mjs";
+
+import { GraphState } from "../graphstate.mjs";
+import { ASTBinop, ASTExpr, ASTType, RawASTExpr } from "../ast/ast.mjs";
+import { findIdentifier } from "../semantic-analysis/analyze.mjs";
+
+let exprIdCounter = 0;
+function uniqueExpressionID() {
+    return (exprIdCounter++).toString();
+}
+
+
+function opToLatex<T>(expr: ASTBinop<T>) {
+    const lop: string | undefined = optable[expr.op];
+    if (!lop) throw {
+        expr,
+        reason: `Unable to convert operator '${expr.op}'. Contact a developer if this error occurs.`
+    }
+    return lop;
+}
+
+function toDesmosVar(str: string) {
+    if (str.length == 1) return str;
+    return `${str[0]}_{${str.slice(1)}}`;
+}
+
+function lastof<T>(arr: T[]) {
+    return arr[arr.length - 1];
+}
+
+const optable: { [key: string]: string } = {
+    "+": "+",
+    "-": "-",
+    "*": "\\cdot ",
+    ">": "\\gt ",
+    "<": "\\lt ",
+    ">=": "\\ge ",
+    "<=": "\\le ",
+    "->": "\\to ",
+    "..": "...",
+    "=": "=",
+    "==": "="
+}
+
+function compileExprToJSON(
+expr: RawASTExpr<{}>,
+state: {
+    ctx: DesmoscriptCompileContext,
+    unit: DesmoscriptCompilationUnit,
+    unitName: string,
+    graphState: GraphState,
+    scope: Scope,
+    identifierMap: Map<string, string>
+}, ) {
+    function c(e: ASTExpr): string {
+        switch (e.type) {
+            case ASTType.BINOP:
+                if (e.op == "^") return `${c(e.left)}^{${c(e.right)}}`;
+                if (e.op == "[") return `${c(e.left)}\\left[${c(e.right)}\\right]`;
+                if (e.op == "/") return `\\frac{${c(e.left)}}{${c(e.right)}}`;
+                if (e.op == "%") return `\\operatorname{mod}\\left(${c(e.left)},${c(e.right)}\\right)`
+                if (e.op == "=") return `${c(e.left)}${opToLatex(e)}${c(e.right)}`;
+                if (e.op == "..") return `\\left[${c(e.left)}${opToLatex(e)}${c(e.right)}\\right]`;
+                if ([">", "<", ">=", "<=", "=="].indexOf(e.op) != -1) {
+                    return `${c(e.left)}${opToLatex(e)}${c(e.right)}`;
+                }
+                return `\\left(${c(e.left)}${opToLatex(e)}${c(e.right)}\\right)`;
+            case ASTType.NUMBER:
+                return e.number.toString();
+            case ASTType.ROOT:
+                throw {
+                    expr: e,
+                    reason: "A single expression should never be the root! Contact a developer if this error occurs."
+                }
+            case ASTType.IDENTIFIER:
+                const ident = findIdentifier(scope, e);
+                if (ident.content.type == Identifier.BUILTIN_FUNCTION) {
+                    return `\\operatorname{${ident.path[ident.path.length - 1]}}`;
+                } else if (ident.content.type == Identifier.BUILTIN_VARIABLE) {
+                    return ident.path[ident.path.length - 1];
+                }
+                return toDesmosVar(ident.path.join("NSSEP"));
+        }
+    }
+}
+
+function compileScopeToJSON(state: {
+    ctx: DesmoscriptCompileContext,
+    unit: DesmoscriptCompilationUnit,
+    unitName: string,
+    graphState: GraphState,
+    scope: Scope,
+    identifierMap: Map<string, string>
+}) {
+    const { ctx, unit, unitName, graphState, scope, identifierMap } = state;
+    for (const [name, c] of scope.contents) {
+    
+        // don't compile symbols defined in other compilation units
+        if (c.external) continue;
+
+        // compile
+        switch (c.type) {
+            case ScopeContent.Type.NOTE:
+                graphState.expressions.list.push({
+                    type: "text",
+                    text: c.data,
+                    id: uniqueExpressionID()
+                });
+                break;
+            case ScopeContent.Type.SCOPE:
+                compileScopeToJSON({
+                    ...state,
+                    scope: c.data
+                });
+                break;
+            case ScopeContent.Type.VARIABLE:
+                if (c.data.isBuiltin) continue;
+                compileExprToJSON(c.data.data, state);
+                break;
+            case ScopeContent.Type.FUNCTION:
+                if (c.data.isBuiltin) continue;
+        }
+    }
+}
+
+function compileCompilationUnitToJSON(state: {
+    ctx: DesmoscriptCompileContext, 
+    unit: DesmoscriptCompilationUnit,
+    unitName: string,
+    graphState: GraphState,
+    identifierMap: Map<string, string>
+}) {
+    const { ctx, unit, unitName, graphState } = state;
+    compileScopeToJSON({
+        ...state,
+        scope: unit.rootScope
+    });
+}
+
+function joinIdent(identifier: string[] | string) {
+    if (typeof identifier == "string") return identifier;
+    return identifier.join(".");
+}
+
+function compileContextToJSON(ctx: DesmoscriptCompileContext) {
+
+    // initial default graph state
+    const graphState: GraphState = {
+        version: 9,
+        graph: {
+            viewport: {
+                xmin: -10, ymin: -10, xmax: 10, ymax: 10
+            }
+        },
+        expressions: {
+            list: []
+        }
+    }
+
+    const identifierMap = new Map<string, string>();
+
+    // compile all compilation units
+    for (const [unitName, unit] of ctx.compilationUnits) {
+        compileCompilationUnitToJSON({
+            ctx, unit, unitName, graphState, identifierMap
+        });
+    }
+}

@@ -1,16 +1,23 @@
-import { CharStreams, CommonTokenStream, ParserRuleContext, Token } from "antlr4ts";
+import { CharStreams, CommonTokenStream, ConsoleErrorListener, ParserRuleContext, Token } from "antlr4ts";
 import {ParseTreeWalker} from "antlr4ts/tree/ParseTreeWalker";
-import { DesmoscriptLexer } from "./grammar/DesmoscriptLexer";
-import { ActionExprContext, AddOrSubExprContext, ArrayDJsonContext, AssignmentExprContext, BlockExprContext, BooleanDJsonContext, DecoratedExprContext, DerivativeExprContext, DesmoscriptDJsonContext, DesmoscriptParser, ExpressionContext, ExpressionListContext, FunctionCallContext, FunctionCallExprContext, FunctionDefinitionExprContext, IdentifierContext, IdentifierExprContext, ImportExprContext, JSONExprContext, ListCompExprContext, ListExprContext, ListMemberAccessExprContext, LogicalExprContext, MacroCallContext, MacroCallExprContext, MacroDefinitionExprContext, MatchExprContext, MemberAccessExprContext, MultOrDivExprContext, NamedJsonExprContext, NamespaceDefinitionExprContext, NullDJsonContext, NumberDJsonContext, NumberExprContext, ObjectDJsonContext, ParentheticalExprContext, PointExprContext, RangeExprContext, StepRangeExprContext, StringDJsonContext, StringExprContext, SumProdIntegralExprContext } from "./grammar/DesmoscriptParser";
-import { DesmoscriptListener } from "./grammar/DesmoscriptListener";
-import { DesmoscriptVisitor } from "./grammar/DesmoscriptVisitor";
+import { DesmoscriptLexer } from "../grammar/DesmoscriptLexer";
+import { ActionExprContext, AddOrSubExprContext, ArrayDJsonContext, AssignmentExprContext, BlockExprContext, BooleanDJsonContext, DecoratedExprContext, DerivativeExprContext, DesmoscriptDJsonContext, DesmoscriptParser, ExpressionContext, ExpressionListContext, FunctionCallContext, FunctionCallExprContext, FunctionDefinitionExprContext, IdentifierContext, IdentifierExprContext, ImportExprContext, JSONExprContext, ListCompExprContext, ListExprContext, ListMemberAccessExprContext, LogicalExprContext, MacroCallContext, MacroCallExprContext, MacroDefinitionExprContext, MatchExprContext, MemberAccessExprContext, MultOrDivExprContext, NamedJsonExprContext, NamespaceDefinitionExprContext, NullDJsonContext, NumberDJsonContext, NumberExprContext, ObjectDJsonContext, ParentheticalExprContext, PointExprContext, RangeExprContext, StepRangeExprContext, StringDJsonContext, StringExprContext, SumProdIntegralExprContext } from "../grammar/DesmoscriptParser";
+import { DesmoscriptListener } from "../grammar/DesmoscriptListener";
+import { DesmoscriptVisitor } from "../grammar/DesmoscriptVisitor";
 import { ParseTreeListener } from "antlr4ts/tree/ParseTreeListener";
 import { TerminalNode } from "antlr4ts/tree/TerminalNode";
 import {AbstractParseTreeVisitor} from "antlr4ts/tree/AbstractParseTreeVisitor";
+import * as fs from "node:fs/promises";
+import * as path from "node:path";
 
 import * as ds from "./ast.mjs";
 
 type PropType<TObj, TProp extends keyof TObj> = TObj[TProp];
+
+let anonScopeNameCounter = 0;
+export function uniqueAnonScopeName() {
+    return "$" + anonScopeNameCounter++;
+}
 
 export class DesmoscriptASTBuilder extends AbstractParseTreeVisitor<ds.ASTExpr> implements DesmoscriptVisitor<ds.ASTExpr> {
     filename: string
@@ -264,7 +271,8 @@ export class DesmoscriptASTBuilder extends AbstractParseTreeVisitor<ds.ASTExpr> 
     visitBlockExpr(ctx: BlockExprContext): ds.ASTExpr {
         return this.withLineCol<ds.ASTBlock<{}>>(ctx, {
             bodyExprs: ctx._exprs.map(expr => this.visit(expr)),
-            type: ds.ASTType.BLOCK
+            type: ds.ASTType.BLOCK,
+            id: uniqueAnonScopeName()
         });
     }
 
@@ -413,4 +421,28 @@ export class DesmoscriptASTBuilder extends AbstractParseTreeVisitor<ds.ASTExpr> 
         });
     }
 
+}
+
+export async function desmoscriptFileToAST(filename: string) {
+    const src = (await fs.readFile(filename)).toString();
+    let lexer = new DesmoscriptLexer(CharStreams.fromString(src));
+    let tokenStream = new CommonTokenStream(lexer);
+    let parser = new DesmoscriptParser(tokenStream);
+    parser.removeErrorListener(ConsoleErrorListener.INSTANCE);
+    parser.addErrorListener({
+        syntaxError(recognizer, offendingSymbol, line, charPositionInLine, msg, e) {
+            throw {
+                reason: msg, 
+                expr: {
+                    file: filename,
+                    line,
+                    col: charPositionInLine
+                }
+            }
+        },
+    });
+    let tree = parser.expressionList();
+    const astBuilder = new DesmoscriptASTBuilder(path.resolve(filename));
+    const ast = astBuilder.visit(tree);
+    return ast;
 }

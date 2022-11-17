@@ -1,4 +1,4 @@
-import { ASTFunctionCall, ASTType } from "../ast.mjs";
+import { ASTFunctionCall, ASTType } from "../ast/ast.mjs";
 import { MacroAPI, MacroDefinition, ScopedASTExpr, ScopeInfo } from "../semantic-analysis-types.mjs";
 import * as fs from "node:fs/promises";
 import * as path from "node:path";

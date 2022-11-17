@@ -1,8 +1,9 @@
-import { ASTType, JSONType } from "./ast.mjs";
+import { ASTType, JSONType, RawASTExpr } from "../ast/ast.mjs";
 import { getExprContext } from "./builtins.mjs";
-import { MacroAPI, ScopedASTExpr } from "./semantic-analysis-types.mjs";
+import { MacroAPI, ScopedASTExpr } from "./analysis-types.mjs";
+import { uniqueAnonScopeName } from "../ast/parse.mjs";
 
-export async function getMacroAPI(e: ScopedASTExpr): Promise<MacroAPI> {
+export async function getMacroAPI(e: RawASTExpr<{}>): Promise<MacroAPI> {
     let ctx = getExprContext(e);
     
     return {
@@ -84,6 +85,7 @@ export async function getMacroAPI(e: ScopedASTExpr): Promise<MacroAPI> {
         return {
             ...ctx,
             type: ASTType.BLOCK,
+            id: uniqueAnonScopeName(),
             bodyExprs
         }
       },

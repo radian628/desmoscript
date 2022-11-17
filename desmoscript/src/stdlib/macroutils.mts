@@ -1,5 +1,5 @@
 import { Identifier, MacroAPI, MacroDefinition, ScopeContent, ScopedASTExpr } from "../semantic-analysis-types.mjs";
-import { mapAST, ASTType, MapASTOrder } from "../ast.mjs";
+import { mapAST, ASTType, MapASTOrder } from "../ast/ast.mjs";
 
 export function parseNoteString(expr: ScopedASTExpr | undefined, a: MacroAPI, errctx: string): string {
   if (!expr || expr.type != ASTType.NOTE) {
