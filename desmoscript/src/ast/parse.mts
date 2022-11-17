@@ -179,6 +179,7 @@ export class DesmoscriptASTBuilder extends AbstractParseTreeVisitor<ds.ASTExpr> 
 
     visitListCompExpr(ctx: ListCompExprContext): ds.ASTExpr {
         return this.withLineCol<ds.ASTListComp<{}>>(ctx, {
+            id: uniqueAnonScopeName(),
             type: ds.ASTType.LISTCOMP,
             variables: ctx._variables.map((v, i) => [v.text ?? "", this.visit(ctx._lists[i])]),
             body: this.visit(ctx._body)
@@ -187,6 +188,7 @@ export class DesmoscriptASTBuilder extends AbstractParseTreeVisitor<ds.ASTExpr> 
 
     visitSumProdIntegralExpr(ctx: SumProdIntegralExprContext): ds.ASTExpr {
         return this.withLineCol<ds.ASTSumProdInt<{}>>(ctx, {
+            id: uniqueAnonScopeName(),
             type: ds.ASTType.SUMPRODINT,
             varName: ctx._var.text ?? "",
             lo: this.visit(ctx._lo),
@@ -198,6 +200,7 @@ export class DesmoscriptASTBuilder extends AbstractParseTreeVisitor<ds.ASTExpr> 
 
     visitDerivativeExpr(ctx: DerivativeExprContext): ds.ASTExpr {
         return this.withLineCol<ds.ASTDerivative<{}>>(ctx, {
+            id: uniqueAnonScopeName(),
             type: ds.ASTType.DERIVATIVE,
             variable: ctx._var.text ?? "",
             body: this.visit(ctx._body)
@@ -234,6 +237,7 @@ export class DesmoscriptASTBuilder extends AbstractParseTreeVisitor<ds.ASTExpr> 
 
     visitFunctionDefinitionExpr(ctx: FunctionDefinitionExprContext): ds.ASTExpr {
         return this.withLineCol<ds.ASTFunctionDef<{}>>(ctx, {
+          id: uniqueAnonScopeName(),
             name: this.visit(ctx._fnname),
             args: ctx._fnargs._args.map(arg => arg.text ?? ""),
             bodyExprs: ctx._exprs.map(expr => this.visit(expr)),
@@ -243,6 +247,7 @@ export class DesmoscriptASTBuilder extends AbstractParseTreeVisitor<ds.ASTExpr> 
 
     visitMacroDefinitionExpr(ctx: MacroDefinitionExprContext): ds.ASTExpr {
         return this.withLineCol<ds.ASTFunctionDef<{}>>(ctx, {
+          id: uniqueAnonScopeName(),
             name: this.visit(ctx._macroname),
             args: ctx._macroargs._args.map(arg => arg.text ?? ""),
             bodyExprs: ctx._exprs.map(expr => this.visit(expr)),

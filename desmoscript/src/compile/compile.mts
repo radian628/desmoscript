@@ -1,8 +1,8 @@
 import { DesmoscriptCompilationUnit, DesmoscriptCompileContext, Scope, ScopeContent } from "../semantic-analysis/analysis-types.mjs";
 
 import { GraphState } from "../graphstate.mjs";
-import { ASTBinop, ASTExpr, ASTType, RawASTExpr } from "../ast/ast.mjs";
-import { findIdentifier } from "../semantic-analysis/analyze.mjs";
+import { ASTBinop, ASTExpr, ASTIdentifier, ASTType, RawASTExpr } from "../ast/ast.mjs";
+import { err, findIdentifier } from "../semantic-analysis/analyze.mjs";
 
 let exprIdCounter = 0;
 function uniqueExpressionID() {
@@ -42,6 +42,10 @@ const optable: { [key: string]: string } = {
     "==": "="
 }
 
+/*
+How do I come up with identifier names, given that they may be in different scopes in different files?
+My current approach is to create a hash table of identifier names.
+*/
 function compileExprToJSON(
 expr: RawASTExpr<{}>,
 state: {
@@ -50,9 +54,32 @@ state: {
     unitName: string,
     graphState: GraphState,
     scope: Scope,
-    identifierMap: Map<string, string>
+    identifierMap: Map<string, Map<string, string>>
 }, ) {
-    function c(e: ASTExpr): string {
+    function compileSingleExpr(e: ASTExpr, scope: Scope): string {
+        function c(e2: ASTExpr) {
+          let innerScope = scope;
+          let newScopeName: string | undefined = undefined;
+          switch (e2.type) {
+            case ASTType.LISTCOMP:
+            case ASTType.DERIVATIVE:
+            case ASTType.SUMPRODINT:
+            case ASTType.FNDEF:
+              newScopeName = e2.id;
+              break;
+            case ASTType.NAMESPACE:
+              newScopeName = e2.name;
+              break;
+          }
+          if (newScopeName) {
+            const newInnerScope = scope.contents.get(newScopeName);
+            if (!newInnerScope 
+              || newInnerScope.type != ScopeContent.Type.SCOPE
+            ) err(e, "Scope does not exist when it should.");
+            innerScope = newInnerScope.data;
+          }
+          return compileSingleExpr(e2, innerScope);
+        }
         switch (e.type) {
             case ASTType.BINOP:
                 if (e.op == "^") return `${c(e.left)}^{${c(e.right)}}`;
@@ -70,16 +97,37 @@ state: {
             case ASTType.ROOT:
                 throw {
                     expr: e,
-                    reason: "A single expression should never be the root! Contact a developer if this error occurs."
+                    reason: "INTERNAL ERROR: A single expression should never be the root!"
                 }
             case ASTType.IDENTIFIER:
                 const ident = findIdentifier(scope, e);
-                if (ident.content.type == Identifier.BUILTIN_FUNCTION) {
-                    return `\\operatorname{${ident.path[ident.path.length - 1]}}`;
-                } else if (ident.content.type == Identifier.BUILTIN_VARIABLE) {
-                    return ident.path[ident.path.length - 1];
+                if (!ident) 
+                  err(e, `Identifier '${e.segments.join(".")}' does not exist in this scope.`);
+                
+                switch (ident.type) {
+                  case ScopeContent.Type.VARIABLE:
+                  case ScopeContent.Type.FUNCTION:
+                    if (ident.data.isBuiltin) {
+                      return `\\operatorname{${ident.path[ident.path.length - 1]}}`;
+                    } else {
+                      return toDesmosVar(ident.path.join("X"));
+                    }
+                  default:
+                    err(e, "INTERNAL ERROR: These types of expressions should not exist here!");
                 }
-                return toDesmosVar(ident.path.join("NSSEP"));
+
+                // if (
+                //   ident.type == ScopeContent.Type.MACRO
+                //   || ident.type == ScopeContent.Type.NOTE
+                // ) 
+                //   err(e, "INTERNAL ERROR: These types of expressions should not exist here!");
+                
+                // if (ident?.data.isBuiltin) {
+                //     return `\\operatorname{${ident.path[ident.path.length - 1]}}`;
+                // } else if (ident.content.type == Identifier.BUILTIN_VARIABLE) {
+                //     return ident.path[ident.path.length - 1];
+                // }
+                
         }
     }
 }
@@ -90,13 +138,13 @@ function compileScopeToJSON(state: {
     unitName: string,
     graphState: GraphState,
     scope: Scope,
-    identifierMap: Map<string, string>
+    identifierMap: Map<string, Map<string, string>>
 }) {
     const { ctx, unit, unitName, graphState, scope, identifierMap } = state;
     for (const [name, c] of scope.contents) {
     
         // don't compile symbols defined in other compilation units
-        if (c.external) continue;
+        if (c.source !== undefined) continue;
 
         // compile
         switch (c.type) {
@@ -128,7 +176,7 @@ function compileCompilationUnitToJSON(state: {
     unit: DesmoscriptCompilationUnit,
     unitName: string,
     graphState: GraphState,
-    identifierMap: Map<string, string>
+    identifierMap: Map<string, Map<string, string>>
 }) {
     const { ctx, unit, unitName, graphState } = state;
     compileScopeToJSON({
@@ -157,7 +205,7 @@ function compileContextToJSON(ctx: DesmoscriptCompileContext) {
         }
     }
 
-    const identifierMap = new Map<string, string>();
+    const identifierMap = new Map<string, Map<string, string>>();
 
     // compile all compilation units
     for (const [unitName, unit] of ctx.compilationUnits) {

@@ -17,7 +17,6 @@
     "prepare": "npm run antlr && npm run build"
   },
   "dependencies": {
-    "@types/node": "^18.7.16",
     "antlr4": "^4.10.1",
     "antlr4ts": "^0.5.0-alpha.4",
     "chokidar": "^3.5.3",
@@ -26,6 +25,7 @@
   },
   "devDependencies": {
     "@types/antlr4": "^4.7.2",
+    "@types/node": "^18.11.9",
     "antlr4ts-cli": "^0.5.0-alpha.4"
   }
 }

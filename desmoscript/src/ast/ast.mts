@@ -105,6 +105,7 @@ export type ASTStepRange<T, C = T> = {
   T;
 
 export type ASTFunctionDef<T, C = T> = {
+  id: string,
   name: RawASTExpr<C, C>;
   args: string[];
   bodyExprs: (RawASTExpr<C, C>)[];
@@ -143,6 +144,7 @@ export type ASTImport<T, C = T> = {
   T;
 
 export type ASTSumProdInt<T, C = T> = {
+  id: string;
   type: ASTType.SUMPRODINT;
   opType: "sum" | "product" | "integral";
   varName: string;
@@ -153,6 +155,7 @@ export type ASTSumProdInt<T, C = T> = {
   T;
 
 export type ASTDerivative<T, C = T> = {
+  id: string;
   type: ASTType.DERIVATIVE;
   variable: string;
   body: RawASTExpr<C, C>;
@@ -160,6 +163,7 @@ export type ASTDerivative<T, C = T> = {
   T;
 
 export type ASTListComp<T, C = T> = {
+  id: string;
   type: ASTType.LISTCOMP;
   variables: [string, RawASTExpr<C, C>][];
   body: RawASTExpr<C, C>;

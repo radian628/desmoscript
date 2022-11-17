@@ -7,7 +7,7 @@ export namespace ScopeContent {
     }
 
     export type Variable = {
-        external?: boolean,
+        source?: string,
         type: Type.VARIABLE,
         decoratorInfo?: {
             json: ASTJSON<{}>
@@ -19,7 +19,7 @@ export namespace ScopeContent {
     }
 
     export type Function = {
-        external?: boolean,
+      source?: string,
         type: Type.FUNCTION,
         data: {
             isBuiltin?: false,
@@ -29,7 +29,7 @@ export namespace ScopeContent {
     }
 
     export type Macro = {
-        external?: boolean,
+      source?: string,
         type: Type.MACRO,
         isBuiltin?: boolean,
         fn: (expr: ASTFunctionCall<{}>, ctx: DesmoscriptCompileContext, api: MacroAPI) 
@@ -37,19 +37,19 @@ export namespace ScopeContent {
     }
 
     export type Scope = {
-        external?: boolean,
+      source?: string,
         type: Type.SCOPE
         data: Scope2
     }
 
     export type NamedJSON = {
-        external?: boolean,
+      source?: string,
         type: Type.NAMED_JSON,
         data: ASTJSON<{}>
     }
 
     export type Note = {
-        external?: boolean,
+      source?: string,
         type: Type.NOTE,
         data: string
     }
@@ -57,29 +57,29 @@ export namespace ScopeContent {
     export type Content = 
         Variable | Function | Macro | Scope | NamedJSON | Note;
 
-    export function externalizeScope(scope: Scope2): Scope2 {
+    export function externalizeScope(scope: Scope2, source: string): Scope2 {
         return {
             ...scope,
             contents: new Map(
                 Array.from(scope.contents.entries()).map(
-                    ([k, v]) => [k, externalize(v)]
+                    ([k, v]) => [k, externalize(v, source)]
                 )
             )
         }
     }
 
-    export function externalize(content: Content): Content {
+    export function externalize(content: Content, source: string): Content {
         switch (content.type) {
             case Type.SCOPE:
                 return {
                     ...content,
-                    data: externalizeScope(content.data),
-                    external: true
+                    data: externalizeScope(content.data, source),
+                    source
                 }
             default:
                 return {
                     ...content,
-                    external: true
+                    source
                 }
         }
     }
@@ -87,6 +87,7 @@ export namespace ScopeContent {
 
 type Scope2 = Scope;
 export type Scope = {
+  name: string,
     contents: Map<string, ScopeContent.Content>,
     parent?: Scope
 }

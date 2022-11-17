@@ -23,7 +23,7 @@ export async function addDesmoscriptCompilationUnit(context: DesmoscriptCompileC
 
 
 
-function err(expr: RawASTExpr<{}>, reason: string): never {
+export function err(expr: RawASTExpr<{}>, reason: string): never {
     throw {
         expr, reason
     };
@@ -38,7 +38,11 @@ function err(expr: RawASTExpr<{}>, reason: string): never {
 
 
 
-export function findIdentifier(scope: Scope, identifier: ASTIdentifier<{}>): ScopeContent.Content | undefined {
+export function findIdentifier(scope: Scope, identifier: ASTIdentifier<{}>): {
+  ident:  ScopeContent.Content,
+  path: string[],
+  scope: Scope
+} | undefined {
     // look for identifier in scope chain
     function findIdentHelper(scope: Scope, identChain: string[]) {
         const foundScopeContent = scope.contents.get(identChain[0]);
@@ -53,9 +57,15 @@ export function findIdentifier(scope: Scope, identifier: ASTIdentifier<{}>): Sco
 
     // look through current scope, parent scope, etc.
     let searchScope: Scope | undefined = scope;
+    let scopePath = identifier.segments.concat();
     while (searchScope) {
         const ident = findIdentHelper(scope, identifier.segments);
-        if (ident) return ident;
+        if (ident) return {
+          ident,
+          path: scopePath,
+          scope: searchScope
+        };
+        scopePath = [searchScope.name, ...scopePath];
         searchScope = searchScope.parent;
     }
 }
@@ -63,14 +73,16 @@ export function findIdentifier(scope: Scope, identifier: ASTIdentifier<{}>): Sco
 
 
 
+
+
 export function makeAndBindNewScope(parent: Scope, name: string): Scope {
     const newScope = {
+      name,
         parent,
         contents: new Map()
     }
     parent.contents.set(name, {
         type: ScopeContent.Type.SCOPE,
-        external: false,
         data: newScope
     });
     return newScope;
@@ -98,6 +110,7 @@ export async function astToCompilationUnit(ast: RawASTExpr<{}>, context: Desmosc
     const fileDir = path.dirname(filePath);
 
     const rootScope: Scope = {
+        name: "root",
         contents: new Map(),
     }
 
@@ -132,7 +145,6 @@ export async function astToCompilationUnit(ast: RawASTExpr<{}>, context: Desmosc
                     ensureNameLengthAndNamespace(e, ctx.scope, e.left, "variable");
                     const varName = e.left.segments[0];
                     ctx.scope.contents.set(varName, {
-                        external: false,
                         type: ScopeContent.Type.VARIABLE,
                         data: {
                             isBuiltin: false,
@@ -159,14 +171,14 @@ export async function astToCompilationUnit(ast: RawASTExpr<{}>, context: Desmosc
                     err(e, "Macro name is not an identifier. This should never happen!");
                 }
                 const macroInfo = findIdentifier(ctx.scope, e.name);
-                if (macroInfo?.type != ScopeContent.Type.MACRO) {
+                if (macroInfo?.ident.type != ScopeContent.Type.MACRO) {
                     if (macroInfo) {
                         err(e, `'${e.name.segments.join(".")}' is not a macro, and thus it cannot be called like a macro.`);
                     } else {
                         err(e, `'${e.name.segments.join(".")}' does not exist.`);
                     }
                 }
-                e.substitution = await macroInfo.fn(e, context, getMacroAPI(e));
+                e.substitution = await macroInfo.ident.fn(e, context, getMacroAPI(e));
                 s(e.substitution);
                 break;
             case ASTType.LIST:
@@ -184,12 +196,11 @@ export async function astToCompilationUnit(ast: RawASTExpr<{}>, context: Desmosc
                         err(e, `Function/macro name is not an identifier. This should not occur.`);
                     }
                     ensureNameLengthAndNamespace(e, ctx.scope, e.name, "function");
-                    const scopeName = e.name.segments[0];
+                    const scopeName = e.id;
                     const innerScope = makeAndBindNewScope(ctx.scope, scopeName);
                     for (let arg of e.args) {
                         innerScope.contents.set(arg, {
                             type: ScopeContent.Type.VARIABLE,
-                            external: false,
                             data: {
                                 isBuiltin: true
                             }
@@ -205,7 +216,6 @@ export async function astToCompilationUnit(ast: RawASTExpr<{}>, context: Desmosc
                     const finalExpr = e.bodyExprs[e.bodyExprs.length - 1];
 
                     ctx.scope.contents.set(e.name.segments[0], {
-                        external: false,
                         type: ScopeContent.Type.FUNCTION,
                         data: {
                             isBuiltin: false,
@@ -254,7 +264,7 @@ export async function astToCompilationUnit(ast: RawASTExpr<{}>, context: Desmosc
                 const filepath = path.join(fileDir, e.filename);
                 const ast = await desmoscriptFileToAST(filepath);
                 const compilationUnit = await astToCompilationUnit(ast, context, filepath);
-                const externalizedImportedModule = ScopeContent.externalizeScope(compilationUnit.rootScope);
+                const externalizedImportedModule = ScopeContent.externalizeScope(compilationUnit.rootScope, filepath);
                 if (e.alias) {
                     externalizedImportedModule.parent = ctx.scope;
                     if (ctx.scope.contents.has(e.alias)) {
@@ -272,14 +282,13 @@ export async function astToCompilationUnit(ast: RawASTExpr<{}>, context: Desmosc
                         if (v.type == ScopeContent.Type.SCOPE) {
                             v.data.parent = ctx.scope;
                         }
-                        ctx.scope.contents.set(k, v);
+                        ctx.scope.contents.set(k, ScopeContent.externalize(v, filepath));
                     });
                 }
                 break;
             case ASTType.LISTCOMP:
                 {
-                    const scopeName = uniqueAnonScopeName();
-                    const innerScope = makeAndBindNewScope(ctx.scope, scopeName);
+                    const innerScope = makeAndBindNewScope(ctx.scope, e.id);
 
                     for (let [varName, list] of e.variables) {
                         innerScope.contents.set(varName, {
@@ -294,8 +303,7 @@ export async function astToCompilationUnit(ast: RawASTExpr<{}>, context: Desmosc
                 break;
             case ASTType.SUMPRODINT:
                 {
-                    const scopeName = uniqueAnonScopeName();
-                    const innerScope = makeAndBindNewScope(ctx.scope, scopeName);
+                    const innerScope = makeAndBindNewScope(ctx.scope, e.id);
 
                     innerScope.contents.set(e.varName, {
                         type: ScopeContent.Type.VARIABLE,
@@ -309,8 +317,7 @@ export async function astToCompilationUnit(ast: RawASTExpr<{}>, context: Desmosc
                 break;
             case ASTType.DERIVATIVE:
                 {
-                    const scopeName = uniqueAnonScopeName();
-                    const innerScope = makeAndBindNewScope(ctx.scope, scopeName);
+                    const innerScope = makeAndBindNewScope(ctx.scope, e.id);
 
                     innerScope.contents.set(e.variable, {
                         type: ScopeContent.Type.VARIABLE,
@@ -348,7 +355,6 @@ export async function astToCompilationUnit(ast: RawASTExpr<{}>, context: Desmosc
                             data: e.expr
                         }
                     });
-                    //const innerScope = makeAndBindNewScope(ctx.scope, scopeName);
                     s(e.expr);
                     s(e.json);
                 }
