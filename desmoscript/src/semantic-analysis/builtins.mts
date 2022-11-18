@@ -2,18 +2,21 @@ import { ASTBinop, ASTNote, ASTType, RawASTExpr } from "../ast/ast.mjs";
 import { sub } from "../stdlib/macroutils.mjs";
 import { loadObj } from "../stdlib/obj-importer.mjs";
 import * as path from "node:path";
-import { ScopeInfo, ScopeContent } from "./analysis-types.mjs"
+import { ScopeInfo, ScopeContent } from "./analysis-types.mjs";
 
 const builtin = { type: ScopeContent.Type.FUNCTION, data: { builtin: true } };
 
-const builtinVar = { type: ScopeContent.Type.VARIABLE, data: { builtin: true } };
+const builtinVar = {
+  type: ScopeContent.Type.VARIABLE,
+  data: { builtin: true },
+};
 
 export function getExprContext(expr: RawASTExpr<{}>) {
-    return {
-        line: expr.line,
-        col: expr.col,
-        file: expr.file,
-    };
+  return {
+    line: expr.line,
+    col: expr.col,
+    file: expr.file,
+  };
 }
 
 // export function makeDefaultDesmoscriptContext(entry: string) {
@@ -40,8 +43,8 @@ export function getExprContext(expr: RawASTExpr<{}>) {
 //             .set("x", builtinVar)
 //             .set("t", builtinVar)
 
-//             .set("plusOne", { 
-//                 type: Identifier.BUILTIN_MACRO, 
+//             .set("plusOne", {
+//                 type: Identifier.BUILTIN_MACRO,
 //                 fn: (expr): ASTBinop<ScopeInfo> => {
 //                     let ctx = getExprContext(expr);
 //                     return {
@@ -77,7 +80,7 @@ export function getExprContext(expr: RawASTExpr<{}>) {
 //             //     type: Identifier.MACRO,
 //             //     fn: (expr): ASTSumProd<ScopeInfo> => {
 //             //         let ctx = getExprContext(expr);
-//             //         return 
+//             //         return
 //             //     }
 //             // })
 //         }

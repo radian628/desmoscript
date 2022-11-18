@@ -1,6 +1,6 @@
 import * as desmoscript from "./dist";
 
 desmoscript.runCompilerWebServer("./main.desmo", {
-    watch: true,
-    port: 8081
+  watch: true,
+  port: 8081,
 });

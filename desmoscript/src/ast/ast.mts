@@ -23,7 +23,7 @@ export enum ASTType {
   DECORATOR = "decorator",
   NAMED_JSON = "named_json",
   NOTE = "note",
-  ACTIONS = "actions"
+  ACTIONS = "actions",
 }
 
 export type LineCol = {
@@ -77,19 +77,19 @@ export type ASTPoint<T, C = T> = {
 
 export type ASTFunctionCall<T, C = T> = {
   name: RawASTExpr<C, C>;
-  args: (RawASTExpr<C, C>)[];
+  args: RawASTExpr<C, C>[];
   type: ASTType.FNCALL | ASTType.MACROCALL;
 } & LineCol &
   T;
 
 export type ASTList<T, C = T> = {
-  elements: (RawASTExpr<C, C>)[];
+  elements: RawASTExpr<C, C>[];
   type: ASTType.LIST;
 } & LineCol &
   T;
 
 export type ASTRoot<T, C = T> = {
-  expressions: (RawASTExpr<C, C>)[];
+  expressions: RawASTExpr<C, C>[];
   type: ASTType.ROOT;
 } & LineCol &
   T;
@@ -103,10 +103,9 @@ export type ASTStepRange<T, C = T> = {
   T;
 
 export type ASTFunctionDef<T, C = T> = {
-  id: string,
-  name: RawASTExpr<C, C>;
+  name: string;
   args: string[];
-  bodyExprs: (RawASTExpr<C, C>)[];
+  bodyExprs: RawASTExpr<C, C>[];
   lastExpr?: RawASTExpr<C, C>;
   type: ASTType.FNDEF | ASTType.MACRODEF;
 } & LineCol &
@@ -114,21 +113,20 @@ export type ASTFunctionDef<T, C = T> = {
 
 export type ASTNamespace<T, C = T> = {
   name: string;
-  bodyExprs: (RawASTExpr<C, C>)[];
+  bodyExprs: RawASTExpr<C, C>[];
   type: ASTType.NAMESPACE;
 } & LineCol &
   T;
 
 export type ASTBlock<T, C = T> = {
-  bodyExprs: (RawASTExpr<C, C>)[];
+  bodyExprs: RawASTExpr<C, C>[];
   type: ASTType.BLOCK;
-  id: string,
   lastExpr?: RawASTExpr<C, C>;
 } & LineCol &
   T;
 
 export type ASTMatch<T, C = T> = {
-  branches: [ RawASTExpr<C, C>, RawASTExpr<C, C>][];
+  branches: [RawASTExpr<C, C>, RawASTExpr<C, C>][];
   fallback?: RawASTExpr<C, C>;
   type: ASTType.MATCH;
 } & LineCol &
@@ -142,7 +140,6 @@ export type ASTImport<T, C = T> = {
   T;
 
 export type ASTSumProdInt<T, C = T> = {
-  id: string;
   type: ASTType.SUMPRODINT;
   opType: "sum" | "product" | "integral";
   varName: string;
@@ -153,7 +150,6 @@ export type ASTSumProdInt<T, C = T> = {
   T;
 
 export type ASTDerivative<T, C = T> = {
-  id: string;
   type: ASTType.DERIVATIVE;
   variable: string;
   body: RawASTExpr<C, C>;
@@ -161,7 +157,6 @@ export type ASTDerivative<T, C = T> = {
   T;
 
 export type ASTListComp<T, C = T> = {
-  id: string;
   type: ASTType.LISTCOMP;
   variables: [string, RawASTExpr<C, C>][];
   body: RawASTExpr<C, C>;
@@ -200,7 +195,7 @@ export type ASTJsonData<T, C = T> =
     }
   | {
       jsontype: JSONType.ARRAY;
-      data: (ASTJSON<C, C>)[];
+      data: ASTJSON<C, C>[];
     }
   | {
       jsontype: JSONType.BOOLEAN;
@@ -244,9 +239,10 @@ export type ASTNote<T, C = T> = {
 
 export type ASTActions<T, C = T> = {
   type: ASTType.ACTIONS;
-  actions: [RawASTExpr<C, C>, RawASTExpr<C, C>][],
-  actionAliases: (RawASTExpr<C, C>)[]
-} & LineCol & T;
+  actions: [RawASTExpr<C, C>, RawASTExpr<C, C>][];
+  actionAliases: RawASTExpr<C, C>[];
+} & LineCol &
+  T;
 
 export type RawASTExpr<T, C = T> =
   | ASTBinop<T, C>
@@ -280,10 +276,10 @@ function unreachable(x: never): never {
   throw new Error("Unreachable code reached");
 }
 
-
 function parseASTJSON<T>(expr: RawCompleteASTExpr<T>): ASTJSON<T, T> {
   if (expr.type == ASTType.JSON) return expr;
   throw {
-    expr, reason: "Expected AST JSON."
-  }
+    expr,
+    reason: "Expected AST JSON.",
+  };
 }

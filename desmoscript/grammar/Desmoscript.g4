@@ -41,8 +41,8 @@ expression
     | op=('sum' | 'product' | 'integral') 
         '(' var=IDENTIFIER_SEGMENT '=' lo=expression 'to' hi=expression ')' body=expression # SumProdIntegralExpr
     | 'derivative' '(' var=IDENTIFIER_SEGMENT ')' body=expression                   # DerivativeExpr
-    | 'macro' macroname=identifier '(' macroargs=functionDefArgList ')' '{' exprs+=expression+ '}' # MacroDefinitionExpr 
-    | 'fn' fnname=identifier '(' fnargs=functionDefArgList ')' '{' exprs+=expression+ '}' # FunctionDefinitionExpr
+    | 'macro' macroname=IDENTIFIER_SEGMENT '(' macroargs=functionDefArgList ')' '{' exprs+=expression+ '}' # MacroDefinitionExpr 
+    | 'fn' fnname=IDENTIFIER_SEGMENT '(' fnargs=functionDefArgList ')' '{' exprs+=expression+ '}' # FunctionDefinitionExpr
     | 'ns' nsname=IDENTIFIER_SEGMENT '{' exprs+=expression+ '}' # NamespaceDefinitionExpr
     | '{' exprs+=expression+ '}' # BlockExpr
     | 'match' '{' (predicate+=expression '=>' result+=expression ';')* (fallback+=expression ';')? '}' # MatchExpr

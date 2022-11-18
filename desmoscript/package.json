@@ -14,7 +14,8 @@
     "dev": "npx tsc --watch",
     "start": "node --trace-warnings --es-module-specifier-resolution=node server.mjs",
     "build": "npx tsc",
-    "prepare": "npm run antlr && npm run build"
+    "prepare": "npm run antlr && npm run build",
+    "prettier": "npx prettier --write ."
   },
   "dependencies": {
     "antlr4": "^4.10.1",
@@ -26,6 +27,7 @@
   "devDependencies": {
     "@types/antlr4": "^4.7.2",
     "@types/node": "^18.11.9",
-    "antlr4ts-cli": "^0.5.0-alpha.4"
+    "antlr4ts-cli": "^0.5.0-alpha.4",
+    "prettier": "2.7.1"
   }
 }

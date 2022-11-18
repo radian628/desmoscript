@@ -1,11 +1,17 @@
 {
-    "compilerOptions": {
-        "strict": true,
-        "moduleResolution": "node",
-        "outDir": "dist",
-        "target": "ES2020",
-        "module": "ESNext",
-        "declaration": true
-    },
-    "include": ["src/*", "src/semantic-analysis/macro-api-impl.mts", "src/semantic-analysis/builtins.mts", "src/ast/parse.mts", "src/ast/ast.mts"]
+  "compilerOptions": {
+    "strict": true,
+    "moduleResolution": "node",
+    "outDir": "dist",
+    "target": "ES2020",
+    "module": "ESNext",
+    "declaration": true
+  },
+  "include": [
+    "src/*",
+    "src/semantic-analysis/macro-api-impl.mts",
+    "src/semantic-analysis/builtins.mts",
+    "src/ast/parse.mts",
+    "src/ast/ast.mts"
+  ]
 }
