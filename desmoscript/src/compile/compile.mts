@@ -2,7 +2,7 @@ import { DesmoscriptCompilationUnit, DesmoscriptCompileContext, Scope, ScopeCont
 
 import { GraphState } from "../graphstate.mjs";
 import { ASTBinop, ASTExpr, ASTIdentifier, ASTType, RawASTExpr } from "../ast/ast.mjs";
-import { err, findIdentifier } from "../semantic-analysis/analyze.mjs";
+import { err } from "../semantic-analysis/analyze.mjs";
 
 let exprIdCounter = 0;
 function uniqueExpressionID() {
