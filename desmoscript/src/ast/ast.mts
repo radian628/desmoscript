@@ -1,31 +1,31 @@
 import { never } from "zod";
 
 export enum ASTType {
-  BINOP,
-  NUMBER,
-  ROOT,
-  IDENTIFIER,
-  POINT,
-  FNCALL,
-  LIST,
-  STEP_RANGE,
-  FNDEF,
-  NAMESPACE,
-  BLOCK,
-  MATCH,
-  MACRODEF,
-  MACROCALL,
-  IMPORT,
-  SUMPRODINT,
-  INTEGRAL,
-  DERIVATIVE,
-  LISTCOMP,
-  MEMBERACCESS,
-  JSON,
-  DECORATOR,
-  NAMED_JSON,
-  NOTE,
-  ACTIONS
+  BINOP = "binop",
+  NUMBER = "number",
+  ROOT = "root",
+  IDENTIFIER = "identifier",
+  POINT = "point",
+  FNCALL = "fncall",
+  LIST = "list",
+  STEP_RANGE = "step_range",
+  FNDEF = "fndef",
+  NAMESPACE = "namespace",
+  BLOCK = "block",
+  MATCH = "match",
+  MACRODEF = "macrodef",
+  MACROCALL = "macrocall",
+  IMPORT = "import",
+  SUMPRODINT = "sumprodint",
+  INTEGRAL = "integral",
+  DERIVATIVE = "derivative",
+  LISTCOMP = "listcomp",
+  MEMBERACCESS = "memberaccess",
+  JSON = "json",
+  DECORATOR = "decorator",
+  NAMED_JSON = "named_json",
+  NOTE = "note",
+  ACTIONS = "actions"
 }
 
 export type LineCol = {
@@ -80,7 +80,6 @@ export type ASTFunctionCall<T, C = T> = {
   name: RawASTExpr<C, C>;
   args: (RawASTExpr<C, C>)[];
   type: ASTType.FNCALL | ASTType.MACROCALL;
-  substitution?: RawASTExpr<C, C>;
 } & LineCol &
   T;
 

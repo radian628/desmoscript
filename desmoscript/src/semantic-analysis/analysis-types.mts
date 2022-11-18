@@ -1,35 +1,43 @@
 import {ASTBinop, ASTBlock, ASTDerivative, ASTExpr, ASTFunctionCall, ASTFunctionDef, ASTIdentifier, ASTImport, ASTJSON, ASTList, ASTListComp, ASTMatch, ASTMemberAccess, ASTNamedJSON, ASTNamespace, ASTNote, ASTNumber, ASTPoint, ASTStepRange, ASTSumProdInt, RawASTExpr} from "../ast/ast.mjs";
 
-
 export namespace ScopeContent {
     export enum Type {
         VARIABLE, FUNCTION, MACRO, SCOPE, NAMED_JSON, NOTE
     }
 
     export type Variable = {
-        source?: string,
         type: Type.VARIABLE,
         decoratorInfo?: {
             json: ASTJSON<{}>
         }
-        data: {
+    } & (
+        {
             isBuiltin?: false,
             data: RawASTExpr<{}>
-        } | { isBuiltin: true }
-    }
+        } | {
+            isBuiltin: true
+        }
+    )
 
     export type Function = {
-      source?: string,
+        source?: string,
         type: Type.FUNCTION,
-        data: {
+        
+    } & (
+        {
             isBuiltin?: false,
-            data: ASTFunctionDef<{}>,
-            finalExpr: RawASTExpr<{}>
-        } | { isBuiltin: true }
-    }
+            data: {
+                data: ASTFunctionDef<{}>,
+                finalExpr: RawASTExpr<{}>
+            }
+        } |
+        {
+            isBuiltin: true
+        }
+    )
 
     export type Macro = {
-      source?: string,
+        source?: string,
         type: Type.MACRO,
         isBuiltin?: boolean,
         fn: (expr: ASTFunctionCall<{}>, ctx: DesmoscriptCompileContext, api: MacroAPI) 
@@ -56,33 +64,6 @@ export namespace ScopeContent {
 
     export type Content = 
         Variable | Function | Macro | Scope | NamedJSON | Note;
-
-    export function externalizeScope(scope: Scope2, source: string): Scope2 {
-        return {
-            ...scope,
-            contents: new Map(
-                Array.from(scope.contents.entries()).map(
-                    ([k, v]) => [k, externalize(v, source)]
-                )
-            )
-        }
-    }
-
-    export function externalize(content: Content, source: string): Content {
-        switch (content.type) {
-            case Type.SCOPE:
-                return {
-                    ...content,
-                    data: externalizeScope(content.data, source),
-                    source
-                }
-            default:
-                return {
-                    ...content,
-                    source
-                }
-        }
-    }
 }
 
 type Scope2 = Scope;
@@ -93,7 +74,7 @@ export type Scope = {
 }
 
 export type ScopeInfo = {
-
+    myScope: Scope
 }
 
 
@@ -135,7 +116,6 @@ export type CompilerError = {
 // represents a single compilation unit in Desmoscript (usually one .desmo file)
 export type DesmoscriptCompilationUnit = {
     ast: RawASTExpr<ScopeInfo>,
-    deferredErrors: CompilerError[],
     blockInfo: Map<string, {
         finalExpr: RawASTExpr<{}>
     }>,
