@@ -33,6 +33,7 @@ export namespace ScopeContent {
   }
 
   export type Variable = {
+    source?: string;
     type: Type.VARIABLE;
     decoratorInfo?: {
       json: ASTJSON<{}>;
@@ -91,6 +92,33 @@ export namespace ScopeContent {
   };
 
   export type Content = Variable | Function | Macro | Scope | NamedJSON | Note;
+
+  export function externalizeScope(scope: Scope2, source: string): Scope2 {
+    return {
+        ...scope,
+        contents: new Map(
+            Array.from(scope.contents.entries()).map(
+                ([k, v]) => [k, externalize(v, source)]
+            )
+        )
+    }
+}
+
+export function externalize(content: Content, source: string): Content {
+    switch (content.type) {
+        case Type.SCOPE:
+            return {
+                ...content,
+                data: externalizeScope(content.data, source),
+                source
+            }
+        default:
+            return {
+                ...content,
+                source
+            }
+    }
+}
 }
 
 type Scope2 = Scope;
