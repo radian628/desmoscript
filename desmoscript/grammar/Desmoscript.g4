@@ -19,7 +19,7 @@ expression
     | str=STRING                        # StringExpr
     | '@' jsonval=djson               # JSONExpr
     | call=macroCall                                             # MacroCallExpr
-    | 'import' filename=STRING ('as' alias=IDENTIFIER_SEGMENT)? ';'   # ImportExpr
+    | 'import' filename=STRING 'as' alias=IDENTIFIER_SEGMENT ';'   # ImportExpr
     | namedjsontype=('settings' | 'ticker') jsonval=expression                         # NamedJsonExpr
     | ident=identifier                                               # IdentifierExpr
     | '[' body=expression 

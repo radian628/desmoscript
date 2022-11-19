@@ -1,0 +1,5 @@
+import "main.desmo" as main;
+
+var = 1;
+
+setMainVar = & main.var -> main.var + 1;

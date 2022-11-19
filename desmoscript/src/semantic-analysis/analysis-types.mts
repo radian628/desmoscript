@@ -30,6 +30,7 @@ export namespace ScopeContent {
     SCOPE,
     NAMED_JSON,
     NOTE,
+    IMPORT,
   }
 
   export type Variable = {
@@ -83,6 +84,7 @@ export namespace ScopeContent {
     source?: string;
     type: Type.NAMED_JSON;
     data: ASTJSON<{}>;
+    name: string
   };
 
   export type Note = {
@@ -91,34 +93,20 @@ export namespace ScopeContent {
     data: string;
   };
 
-  export type Content = Variable | Function | Macro | Scope | NamedJSON | Note;
+  export type Import = {
+    unit: string;
+    type: Type.IMPORT;
+    alias?: string;
+  };
 
-  export function externalizeScope(scope: Scope2, source: string): Scope2 {
-    return {
-        ...scope,
-        contents: new Map(
-            Array.from(scope.contents.entries()).map(
-                ([k, v]) => [k, externalize(v, source)]
-            )
-        )
-    }
-}
-
-export function externalize(content: Content, source: string): Content {
-    switch (content.type) {
-        case Type.SCOPE:
-            return {
-                ...content,
-                data: externalizeScope(content.data, source),
-                source
-            }
-        default:
-            return {
-                ...content,
-                source
-            }
-    }
-}
+  export type Content =
+    | Variable
+    | Function
+    | Macro
+    | Scope
+    | NamedJSON
+    | Note
+    | Import;
 }
 
 type Scope2 = Scope;
@@ -126,12 +114,10 @@ export type Scope = {
   name: string;
   contents: Map<string, ScopeContent.Content>;
   parent?: Scope;
-  isRoot?: boolean
+  isRoot?: boolean;
 };
 
-export type ScopeInfo = {
-
-};
+export type ScopeInfo = {};
 
 export type ScopedASTExpr = RawASTExpr<ScopeInfo>;
 
@@ -170,7 +156,7 @@ export type MacroAPI = {
     branches: [ScopedASTExpr, ScopedASTExpr][],
     fallback?: ScopedASTExpr
   ) => ASTMatch<ScopeInfo>;
-  import: (filename: string, alias?: string) => ASTImport<ScopeInfo>;
+  import: (filename: string, alias: string) => ASTImport<ScopeInfo>;
   sumprodint: (
     op: ASTSumProdInt<ScopeInfo>["opType"],
     varName: string,
@@ -206,13 +192,16 @@ export type CompilerError = {
 export type DesmoscriptCompilationUnit = {
   ast: RawASTExpr<{}>;
   symbolScopes: Map<number, Scope>;
+  symbolInnerScopes: Map<number, Scope>;
   rootScope: Scope;
-  filePath: string
+  filePath: string;
 };
 
 // represents all the data necessary to compile a desmoscript program
 export type DesmoscriptCompileContext = {
+  existingNames: Set<string>;
   existingFiles: Set<string>;
   compilationUnits: Map<string, DesmoscriptCompilationUnit>;
+  compilationUnitPrefixes: Map<string, string>;
+  namespaceSeparator: string
 };
-

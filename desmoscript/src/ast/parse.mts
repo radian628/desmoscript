@@ -275,7 +275,7 @@ export class DesmoscriptASTBuilder
       name: this.visit(ctx._fnname),
       args: ctx._fnargs._args.map((arg) => this.visit(arg)),
       type: ds.ASTType.FNCALL,
-      isMacro: false
+      isMacro: false,
     });
   }
 
@@ -288,7 +288,7 @@ export class DesmoscriptASTBuilder
       name: this.visit(ctx._fnname),
       args: ctx._fnargs ? ctx._fnargs._args.map((arg) => this.visit(arg)) : [],
       type: ds.ASTType.FNCALL,
-      isMacro: true
+      isMacro: true,
     });
   }
 
@@ -352,7 +352,7 @@ export class DesmoscriptASTBuilder
   visitImportExpr(ctx: ImportExprContext): ds.ASTExpr {
     return this.withLineCol<ds.ASTImport<{}>>(ctx, {
       filename: ctx._filename.text?.slice(1, -1) ?? "",
-      alias: ctx._alias?.text,
+      alias: ctx._alias.text ?? "",
       type: ds.ASTType.IMPORT,
     });
   }

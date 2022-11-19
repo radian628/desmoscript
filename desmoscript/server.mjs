@@ -1,6 +1,4 @@
 import * as desmoscript from "./dist";
+import * as fs from "node:fs/promises";
 
-desmoscript.runCompilerWebServer("./main.desmo", {
-  watch: true,
-  port: 8081,
-});
+fs.writeFile("desmoscript-output.json", JSON.stringify(await desmoscript.test()));

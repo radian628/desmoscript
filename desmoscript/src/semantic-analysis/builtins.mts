@@ -1,6 +1,4 @@
 import { ASTBinop, ASTNote, ASTType, RawASTExpr } from "../ast/ast.mjs";
-import { sub } from "../stdlib/macroutils.mjs";
-import { loadObj } from "../stdlib/obj-importer.mjs";
 import * as path from "node:path";
 import { ScopeInfo, ScopeContent } from "./analysis-types.mjs";
 
@@ -16,7 +14,7 @@ export function getExprContext(expr: RawASTExpr<{}>) {
     line: expr.line,
     col: expr.col,
     file: expr.file,
-    id: expr.id
+    id: expr.id,
   };
 }
 

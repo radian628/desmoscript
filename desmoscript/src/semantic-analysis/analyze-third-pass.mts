@@ -1,11 +1,21 @@
-import { DesmoscriptCompilationUnit, DesmoscriptCompileContext, ScopeContent } from "./analysis-types.mjs";
+import {
+  DesmoscriptCompilationUnit,
+  DesmoscriptCompileContext,
+  ScopeContent,
+} from "./analysis-types.mjs";
 import * as path from "node:path";
 import { ASTVisitorLUT, noOpLUT, visitAST } from "../ast/ast-visitor.mjs";
-import { getScopeOfExpr, locateIdentifier, parseIdent } from "./analyze-utils.mjs";
-import { createVariableScopesAndDeclareImports, err } from "./analyze-first-pass.mjs";
+import {
+  findIdentifier,
+  getScopeOfExpr,
+  parseIdent,
+} from "./analyze-utils.mjs";
+import {
+  createVariableScopesAndDeclareImports,
+  err,
+} from "./analyze-first-pass.mjs";
 import { ASTType, RawASTExpr } from "../ast/ast.mjs";
 import { getMacroAPI } from "./macro-api-impl.mjs";
-import { resolveImports } from "./analyze-second-pass.mjs";
 
 // compiler third pass: macro substitution
 /*
@@ -22,61 +32,52 @@ I know, I'll just create another ID-based map for it!
 
 Problem with macro substitution #3: How do I handle imported
 macros that are created by other macros? I might have to 
-iterate over the AST a bunch of times! Fuck it, I am going to
+iterate over the AST a bunch of times! I am going to
 iterate over the AST like 20 times, this should be fine because
 none of my projects are gonna get that large anyway.
 */
-async function astToCompilationUnitThirdPass(
-    compileContext: DesmoscriptCompileContext,
-    unit: DesmoscriptCompilationUnit
-  ) {
-  
-    const dirname = path.dirname(unit.filePath);
+export async function astToCompilationUnitThirdPass(
+  compileContext: DesmoscriptCompileContext,
+  unit: DesmoscriptCompilationUnit
+) {
+  const dirname = path.dirname(unit.filePath);
 
-    const substitutionLUT = new Map<number, RawASTExpr<{}>>();
-  
-    const lut: ASTVisitorLUT<{}, any, Promise<void>> = {
-      ...noOpLUT(),
-      async fncall(e, ctx, v) {
-        // don't attempt to perform macro substitution on non-macros
-        if (!e.isMacro) return;
+  const substitutionLUT = new Map<number, RawASTExpr<{}>>();
 
-        const myScope = getScopeOfExpr(e, unit);
+  const lut: ASTVisitorLUT<{}, any, Promise<void>> = {
+    ...noOpLUT(new Promise<void>((resolve, reject) => resolve())),
+    async fncall(e, ctx, v) {
+      // don't attempt to perform macro substitution on non-macros
+      if (!e.isMacro) return;
 
-        const ident = locateIdentifier(myScope, parseIdent(e.name).segments);
-        if (!ident) return;
-        if (ident.type != ScopeContent.Type.MACRO) return;
-        
-        // if macro substitution already exists, then don't bother doing it again. just search below
-        let substitution = substitutionLUT.get(e.id);
-        if (!substitution) {
-          substitution = await ident.fn(e, compileContext, await getMacroAPI(e));
+      const myScope = getScopeOfExpr(e, unit);
 
-          substitutionLUT.set(e.id, substitution);
+      const ident = findIdentifier(myScope, compileContext, unit.filePath, parseIdent(e.name).segments, e)?.result;
+      if (!ident) return;
+      if (ident.type != ScopeContent.Type.MACRO) return;
 
-          // compiler first pass
-          createVariableScopesAndDeclareImports(
-            { scope: myScope },
-            unit.symbolScopes,
-            compileContext,
-            path.dirname(unit.filePath),
-            substitution
-          );
-          
-          // compiler second pass
-          resolveImports(
-            compileContext,
-            unit,
-            substitution,
-            dirname
-          );
-        }
+      // if macro substitution already exists, then don't bother doing it again. just search below
+      let substitution = substitutionLUT.get(e.id);
+      if (!substitution) {
+        substitution = await ident.fn(e, compileContext, await getMacroAPI(e));
 
-        // repeat third pass to get nested macros
-        await v(substitution, ctx);
+        substitutionLUT.set(e.id, substitution);
+
+        // compiler first pass
+        createVariableScopesAndDeclareImports(
+          { scope: myScope },
+          unit.symbolScopes,
+          unit.symbolInnerScopes,
+          compileContext,
+          path.dirname(unit.filePath),
+          substitution
+        );
       }
-    };
-  
-    await visitAST(unit.ast, lut, undefined);
-  }
-  
+
+      // repeat third pass to get nested macros
+      await v(substitution, ctx);
+    },
+  };
+
+  await visitAST(unit.ast, lut, undefined);
+}

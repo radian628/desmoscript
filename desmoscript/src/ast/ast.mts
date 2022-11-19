@@ -11,7 +11,6 @@ export enum ASTType {
   NAMESPACE = "namespace",
   BLOCK = "block",
   MATCH = "match",
-  MACRODEF = "macrodef",
   MACROCALL = "macrocall",
   IMPORT = "import",
   SUMPRODINT = "sumprodint",
@@ -108,7 +107,7 @@ export type ASTFunctionDef<T, C = T> = {
   args: string[];
   bodyExprs: RawASTExpr<C, C>[];
   lastExpr?: RawASTExpr<C, C>;
-  type: ASTType.FNDEF | ASTType.MACRODEF;
+  type: ASTType.FNDEF
 } & LineCol &
   T;
 
@@ -135,7 +134,7 @@ export type ASTMatch<T, C = T> = {
 
 export type ASTImport<T, C = T> = {
   filename: string;
-  alias?: string;
+  alias: string;
   type: ASTType.IMPORT;
 } & LineCol &
   T;

@@ -41,7 +41,7 @@ export function err(expr: RawASTExpr<{}>, reason: string): never {
   };
 }
 
-export function makeAndBindNewScope(parent: Scope, name: string): Scope {
+export function makeAndBindNewScope(parent: Scope, name: string, associatedExpression: ASTExpr, symbolInnerScopes: Map<number, Scope>): Scope {
   const newScope = {
     name,
     parent,
@@ -51,6 +51,7 @@ export function makeAndBindNewScope(parent: Scope, name: string): Scope {
     type: ScopeContent.Type.SCOPE,
     data: newScope,
   });
+  symbolInnerScopes.set(associatedExpression.id, newScope);
   return newScope;
 }
 
@@ -69,15 +70,14 @@ function checkLengthOneSegment(e: ASTIdentifier<{}>, typename: string) {
   }
 }
 
-
 export async function createVariableScopesAndDeclareImports(
   context: ASTToCompilationUnitContext,
   symbolScopes: Map<number, Scope>,
+  symbolInnerScopes: Map<number, Scope>,
   compileContext: DesmoscriptCompileContext,
   dirname: string,
   ast: RawASTExpr<{}>
 ) {
-
   const lut: ASTVisitorLUT<{}, ASTToCompilationUnitContext, Promise<void>> = {
     async all(e, ctx) {
       symbolScopes.set(e.id, ctx.scope);
@@ -95,11 +95,15 @@ export async function createVariableScopesAndDeclareImports(
         }
         checkLengthOneSegment(e.left, "Variable");
         checkNamespaceCollision(e.left, "Variable", ctx.scope);
+        ctx.scope.contents.set(e.left.segments[0], {
+          type: ScopeContent.Type.VARIABLE,
+          data: e
+        })
       }
     },
 
     async root(e, ctx, v) {
-      await Promise.all(e.expressions.map((e2) => v(e2, ctx)[0]));
+      for (const expr of e.expressions) await v(expr, ctx);
     },
 
     async identifier(e, ctx, v) {},
@@ -114,11 +118,11 @@ export async function createVariableScopesAndDeclareImports(
       if (e.isMacro) return;
 
       await v(e.name, ctx);
-      await Promise.all(e.args.map((arg) => v(arg, ctx)[0]));
+      await Promise.all(e.args.map((arg) => v(arg, ctx)));
     },
 
     async list(e, ctx, v) {
-      await Promise.all(e.elements.map((elem) => v(elem, ctx)[0]));
+      await Promise.all(e.elements.map((elem) => v(elem, ctx)));
     },
 
     async step_range(e, ctx, v) {
@@ -126,7 +130,7 @@ export async function createVariableScopesAndDeclareImports(
     },
 
     async fndef(e, ctx, v) {
-      const innerScope = makeAndBindNewScope(ctx.scope, e.id.toString());
+      const innerScope = makeAndBindNewScope(ctx.scope, e.id.toString(), e, symbolInnerScopes);
       const innerctx = {
         scope: innerScope,
       };
@@ -152,21 +156,18 @@ export async function createVariableScopesAndDeclareImports(
 
     async namespace(e, ctx, v) {
       checkNamespaceCollision([e, e.name], "Namespace", ctx.scope);
-      const innerScope = makeAndBindNewScope(ctx.scope, e.name);
+      const innerScope = makeAndBindNewScope(ctx.scope, e.name, e, symbolInnerScopes);
       const innerctx = {
         scope: innerScope,
       };
-      await Promise.all(
-        e.bodyExprs.map((expr) => {
-          v(expr, innerctx);
-        })
-      );
+      for (const expr of e.bodyExprs) await v(expr, innerctx);
     },
 
     async block(e, ctx, v) {
-      const innerScope = makeAndBindNewScope(ctx.scope, e.id.toString());
+      const innerScope = makeAndBindNewScope(ctx.scope, e.id.toString(), e, symbolInnerScopes);
       const innerctx = { scope: innerScope };
-      await Promise.all(e.bodyExprs.map((expr) => v(expr, innerctx)));
+      for (const expr of e.bodyExprs) await v(expr, innerctx);
+      //await Promise.all(e.bodyExprs.map((expr) => v(expr, innerctx)));
     },
 
     async match(e, ctx, v) {
@@ -179,14 +180,20 @@ export async function createVariableScopesAndDeclareImports(
     },
 
     async import(e, ctx, v) {
-      if (compileContext.existingFiles.has(e.filename)) return;
       const fullPath = path.join(dirname, e.filename);
+      ctx.scope.contents.set(e.alias, {
+        type: ScopeContent.Type.IMPORT,
+        unit: fullPath,
+        alias: e.alias,
+      });
+      if (compileContext.existingFiles.has(fullPath)) return;
       const parsedOutput = await desmoscriptFileToAST(fullPath);
-      astToCompilationUnitFirstPass(parsedOutput, compileContext, fullPath);
+      //(parsedOutput);
+      await astToCompilationUnitFirstPass(parsedOutput, compileContext, fullPath);
     },
 
     async sumprodint(e, ctx, v) {
-      const innerScope = makeAndBindNewScope(ctx.scope, e.id.toString());
+      const innerScope = makeAndBindNewScope(ctx.scope, e.id.toString(), e, symbolInnerScopes);
       const innerctx = { scope: innerScope };
       innerScope.contents.set(e.varName, {
         type: ScopeContent.Type.VARIABLE,
@@ -200,7 +207,7 @@ export async function createVariableScopesAndDeclareImports(
     },
 
     async derivative(e, ctx, v) {
-      const innerScope = makeAndBindNewScope(ctx.scope, e.id.toString());
+      const innerScope = makeAndBindNewScope(ctx.scope, e.id.toString(), e, symbolInnerScopes);
       const innerctx = { scope: innerScope };
       innerScope.contents.set(e.variable, {
         type: ScopeContent.Type.VARIABLE,
@@ -210,7 +217,7 @@ export async function createVariableScopesAndDeclareImports(
     },
 
     async listcomp(e, ctx, v) {
-      const innerScope = makeAndBindNewScope(ctx.scope, e.id.toString());
+      const innerScope = makeAndBindNewScope(ctx.scope, e.id.toString(), e, symbolInnerScopes);
       const innerctx = { scope: innerScope };
       await Promise.all(
         e.variables
@@ -266,6 +273,7 @@ export async function createVariableScopesAndDeclareImports(
       ctx.scope.contents.set(e.id.toString(), {
         type: ScopeContent.Type.NAMED_JSON,
         data: e.json,
+        name: e.name
       });
     },
 
@@ -287,7 +295,6 @@ export async function createVariableScopesAndDeclareImports(
   await visitAST(ast, lut, context);
 }
 
-
 // compiler first pass: create variables scopes and gather files
 export async function astToCompilationUnitFirstPass(
   ast: RawASTExpr<{}>,
@@ -300,8 +307,13 @@ export async function astToCompilationUnitFirstPass(
 
   const rootScope: Scope = {
     name: "root",
-    contents: new Map(),
-    isRoot: true
+    contents: new Map([
+      ["x", {
+        type: ScopeContent.Type.VARIABLE,
+        isBuiltin: true
+      }]
+    ]),
+    isRoot: true,
   };
 
   const context: ASTToCompilationUnitContext = {
@@ -310,18 +322,26 @@ export async function astToCompilationUnitFirstPass(
 
   const symbolScopes = new Map<number, Scope>();
 
-  createVariableScopesAndDeclareImports(
+  const symbolInnerScopes = new Map<number, Scope>();
+
+  await createVariableScopesAndDeclareImports(
     context,
     symbolScopes,
+    symbolInnerScopes,
     compileContext,
     dirname,
     ast
   );
 
-  return {
+  const unit: DesmoscriptCompilationUnit = {
     ast,
     symbolScopes,
+    symbolInnerScopes,
     rootScope,
-    filePath
+    filePath,
   };
+
+  compileContext.compilationUnits.set(filePath, unit);
+
+  return unit;
 }

@@ -46,7 +46,7 @@ export async function getMacroAPI(e: RawASTExpr<{}>): Promise<MacroAPI> {
         type: ASTType.FNCALL,
         name,
         args,
-        isMacro: false
+        isMacro: false,
       };
     },
     macro: (name, ...args) => {
@@ -55,7 +55,7 @@ export async function getMacroAPI(e: RawASTExpr<{}>): Promise<MacroAPI> {
         type: ASTType.FNCALL,
         name,
         args,
-        isMacro: true
+        isMacro: true,
       };
     },
     note: (text) => {

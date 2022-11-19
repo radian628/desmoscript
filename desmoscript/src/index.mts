@@ -6,6 +6,7 @@ import * as ds from "./ast/ast.mjs";
 import * as fs from "fs/promises";
 import * as chokidar from "chokidar";
 import * as http from "node:http";
+import { compileDesmoscript } from "./all-steps/combined-compiler.mjs"
 
 export { getExprContext } from "./semantic-analysis/builtins.mjs";
 
@@ -25,4 +26,8 @@ function logError(content: string) {
 
 function logSuccess(content: string) {
   console.log("\u001b[" + 32 + "m" + content + "\u001b[0m");
+}
+
+export async function test() {
+  return await compileDesmoscript("./main.desmo");
 }
