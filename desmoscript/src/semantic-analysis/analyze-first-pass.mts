@@ -18,6 +18,7 @@ import {
   RawASTExpr,
 } from "../ast/ast.mjs";
 import { ASTVisitorLUT, visitAST } from "../ast/ast-visitor.mjs";
+import { checkNamespaceCollision, getCanonicalPath } from "./analyze-utils.mjs";
 
 // // add a compilation unit to a compilation operation (memoized)
 // export async function addDesmoscriptCompilationUnit(
@@ -68,42 +69,16 @@ function checkLengthOneSegment(e: ASTIdentifier<{}>, typename: string) {
   }
 }
 
-function checkNamespaceCollision(
-  e: ASTIdentifier<{}> | [RawASTExpr<{}>, string],
-  typename: string,
-  scope: Scope
-) {
-  const name = Array.isArray(e) ? e[1] : e.segments[0];
-  if (scope.contents.has(name)) {
-    err(
-      e[0],
-      `${typename} '${name}' is invalid, as something with the same name exists in this scope.`
-    );
-  }
-}
 
-// compiler first pass: create variables scopes and gather files
-async function astToCompilationUnitFirstPass(
-  ast: RawASTExpr<{}>,
+export async function createVariableScopesAndDeclareImports(
+  context: ASTToCompilationUnitContext,
+  symbolScopes: Map<number, Scope>,
   compileContext: DesmoscriptCompileContext,
-  filePath: string
-): Promise<DesmoscriptCompilationUnit> {
-  compileContext.existingFiles.add(filePath);
+  dirname: string,
+  ast: RawASTExpr<{}>
+) {
 
-  const dirname = path.dirname(filePath);
-
-  const rootScope: Scope = {
-    name: "root",
-    contents: new Map(),
-  };
-
-  const context: ASTToCompilationUnitContext = {
-    scope: rootScope,
-  };
-
-  const symbolScopes = new Map<number, Scope>();
-
-  const lut: ASTVisitorLUT<{}, typeof context> = {
+  const lut: ASTVisitorLUT<{}, ASTToCompilationUnitContext, Promise<void>> = {
     async all(e, ctx) {
       symbolScopes.set(e.id, ctx.scope);
     },
@@ -134,6 +109,10 @@ async function astToCompilationUnitFirstPass(
     },
 
     async fncall(e, ctx, v) {
+      // do not calc scopes inside of a macro! variables defined in macros
+      // may not actually mean anything
+      if (e.isMacro) return;
+
       await v(e.name, ctx);
       await Promise.all(e.args.map((arg) => v(arg, ctx)[0]));
     },
@@ -306,6 +285,38 @@ async function astToCompilationUnitFirstPass(
   };
 
   await visitAST(ast, lut, context);
+}
+
+
+// compiler first pass: create variables scopes and gather files
+export async function astToCompilationUnitFirstPass(
+  ast: RawASTExpr<{}>,
+  compileContext: DesmoscriptCompileContext,
+  filePath: string
+): Promise<DesmoscriptCompilationUnit> {
+  compileContext.existingFiles.add(filePath);
+
+  const dirname = path.dirname(filePath);
+
+  const rootScope: Scope = {
+    name: "root",
+    contents: new Map(),
+    isRoot: true
+  };
+
+  const context: ASTToCompilationUnitContext = {
+    scope: rootScope,
+  };
+
+  const symbolScopes = new Map<number, Scope>();
+
+  createVariableScopesAndDeclareImports(
+    context,
+    symbolScopes,
+    compileContext,
+    dirname,
+    ast
+  );
 
   return {
     ast,

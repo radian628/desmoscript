@@ -16,6 +16,7 @@ export function getExprContext(expr: RawASTExpr<{}>) {
     line: expr.line,
     col: expr.col,
     file: expr.file,
+    id: expr.id
   };
 }
 

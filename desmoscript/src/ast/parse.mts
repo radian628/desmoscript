@@ -69,7 +69,7 @@ export function uniqueAnonScopeName() {
 }
 
 let exprIdCounter = 0;
-const makeExprId = () => exprIdCounter++;
+export const makeExprId = () => exprIdCounter++;
 
 export class DesmoscriptASTBuilder
   extends AbstractParseTreeVisitor<ds.ASTExpr>
@@ -275,6 +275,7 @@ export class DesmoscriptASTBuilder
       name: this.visit(ctx._fnname),
       args: ctx._fnargs._args.map((arg) => this.visit(arg)),
       type: ds.ASTType.FNCALL,
+      isMacro: false
     });
   }
 
@@ -286,7 +287,8 @@ export class DesmoscriptASTBuilder
     return this.withLineCol<ds.ASTFunctionCall<{}>>(ctx, {
       name: this.visit(ctx._fnname),
       args: ctx._fnargs ? ctx._fnargs._args.map((arg) => this.visit(arg)) : [],
-      type: ds.ASTType.MACROCALL,
+      type: ds.ASTType.FNCALL,
+      isMacro: true
     });
   }
 

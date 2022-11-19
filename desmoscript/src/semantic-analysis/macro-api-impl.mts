@@ -1,10 +1,11 @@
 import { ASTType, JSONType, RawASTExpr } from "../ast/ast.mjs";
 import { getExprContext } from "./builtins.mjs";
 import { MacroAPI, ScopedASTExpr } from "./analysis-types.mjs";
-import { uniqueAnonScopeName } from "../ast/parse.mjs";
+import { makeExprId, uniqueAnonScopeName } from "../ast/parse.mjs";
 
 export async function getMacroAPI(e: RawASTExpr<{}>): Promise<MacroAPI> {
   let ctx = getExprContext(e);
+  ctx.id = makeExprId();
 
   return {
     number: (n) => {
@@ -34,7 +35,7 @@ export async function getMacroAPI(e: RawASTExpr<{}>): Promise<MacroAPI> {
       return {
         ...ctx,
         type: ASTType.FNDEF,
-        name: { ...ctx, type: ASTType.IDENTIFIER, segments: [name] },
+        name,
         args,
         bodyExprs: body,
       };
@@ -45,6 +46,16 @@ export async function getMacroAPI(e: RawASTExpr<{}>): Promise<MacroAPI> {
         type: ASTType.FNCALL,
         name,
         args,
+        isMacro: false
+      };
+    },
+    macro: (name, ...args) => {
+      return {
+        ...ctx,
+        type: ASTType.FNCALL,
+        name,
+        args,
+        isMacro: true
       };
     },
     note: (text) => {
@@ -90,7 +101,6 @@ export async function getMacroAPI(e: RawASTExpr<{}>): Promise<MacroAPI> {
       return {
         ...ctx,
         type: ASTType.BLOCK,
-        id: uniqueAnonScopeName(),
         bodyExprs,
       };
     },

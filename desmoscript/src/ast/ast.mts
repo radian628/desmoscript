@@ -78,7 +78,8 @@ export type ASTPoint<T, C = T> = {
 export type ASTFunctionCall<T, C = T> = {
   name: RawASTExpr<C, C>;
   args: RawASTExpr<C, C>[];
-  type: ASTType.FNCALL | ASTType.MACROCALL;
+  type: ASTType.FNCALL;
+  isMacro: boolean;
 } & LineCol &
   T;
 

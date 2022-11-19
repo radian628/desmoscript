@@ -27,41 +27,41 @@ import {
   RawASTExpr,
 } from "./ast.mjs";
 
-export type VisitorEntry<T, CtxBefore, NodeType extends RawASTExpr<T>> = (
+export type VisitorEntry<T, CtxBefore, RT, NodeType extends RawASTExpr<T>> = (
   node: NodeType,
   ctx: CtxBefore,
-  visit: (node: RawASTExpr<T>, ctx: CtxBefore) => Promise<void>
-) => Promise<void>;
+  visit: (node: RawASTExpr<T>, ctx: CtxBefore) => RT
+) => RT;
 
-export type ASTVisitorLUT<T, B> = {
-  number: VisitorEntry<T, B, ASTNumber<T>>;
-  binop: VisitorEntry<T, B, ASTBinop<T>>;
-  root: VisitorEntry<T, B, ASTRoot<T>>;
-  identifier: VisitorEntry<T, B, ASTIdentifier<T>>;
-  point: VisitorEntry<T, B, ASTPoint<T>>;
-  fncall: VisitorEntry<T, B, ASTFunctionCall<T>>;
-  list: VisitorEntry<T, B, ASTList<T>>;
-  step_range: VisitorEntry<T, B, ASTStepRange<T>>;
-  fndef: VisitorEntry<T, B, ASTFunctionDef<T>>;
-  namespace: VisitorEntry<T, B, ASTNamespace<T>>;
-  block: VisitorEntry<T, B, ASTBlock<T>>;
-  match: VisitorEntry<T, B, ASTMatch<T>>;
-  import: VisitorEntry<T, B, ASTImport<T>>;
-  sumprodint: VisitorEntry<T, B, ASTSumProdInt<T>>;
-  derivative: VisitorEntry<T, B, ASTDerivative<T>>;
-  listcomp: VisitorEntry<T, B, ASTListComp<T>>;
-  memberaccess: VisitorEntry<T, B, ASTMemberAccess<T>>;
-  json: VisitorEntry<T, B, ASTJSON<T>>;
-  decorator: VisitorEntry<T, B, ASTDecorator<T>>;
-  named_json: VisitorEntry<T, B, ASTNamedJSON<T>>;
-  note: VisitorEntry<T, B, ASTNote<T>>;
-  actions: VisitorEntry<T, B, ASTActions<T>>;
+export type ASTVisitorLUT<T, B, RT> = {
+  number: VisitorEntry<T, B, RT, ASTNumber<T>>;
+  binop: VisitorEntry<T, B, RT, ASTBinop<T>>;
+  root: VisitorEntry<T, B, RT, ASTRoot<T>>;
+  identifier: VisitorEntry<T, B, RT, ASTIdentifier<T>>;
+  point: VisitorEntry<T, B, RT, ASTPoint<T>>;
+  fncall: VisitorEntry<T, B, RT, ASTFunctionCall<T>>;
+  list: VisitorEntry<T, B, RT, ASTList<T>>;
+  step_range: VisitorEntry<T, B, RT, ASTStepRange<T>>;
+  fndef: VisitorEntry<T, B, RT, ASTFunctionDef<T>>;
+  namespace: VisitorEntry<T, B, RT, ASTNamespace<T>>;
+  block: VisitorEntry<T, B, RT, ASTBlock<T>>;
+  match: VisitorEntry<T, B, RT, ASTMatch<T>>;
+  import: VisitorEntry<T, B, RT, ASTImport<T>>;
+  sumprodint: VisitorEntry<T, B, RT, ASTSumProdInt<T>>;
+  derivative: VisitorEntry<T, B, RT, ASTDerivative<T>>;
+  listcomp: VisitorEntry<T, B, RT, ASTListComp<T>>;
+  memberaccess: VisitorEntry<T, B, RT, ASTMemberAccess<T>>;
+  json: VisitorEntry<T, B, RT, ASTJSON<T>>;
+  decorator: VisitorEntry<T, B, RT, ASTDecorator<T>>;
+  named_json: VisitorEntry<T, B, RT, ASTNamedJSON<T>>;
+  note: VisitorEntry<T, B, RT, ASTNote<T>>;
+  actions: VisitorEntry<T, B, RT, ASTActions<T>>;
   all: (expr: RawASTExpr<T>, ctx: B) => Promise<void>;
 };
 
-export async function visitAST<T, Ctx>(
+export async function visitAST<T, Ctx, RT>(
   root: RawASTExpr<T>,
-  lut: ASTVisitorLUT<T, Ctx>,
+  lut: ASTVisitorLUT<T, Ctx, RT>,
   context: Ctx
 ) {
   const visit = async (node: RawASTExpr<T>, ctx: Ctx) => {
@@ -71,7 +71,7 @@ export async function visitAST<T, Ctx>(
   return visit(root, context);
 }
 
-export function noOpLUT<T, U>(): ASTVisitorLUT<T, U> {
+export function noOpLUT<T, U>(): ASTVisitorLUT<T, U, Promise<void>> {
   return {
     async all(e, ctx) {
     },

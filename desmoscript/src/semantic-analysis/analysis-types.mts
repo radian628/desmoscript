@@ -126,10 +126,11 @@ export type Scope = {
   name: string;
   contents: Map<string, ScopeContent.Content>;
   parent?: Scope;
+  isRoot?: boolean
 };
 
 export type ScopeInfo = {
-  myScope: Scope;
+
 };
 
 export type ScopedASTExpr = RawASTExpr<ScopeInfo>;
@@ -148,6 +149,10 @@ export type MacroAPI = {
     body: RawASTExpr<ScopeInfo>[]
   ) => ASTFunctionDef<ScopeInfo>;
   fn: (
+    name: ASTIdentifier<ScopeInfo>,
+    ...args: RawASTExpr<ScopeInfo>[]
+  ) => ASTFunctionCall<ScopeInfo>;
+  macro: (
     name: ASTIdentifier<ScopeInfo>,
     ...args: RawASTExpr<ScopeInfo>[]
   ) => ASTFunctionCall<ScopeInfo>;
