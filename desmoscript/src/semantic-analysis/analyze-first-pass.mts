@@ -314,6 +314,10 @@ export async function astToCompilationUnitFirstPass(
       ["x", {
         type: ScopeContent.Type.VARIABLE,
         isBuiltin: true
+      }],
+      ["rgb", {
+        type: ScopeContent.Type.FUNCTION,
+        isBuiltin: true
       }]
     ]),
     isRoot: true,

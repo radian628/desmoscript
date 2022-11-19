@@ -283,11 +283,12 @@ async function compileFunctionDefinition(
   finalExpr: ASTExpr
 ) {
   const { ctx, unit, graphState } = props;
+  const functionDefScope = getScopeOfExpr(rootExpr, unit);
   const compiledFinalExpr = compileExpression(props, finalExpr);
   const fnNameVar = makeDesmosVarName(
     ctx, 
     unit.filePath, 
-    getCanonicalPath(getScopeOfExpr(rootExpr, unit)), 
+    getCanonicalPath(functionDefScope), 
     rootExpr.name
   );
   const argScopePath = getCanonicalPath(getInnerScopeOfExpr(rootExpr, unit));
@@ -301,14 +302,14 @@ async function compileFunctionDefinition(
 }
 
 
-function compileJSONExpression(
+async function compileJSONExpression(
   props: {
     ctx: DesmoscriptCompileContext;
     unit: DesmoscriptCompilationUnit;
     graphState: GraphState;
   },
   expr: ASTJSON<{}>) {
-  function c(e: ASTJSON<{}>): any {
+  async function c(e: ASTJSON<{}>): Promise<any> {
       switch (e.data.jsontype) {
       case JSONType.NUMBER:
       case JSONType.STRING:
@@ -316,12 +317,12 @@ function compileJSONExpression(
       case JSONType.BOOLEAN:
           return e.data.data;
       case JSONType.OBJECT:
-          return Object.fromEntries(Object.entries(e.data.data)
-              .map(([k,v]): [string, any] => [k, c(v)]));
+          return Object.fromEntries(await Promise.all(Object.entries(e.data.data)
+              .map(async ([k,v]): Promise<[string, any]> => [k, await c(v)])));
       case JSONType.ARRAY:
-          return e.data.data.map(e => c(e));
+          return Promise.all(e.data.data.map(async e => await c(e)));
       case JSONType.DESMOSCRIPT:
-          return compileExpression(props, e.data.data);
+          return await compileExpression(props, e.data.data);
       }
   }
 
@@ -342,12 +343,12 @@ async function compileScope(
     switch (c.type) {
       case ScopeContent.Type.VARIABLE:
         {
-          if (c.isBuiltin) break;
+          if (c.isBuiltin || c.isPartOfDesmos) break;
           const latex = await compileExpression(props, c.data);
           let additionalProperties: Partial<ExpressionState> = {};
           if (c.decoratorInfo) {
-            additionalProperties = expressionStateParser.parse(
-              compileJSONExpression(props, c.decoratorInfo.json)
+            additionalProperties = expressionStateParser.partial().parse(
+              await compileJSONExpression(props, c.decoratorInfo.json)
             );
           }
           graphState.expressions.list.push({
@@ -361,7 +362,7 @@ async function compileScope(
         }
       case ScopeContent.Type.FUNCTION:
         {
-          if (c.isBuiltin) break;
+          if (c.isBuiltin || c.isPartOfDesmos) break;
           const latex = await compileFunctionDefinition(props, c.data, c.finalExpr);
           graphState.expressions.list.push({
             type: "expression",
@@ -373,7 +374,7 @@ async function compileScope(
         }
       case ScopeContent.Type.NAMED_JSON:
         {
-          const json = compileJSONExpression(props, c.data);
+          const json = await compileJSONExpression(props, c.data);
           if (c.name == "settings") {
             const parsedJSON = GrapherStateParser.parse(json);
             graphState.graph = parsedJSON;

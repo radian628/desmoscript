@@ -41,11 +41,17 @@ export namespace ScopeContent {
     };
   } & (
     | {
+      isPartOfDesmos?: false;
         isBuiltin?: false;
         data: RawASTExpr<{}>;
       }
     | {
+      isPartOfDesmos?: boolean;
         isBuiltin: true;
+      }
+    | {
+        isPartOfDesmos: true
+        isBuiltin?: false;
       }
   );
 
@@ -54,12 +60,18 @@ export namespace ScopeContent {
     type: Type.FUNCTION;
   } & (
     | {
+        isPartOfDesmos?: false;
         isBuiltin?: false;
         data: ASTFunctionDef<{}>;
         finalExpr: RawASTExpr<{}>;
       }
     | {
+        isPartOfDesmos?: boolean;
         isBuiltin: true;
+      }
+    | {
+        isPartOfDesmos: true
+        isBuiltin?: false;
       }
   );
 

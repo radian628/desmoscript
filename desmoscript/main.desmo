@@ -3,3 +3,11 @@ import "imported.desmo" as imported;
 var = 1;
 
 setImportVar = & imported.var -> imported.var + 1;
+
+"note test"
+fntest = imported.threeNPlusOne(var);
+
+show y = x ^ 2; with @{
+  color: "black",
+  colorLatex: ds(rgb(255,128,0))
+}
