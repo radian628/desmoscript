@@ -38,7 +38,8 @@ none of my projects are gonna get that large anyway.
 */
 export async function astToCompilationUnitThirdPass(
   compileContext: DesmoscriptCompileContext,
-  unit: DesmoscriptCompilationUnit
+  unit: DesmoscriptCompilationUnit,
+  watchFiles: Set<string>
 ) {
   const dirname = path.dirname(unit.filePath);
 
@@ -70,7 +71,8 @@ export async function astToCompilationUnitThirdPass(
           unit.symbolInnerScopes,
           compileContext,
           path.dirname(unit.filePath),
-          substitution
+          substitution,
+          watchFiles
         );
       }
 

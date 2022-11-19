@@ -76,7 +76,8 @@ export async function createVariableScopesAndDeclareImports(
   symbolInnerScopes: Map<number, Scope>,
   compileContext: DesmoscriptCompileContext,
   dirname: string,
-  ast: RawASTExpr<{}>
+  ast: RawASTExpr<{}>,
+  watchFiles: Set<string>
 ) {
   const lut: ASTVisitorLUT<{}, ASTToCompilationUnitContext, Promise<void>> = {
     async all(e, ctx) {
@@ -189,7 +190,7 @@ export async function createVariableScopesAndDeclareImports(
       if (compileContext.existingFiles.has(fullPath)) return;
       const parsedOutput = await desmoscriptFileToAST(fullPath);
       //(parsedOutput);
-      await astToCompilationUnitFirstPass(parsedOutput, compileContext, fullPath);
+      await astToCompilationUnitFirstPass(parsedOutput, compileContext, fullPath, watchFiles);
     },
 
     async sumprodint(e, ctx, v) {
@@ -299,8 +300,10 @@ export async function createVariableScopesAndDeclareImports(
 export async function astToCompilationUnitFirstPass(
   ast: RawASTExpr<{}>,
   compileContext: DesmoscriptCompileContext,
-  filePath: string
+  filePath: string,
+  watchFiles: Set<string>
 ): Promise<DesmoscriptCompilationUnit> {
+  watchFiles.add(filePath);
   compileContext.existingFiles.add(filePath);
 
   const dirname = path.dirname(filePath);
@@ -330,7 +333,8 @@ export async function astToCompilationUnitFirstPass(
     symbolInnerScopes,
     compileContext,
     dirname,
-    ast
+    ast,
+    watchFiles
   );
 
   const unit: DesmoscriptCompilationUnit = {

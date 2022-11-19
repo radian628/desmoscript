@@ -297,7 +297,7 @@ async function compileFunctionDefinition(
     argScopePath,
     arg
   ));
-  return `${fnNameVar}\\left(${fnArgsVars.join(",")}\\right)=${compiledFinalExpr}`;
+  return `${fnNameVar}\\left(${fnArgsVars.join(",")}\\right)=${await compiledFinalExpr}`;
 }
 
 
@@ -418,8 +418,6 @@ export async function compile(ctx: DesmoscriptCompileContext) {
   };
 
   determineNamespaceSeparator(ctx);
-
-  for (const [unitName, unit] of ctx.compilationUnits) console.log(unit);
 
   for (const [unitName, unit] of ctx.compilationUnits) {
     await compileCompilationUnit({

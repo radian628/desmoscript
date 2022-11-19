@@ -3,3 +3,9 @@ import "main.desmo" as main;
 var = 1;
 
 setMainVar = & main.var -> main.var + 1;
+
+y = x + 1;
+
+fn double(z) { z + 1 }
+
+fntest = double(3);
