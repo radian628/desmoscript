@@ -134,6 +134,7 @@ export type ScopeInfo = {};
 export type ScopedASTExpr = RawASTExpr<ScopeInfo>;
 
 export type MacroAPI = {
+  clone: (n: ASTExpr) => ASTExpr;
   number: (n: number) => ASTNumber<ScopeInfo>;
   binop: (
     left: RawASTExpr<ScopeInfo>,
@@ -207,6 +208,7 @@ export type DesmoscriptCompilationUnit = {
   symbolInnerScopes: Map<number, Scope>;
   rootScope: Scope;
   filePath: string;
+  substitutionLUT: Map<number, ASTExpr>
 };
 
 // represents all the data necessary to compile a desmoscript program

@@ -9,5 +9,15 @@ fntest = imported.threeNPlusOne(var);
 
 show y = x ^ 2; with @{
   color: "black",
-  colorLatex: ds(rgb(255,128,0))
+  colorLatex: ds(rgb(255,128,0)),
+  lineWidth: ds(50),
+  lineOpacity: ds(1),
+  clickableInfo: {
+    enabled: true,
+    latex: ds(setImportVar)
+  }
 }
+
+
+
+testMacro = three!();

@@ -8,6 +8,14 @@ export async function getMacroAPI(e: RawASTExpr<{}>): Promise<MacroAPI> {
   ctx.id = makeExprId();
 
   return {
+    clone: (e) => {
+      //TODO: Make this clone an AST fragment
+      return {
+        ...ctx,
+        type: ASTType.NUMBER,
+        number: 0,
+      };
+    },
     number: (n) => {
       return {
         ...ctx,

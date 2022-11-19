@@ -1,4 +1,4 @@
-import { ASTBinop, ASTNote, ASTType, RawASTExpr } from "../ast/ast.mjs";
+import { ASTBinop, ASTExpr, ASTNote, ASTType, RawASTExpr } from "../ast/ast.mjs";
 import * as path from "node:path";
 import { ScopeInfo, ScopeContent } from "./analysis-types.mjs";
 
@@ -16,6 +16,27 @@ export function getExprContext(expr: RawASTExpr<{}>) {
     file: expr.file,
     id: expr.id,
   };
+}
+
+export function createDesmosBuiltins(): Map<string, ScopeContent.Content> {
+  const macro: ScopeContent.Macro = {
+    type: ScopeContent.Type.MACRO,
+    fn: (expr, ctx, a): ASTExpr => {
+      return a.number(3);
+    }
+  };
+
+  const map = new Map();
+  map.set("x", {
+      type: ScopeContent.Type.VARIABLE,
+      isPartOfDesmos: true
+    }),
+  map.set("rgb", {
+      type: ScopeContent.Type.FUNCTION,
+      isPartOfDesmos: true
+    })
+  map.set("three", macro);
+  return map;
 }
 
 // export function makeDefaultDesmoscriptContext(entry: string) {

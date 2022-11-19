@@ -98,7 +98,10 @@ export async function createDesmoscriptWatchServer(entryPoint: string, options?:
 
     // watch files
     const watcher = chokidar.watch(Array.from(watchedFiles), {
-      ignoreInitial: true
+      ignoreInitial: true,
+      awaitWriteFinish: {
+        stabilityThreshold: 500
+      }
     });
     watcher.on("all", () => {
       watcher.close();

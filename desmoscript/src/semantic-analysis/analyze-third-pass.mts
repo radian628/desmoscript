@@ -43,7 +43,6 @@ export async function astToCompilationUnitThirdPass(
 ) {
   const dirname = path.dirname(unit.filePath);
 
-  const substitutionLUT = new Map<number, RawASTExpr<{}>>();
 
   const lut: ASTVisitorLUT<{}, any, Promise<void>> = {
     ...noOpLUT(new Promise<void>((resolve, reject) => resolve())),
@@ -58,11 +57,11 @@ export async function astToCompilationUnitThirdPass(
       if (ident.type != ScopeContent.Type.MACRO) return;
 
       // if macro substitution already exists, then don't bother doing it again. just search below
-      let substitution = substitutionLUT.get(e.id);
+      let substitution = unit.substitutionLUT.get(e.id);
       if (!substitution) {
         substitution = await ident.fn(e, compileContext, await getMacroAPI(e));
 
-        substitutionLUT.set(e.id, substitution);
+        unit.substitutionLUT.set(e.id, substitution);
 
         // compiler first pass
         createVariableScopesAndDeclareImports(

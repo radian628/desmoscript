@@ -9,6 +9,7 @@ import { ExpressionState, expressionStateParser, GrapherStateParser, GraphState,
 import {
   ASTBinop,
   ASTExpr,
+  ASTFunctionCall,
   ASTFunctionDef,
   ASTIdentifier,
   ASTJSON,
@@ -93,6 +94,15 @@ function makeDesmosVarName(
   return toDesmosVar(createVariableName(compileContext, unit, path, name));
 }
 
+function getMacroSubstitution(
+  unit: DesmoscriptCompilationUnit,
+  expr: ASTFunctionCall<{}>
+) {
+  const substitution = unit.substitutionLUT.get(expr.id);
+  if (!substitution) err(expr, "INTERNAL ERROR: Macro call has no corresponding substitution.");
+  return substitution;
+}
+
 /*
 How do I make this completely resistant to namespace collisions?
 
@@ -174,6 +184,15 @@ async function compileExpression(
       if (!foundIdentifier)
         err(e, `'${e.segments.join(".")}' does not exist in this scope.`);
 
+      if (
+          (
+            foundIdentifier.result.type == ScopeContent.Type.VARIABLE
+            || foundIdentifier.result.type == ScopeContent.Type.FUNCTION
+          ) && foundIdentifier.result.isPartOfDesmos
+        ) {
+          return `\\operatorname{${lastof(e.segments)}}`;
+        }
+
       const varName = createVariableName(
         ctx,
         foundIdentifier.unit,
@@ -189,6 +208,10 @@ async function compileExpression(
     },
 
     fncall(e, c, v) {
+      if (e.isMacro) {
+        return v(getMacroSubstitution(unit, e), c);
+      }
+
       return `${v(e.name, u)}\\left(${e.args
         .map((arg) => v(arg, u))
         .join(",")}\\right)`;
@@ -347,9 +370,10 @@ async function compileScope(
           const latex = await compileExpression(props, c.data);
           let additionalProperties: Partial<ExpressionState> = {};
           if (c.decoratorInfo) {
-            additionalProperties = expressionStateParser.partial().parse(
+            additionalProperties = expressionStateParser.strict().partial().parse(
               await compileJSONExpression(props, c.decoratorInfo.json)
             );
+            console.log(additionalProperties);
           }
           graphState.expressions.list.push({
             type: "expression",

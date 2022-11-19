@@ -250,7 +250,7 @@ export const expressionStateWithoutColumnParser = z.object({
         .optional(),
     })
     .optional(),
-  clickableinfo: baseClickableParser.optional(),
+  clickableInfo: baseClickableParser.optional(),
 });
 
 export interface ColumnExpressionShared {

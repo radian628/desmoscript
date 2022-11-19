@@ -19,6 +19,7 @@ import {
 } from "../ast/ast.mjs";
 import { ASTVisitorLUT, visitAST } from "../ast/ast-visitor.mjs";
 import { checkNamespaceCollision, getCanonicalPath } from "./analyze-utils.mjs";
+import { createDesmosBuiltins } from "./builtins.mjs";
 
 // // add a compilation unit to a compilation operation (memoized)
 // export async function addDesmoscriptCompilationUnit(
@@ -310,16 +311,7 @@ export async function astToCompilationUnitFirstPass(
 
   const rootScope: Scope = {
     name: "root",
-    contents: new Map([
-      ["x", {
-        type: ScopeContent.Type.VARIABLE,
-        isBuiltin: true
-      }],
-      ["rgb", {
-        type: ScopeContent.Type.FUNCTION,
-        isBuiltin: true
-      }]
-    ]),
+    contents: createDesmosBuiltins(),
     isRoot: true,
   };
 
@@ -342,6 +334,7 @@ export async function astToCompilationUnitFirstPass(
   );
 
   const unit: DesmoscriptCompilationUnit = {
+    substitutionLUT: new Map(),
     ast,
     symbolScopes,
     symbolInnerScopes,
