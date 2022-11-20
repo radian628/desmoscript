@@ -1,3 +1,4 @@
+import { levenshtein } from "../all-steps/error-hints.mjs";
 import { ASTExpr, ASTIdentifier, ASTType, RawASTExpr } from "../ast/ast.mjs";
 import {
   DesmoscriptCompilationUnit,
@@ -62,13 +63,34 @@ export function importScopeContentToCorrespondingRootScope(
   return unit.rootScope;
 }
 
+export type FindIdentifierSuccess = { 
+  result: ScopeContent.Content, 
+  enclosingScope: Scope, 
+  unit: string,
+  success: true
+};
+
+export type FindIdentifierResult = FindIdentifierSuccess | {
+  success: false,
+  badSegment: string,
+  similarSegments: string[]
+} 
+
+export type FindIdentifierDirectlyInScopeResult
+  = FindIdentifierSuccess
+  | {
+    success: false,
+    badSegment: string
+    badScope: Scope
+  }
+
 export function findIdentifierDirectlyInScope(
   scope: Scope,
   compileContext: DesmoscriptCompileContext,
   path: string[],
   originalExpr: ASTExpr,
   unit: string
-): { result: ScopeContent.Content, enclosingScope: Scope, unit: string } | undefined {
+): FindIdentifierDirectlyInScopeResult {
   const entry = scope.contents.get(path[0]);
 
   if (entry) {
@@ -76,7 +98,8 @@ export function findIdentifierDirectlyInScope(
       return {
         result: entry,
         enclosingScope: scope,
-        unit
+        unit,
+        success: true
       };
     } else {
       const nextPath = path.slice(1);
@@ -88,11 +111,12 @@ export function findIdentifierDirectlyInScope(
           nextPath,
           originalExpr,
           entry.unit
-        )?.result;
-        return result ? {
-          result,
+        );
+        return result.success ? {
+          result: result.result,
           enclosingScope: scope,
-          unit: entry.unit
+          unit: entry.unit,
+          success: true
         } : result;
       } else if (entry.type == ScopeContent.Type.SCOPE) {
         const result = findIdentifierDirectlyInScope(
@@ -101,34 +125,65 @@ export function findIdentifierDirectlyInScope(
           nextPath,
           originalExpr,
           unit
-        )?.result;
-        return result ? {
-          result,
+        );
+        return result.success ? {
+          result: result.result,
           enclosingScope: scope,
-          unit
+          unit,
+          success: true
         } : result;
       }
     }
   }
+  return {
+    success: false,
+    badSegment: path[0],
+    badScope: scope
+  }
 }
 
+// given a scope and a path, find the given identifier relative to that scope
 export function findIdentifier(
   startScope: Scope,
   compileContext: DesmoscriptCompileContext,
   unit: string,
   path: string[],
   originalExpr: ASTExpr,
-): { result: ScopeContent.Content, enclosingScope: Scope, unit: string } | undefined {
-  const result = findIdentifierDirectlyInScope(
-    startScope, 
-    compileContext,
-    path,
-    originalExpr,
-    unit
-  );
-  if (result) return result;
-  if (!startScope.parent) return;
-  return findIdentifier(startScope.parent, compileContext, unit, path, originalExpr);
+): FindIdentifierResult {
+  let searchScope: Scope | undefined = startScope;
+
+  const failures: {
+    success: false,
+    badSegment: string
+    badScope: Scope
+  }[] = [];
+
+  while (searchScope != undefined) {
+    const result = findIdentifierDirectlyInScope(
+      startScope, 
+      compileContext,
+      path,
+      originalExpr,
+      unit
+    );
+    if (result.success) return result;
+    searchScope = searchScope.parent;
+    failures.push(result);
+  }
+
+  // TODO: Figure out how to format spelling suggestions
+  // for unknown variable names. 
+  return failures
+    .map(failure => {
+      const distances = levenshtein
+    })
+
+  // if (!startScope.parent) return {
+  //   success: false,
+  //   badSegment: path[0],
+  //   similarSegments
+  // };
+  //return findIdentifier(startScope.parent, compileContext, unit, path, originalExpr);
 }
 
 // assert that an expression must be an identifier

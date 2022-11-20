@@ -8,6 +8,7 @@ import * as http from "node:http";
 import * as chokidar from "chokidar";
 import { GraphState } from "../graphstate.mjs";
 import * as z from "zod";
+import { levenshtein } from "./error-hints.mjs";
 
 export async function compileDesmoscript(entryPoint: string, filesOut: Set<string>) {
   filesOut.add(path.resolve(entryPoint));
@@ -63,6 +64,7 @@ const desmoscriptErrorParser = z.object({
 export async function createDesmoscriptWatchServer(entryPoint: string, options?: {
   port?: number
 }) {
+
   const port = options?.port ?? 8081;
 
   let compiledOutput: GraphState | null = null;
