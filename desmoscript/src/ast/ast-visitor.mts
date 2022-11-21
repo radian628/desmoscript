@@ -4,6 +4,7 @@ import {
   ASTBlock,
   ASTDecorator,
   ASTDerivative,
+  ASTExpr,
   ASTFunctionCall,
   ASTFunctionDef,
   ASTIdentifier,
@@ -188,4 +189,36 @@ export function noOpLUT<T, U, RetType>(rt: Promise<RetType>): ASTVisitorLUT<T, U
       await Promise.all(e.actionAliases.map((alias) => v(alias, ctx)));return rt;
     },
   };
+}
+
+export function isASTExpr(value: any): value is ASTExpr {
+  return value._isexpr;
+}
+
+export function mapAST(expr: ASTExpr, callback: (expr: ASTExpr) => ASTExpr): ASTExpr {
+  function mapHelper(expr: any): any {
+    if (Array.isArray(expr)) {
+      return expr.map(e => mapHelper(e));
+    }
+    
+    if (isASTExpr(expr)) {
+      const newExpr = callback(expr);
+      for (const [k, v] of Object.entries(newExpr)) {
+        //@ts-ignore
+        newExpr[k] = mapHelper(v);
+      }
+      return newExpr;
+    } else if (typeof expr == "object") {
+      const newObj = { ...expr };
+      for (const [k, v] of Object.entries(newObj)) {
+        //@ts-ignore
+        newObj[k] = mapHelper(v);
+      }
+      return newObj;
+    }
+
+    return expr;
+  }
+
+  return mapHelper(expr);
 }

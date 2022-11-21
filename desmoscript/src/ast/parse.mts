@@ -92,6 +92,7 @@ export class DesmoscriptASTBuilder
       col: ctx.start.charPositionInLine,
       file: this.filename,
       id: makeExprId(),
+      _isexpr: true
     };
   }
 
@@ -103,6 +104,7 @@ export class DesmoscriptASTBuilder
       col: 1,
       file: this.filename,
       id: makeExprId(),
+      _isexpr: true
     };
   }
 

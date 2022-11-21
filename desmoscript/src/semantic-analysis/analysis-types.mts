@@ -135,6 +135,7 @@ export type ScopedASTExpr = RawASTExpr<ScopeInfo>;
 
 export type MacroAPI = {
   clone: (n: ASTExpr) => ASTExpr;
+  scopeof: (n: ASTExpr) => Scope;
   number: (n: number) => ASTNumber<ScopeInfo>;
   binop: (
     left: RawASTExpr<ScopeInfo>,

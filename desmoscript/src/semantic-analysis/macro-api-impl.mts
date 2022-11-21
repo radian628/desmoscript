@@ -1,20 +1,38 @@
 import { ASTType, JSONType, RawASTExpr } from "../ast/ast.mjs";
 import { getExprContext } from "./builtins.mjs";
-import { MacroAPI, ScopedASTExpr } from "./analysis-types.mjs";
+import { DesmoscriptCompilationUnit, MacroAPI, ScopedASTExpr } from "./analysis-types.mjs";
 import { makeExprId, uniqueAnonScopeName } from "../ast/parse.mjs";
+import { getScopeOfExpr } from "./analyze-utils.mjs";
 
-export async function getMacroAPI(e: RawASTExpr<{}>): Promise<MacroAPI> {
+
+function remapIDs(value: any) {
+  if (Array.isArray(value)) {
+    value.forEach(e => remapIDs(e));
+    return;
+  }
+
+  if (typeof value.id == "number") {
+    value.id = makeExprId();
+  }
+  
+  for (const [k, v] of Object.entries(value)) {
+    remapIDs(v);
+  }
+}
+
+
+export async function getMacroAPI(e: RawASTExpr<{}>, unit: DesmoscriptCompilationUnit): Promise<MacroAPI> {
   let ctx = getExprContext(e);
   ctx.id = makeExprId();
 
   return {
     clone: (e) => {
-      //TODO: Make this clone an AST fragment
-      return {
-        ...ctx,
-        type: ASTType.NUMBER,
-        number: 0,
-      };
+      const eClone = structuredClone(e);
+      remapIDs(eClone);
+      return eClone;
+    },
+    scopeof: e => {
+      return getScopeOfExpr(e, unit);
     },
     number: (n) => {
       return {

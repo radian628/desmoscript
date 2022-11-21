@@ -2,7 +2,7 @@ import * as desmoscript from "desmoscript";
 import { DesmoscriptContext, Identifier, MacroDefinition, Scope, ScopedASTExpr, ScopeInfo } from "desmoscript/dist/semantic-analysis-types.mjs";
 import { ASTFunctionCall, ASTType } from "desmoscript/dist/ast.mjs";
 
-const entryPoint = "./desmo-src/main.desmo";
+const entryPoint = "../../desmo-lib/3d.desmo";
 
 const additionalDefines = new Map<string, MacroDefinition>();
 
@@ -26,8 +26,10 @@ const additionalDefines = new Map<string, MacroDefinition>();
 //   }
 // });
 
-desmoscript.runCompilerWebServer(entryPoint, {
-    watch: true,
-    port: 8081,
-    additionalDefines
-});
+// desmoscript.runCompilerWebServer(entryPoint, {
+//     watch: true,
+//     port: 8081,
+//     additionalDefines
+// });
+
+desmoscript.createDesmoscriptWatchServer(entryPoint);

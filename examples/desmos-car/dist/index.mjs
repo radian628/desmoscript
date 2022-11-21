@@ -1,5 +1,5 @@
 import * as desmoscript from "desmoscript";
-const entryPoint = "./desmo-src/main.desmo";
+const entryPoint = "../../desmo-lib/3d.desmo";
 const additionalDefines = new Map();
 // additionalDefines.set("three", {
 //     type: Identifier.MACRO,
@@ -19,8 +19,9 @@ const additionalDefines = new Map();
 //     })
 //   }
 // });
-desmoscript.runCompilerWebServer(entryPoint, {
-    watch: true,
-    port: 8081,
-    additionalDefines
-});
+// desmoscript.runCompilerWebServer(entryPoint, {
+//     watch: true,
+//     port: 8081,
+//     additionalDefines
+// });
+desmoscript.createDesmoscriptWatchServer(entryPoint);

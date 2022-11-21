@@ -30,6 +30,7 @@ export type LineCol = {
   col: number;
   file: string;
   id: number;
+  _isexpr: true;
 };
 
 export type ASTBinop<T, C = T> = {

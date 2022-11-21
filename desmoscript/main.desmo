@@ -19,5 +19,9 @@ show y = x ^ 2; with @{
 }
 
 
+sub!(five, 5)
+
 
 testMacro = three!();
+
+fart = testMacro + five!();

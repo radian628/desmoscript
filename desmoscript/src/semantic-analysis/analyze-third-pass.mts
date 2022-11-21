@@ -52,14 +52,14 @@ export async function astToCompilationUnitThirdPass(
 
       const myScope = getScopeOfExpr(e, unit);
 
-      const ident = findIdentifier(myScope, compileContext, unit.filePath, parseIdent(e.name).segments, e)?.result;
-      if (!ident) return;
-      if (ident.type != ScopeContent.Type.MACRO) return;
+      const ident = findIdentifier(myScope, compileContext, unit.filePath, parseIdent(e.name).segments, e);
+      if (!ident.success) return;
+      if (ident.result.type != ScopeContent.Type.MACRO) return;
 
       // if macro substitution already exists, then don't bother doing it again. just search below
       let substitution = unit.substitutionLUT.get(e.id);
       if (!substitution) {
-        substitution = await ident.fn(e, compileContext, await getMacroAPI(e));
+        substitution = await ident.result.fn(e, compileContext, await getMacroAPI(e, unit));
 
         unit.substitutionLUT.set(e.id, substitution);
 

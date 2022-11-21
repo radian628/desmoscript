@@ -1,8 +1,9 @@
 import { ASTBinop, ASTExpr, ASTNote, ASTType, RawASTExpr } from "../ast/ast.mjs";
 import * as path from "node:path";
 import { ScopeInfo, ScopeContent } from "./analysis-types.mjs";
+import { sub } from "../stdlib/macroutils.mjs";
 
-const builtin = { type: ScopeContent.Type.FUNCTION, data: { builtin: true } };
+const fn: ScopeContent.Content = { type: ScopeContent.Type.FUNCTION, isPartOfDesmos: true };
 
 const builtinVar = {
   type: ScopeContent.Type.VARIABLE,
@@ -15,6 +16,7 @@ export function getExprContext(expr: RawASTExpr<{}>) {
     col: expr.col,
     file: expr.file,
     id: expr.id,
+    _isexpr: true as const
   };
 }
 
@@ -36,6 +38,34 @@ export function createDesmosBuiltins(): Map<string, ScopeContent.Content> {
       isPartOfDesmos: true
     })
   map.set("three", macro);
+  map.set("sub", sub);
+  [
+    "sin", 
+    "cos", 
+    "tan",
+    "sec",
+    "csc",
+    "cot",
+    "arctan",
+    "arccos",
+    "arcsin",
+
+    "join",
+    "total",
+    "mean",
+    "sort",
+    "length",
+
+    "floor",
+    "ceil",
+    "mod",
+
+    "min",
+    "max",
+
+    "polygon"
+  ]
+  .map(name => map.set(name, fn));
   return map;
 }
 

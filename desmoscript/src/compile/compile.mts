@@ -73,7 +73,7 @@ function getGraphExprID() {
   return (currentExprID++).toString();
 }
 
-const dummyExpr: ASTNote<{}> = { line: 0, col: 0, file: ".", id: -1, type: ASTType.NOTE, text: "dummy" };
+const dummyExpr: ASTNote<{}> = { line: 0, col: 0, file: ".", id: -1, type: ASTType.NOTE, text: "dummy", _isexpr: true };
 function createVariableName(
   compileContext: DesmoscriptCompileContext,
   unit: string,
@@ -181,8 +181,12 @@ async function compileExpression(
         e        
       );
 
-      if (!foundIdentifier)
-        err(e, `'${e.segments.join(".")}' does not exist in this scope.`);
+      if (!foundIdentifier.success) {
+        err(e, `'${e.segments.join(".")}' does not exist in this scope.
+Did you intend to use one of the following names?\n${
+foundIdentifier.alternatives.slice(0,6).map(alt => `${alt.badSegment} => ${alt.name}`).join("\n")
+}`);
+      } 
 
       if (
           (
@@ -258,11 +262,11 @@ async function compileExpression(
     listcomp(e, c, v) {
       const scopeChain = getCanonicalPath(getInnerScopeOfExpr(e, unit));
       return `\\left[${v(e.body, c)}\\operatorname{for}${e.variables
-        .map(([varname, list]) => {
+        .map(([varname, list]) => 
           `${
             makeDesmosVarName(ctx, unit.filePath, scopeChain, varname)
-          }=${c(list)}`;
-        })
+          }=${v(list, c)}`
+        )
         .join(",")}\\right]`;
     },
 
@@ -373,7 +377,6 @@ async function compileScope(
             additionalProperties = expressionStateParser.strict().partial().parse(
               await compileJSONExpression(props, c.decoratorInfo.json)
             );
-            console.log(additionalProperties);
           }
           graphState.expressions.list.push({
             type: "expression",

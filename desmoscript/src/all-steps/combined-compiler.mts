@@ -92,7 +92,7 @@ export async function createDesmoscriptWatchServer(entryPoint: string, options?:
     if (hadErr) {
       const dserr = desmoscriptErrorParser.safeParse(err);
       if (dserr.success) {
-        logError(`${dserr.data.expr.file} line ${dserr.data.expr.line}; col ${dserr.data.expr.col}; ${dserr.data.reason}`);
+        logError(`${dserr.data.expr.file}\n line ${dserr.data.expr.line}; col ${dserr.data.expr.col}; ${dserr.data.reason}`);
       } else {
         logError(`err: ${JSON.stringify(dserr)} ${(err as Error).stack}`);
       }

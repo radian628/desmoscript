@@ -72,8 +72,7 @@ export type FindIdentifierSuccess = {
 
 export type FindIdentifierResult = FindIdentifierSuccess | {
   success: false,
-  badSegment: string,
-  similarSegments: string[]
+  alternatives: { name: string, badSegment: string }[]
 } 
 
 export type FindIdentifierDirectlyInScopeResult
@@ -112,12 +111,7 @@ export function findIdentifierDirectlyInScope(
           originalExpr,
           entry.unit
         );
-        return result.success ? {
-          result: result.result,
-          enclosingScope: scope,
-          unit: entry.unit,
-          success: true
-        } : result;
+        return result;
       } else if (entry.type == ScopeContent.Type.SCOPE) {
         const result = findIdentifierDirectlyInScope(
           entry.data,
@@ -126,12 +120,7 @@ export function findIdentifierDirectlyInScope(
           originalExpr,
           unit
         );
-        return result.success ? {
-          result: result.result,
-          enclosingScope: scope,
-          unit,
-          success: true
-        } : result;
+        return result;
       }
     }
   }
@@ -160,7 +149,7 @@ export function findIdentifier(
 
   while (searchScope != undefined) {
     const result = findIdentifierDirectlyInScope(
-      startScope, 
+      searchScope, 
       compileContext,
       path,
       originalExpr,
@@ -173,10 +162,21 @@ export function findIdentifier(
 
   // TODO: Figure out how to format spelling suggestions
   // for unknown variable names. 
-  return failures
+  const allAlternatives = failures
     .map(failure => {
-      const distances = levenshtein
+      return Array.from(failure.badScope.contents.keys())
+        .map(scopeContent => {return {
+          distance: levenshtein(failure.badSegment, scopeContent),
+          badSegment: failure.badSegment,
+          badScope: failure.badScope,
+          alternative: scopeContent
+        }});
     })
+    .flat()
+    .sort((a, b) => a.distance - b.distance)
+    .map(alt => { return { name: alt.alternative, badSegment: alt.badSegment } });
+
+  return { success: false, alternatives: allAlternatives };
 
   // if (!startScope.parent) return {
   //   success: false,
