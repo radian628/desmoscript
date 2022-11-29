@@ -2,7 +2,7 @@ import { ASTBinop, ASTExpr, ASTNote, ASTType, RawASTExpr } from "../ast/ast.mjs"
 import * as path from "node:path";
 import { ScopeInfo, ScopeContent } from "./analysis-types.mjs";
 import { sub } from "../stdlib/macroutils.mjs";
-import { loadObj } from "../stdlib/3d/obj-importer.mjs";
+import { loadObj } from "../stdlib/3d/obj-to-desmoscript.mjs";
 
 const fn: ScopeContent.Content = { type: ScopeContent.Type.FUNCTION, isPartOfDesmos: true };
 

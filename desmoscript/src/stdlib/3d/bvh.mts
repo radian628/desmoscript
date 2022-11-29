@@ -5,7 +5,7 @@ export type AABB = {
   max: [number, number, number]
 };
 
-type BVHNode<T extends AABB> = {
+export type BVHNode<T extends AABB> = {
   data: T[],
   children: BVHNode<T>[]
 } & AABB;
@@ -89,7 +89,7 @@ export function bvhify<T extends AABB>(data: T[]): BVHNode<T> {
 
 
 
-export function getBounds(obj: ParsedOBJ) {
+export function getBounds(obj: { vertices: [number, number, number][] }) {
   return obj.vertices.reduce((prev: AABB, curr) => {
     return {
       min: [ Math.min(curr[0], prev.min[0]), Math.min(curr[1], prev.min[1]), Math.min(curr[2], prev.min[2]) ],
