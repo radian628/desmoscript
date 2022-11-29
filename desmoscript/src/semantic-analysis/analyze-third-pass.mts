@@ -39,7 +39,8 @@ none of my projects are gonna get that large anyway.
 export async function astToCompilationUnitThirdPass(
   compileContext: DesmoscriptCompileContext,
   unit: DesmoscriptCompilationUnit,
-  watchFiles: Set<string>
+  watchFiles: Set<string>,
+  isLastPass?: boolean
 ) {
   const dirname = path.dirname(unit.filePath);
 
@@ -50,10 +51,19 @@ export async function astToCompilationUnitThirdPass(
       // don't attempt to perform macro substitution on non-macros
       if (!e.isMacro) return;
 
+      // for (const arg of e.args) {
+      //   v(arg, ctx);
+      // }
+
       const myScope = getScopeOfExpr(e, unit);
 
       const ident = findIdentifier(myScope, compileContext, unit.filePath, parseIdent(e.name).segments, e);
-      if (!ident.success) return;
+      if (!ident.success) {
+        if (isLastPass) {
+          err(e, `Macro instantiation failed: Macro definition depth is too deep OR macro '${parseIdent(e.name).segments.join(".")}' does not exist!`);
+        }
+        return;
+      }
       if (ident.result.type != ScopeContent.Type.MACRO) return;
 
       // if macro substitution already exists, then don't bother doing it again. just search below
@@ -64,7 +74,7 @@ export async function astToCompilationUnitThirdPass(
         unit.substitutionLUT.set(e.id, substitution);
 
         // compiler first pass
-        createVariableScopesAndDeclareImports(
+        await createVariableScopesAndDeclareImports(
           { scope: myScope },
           unit.symbolScopes,
           unit.symbolInnerScopes,
@@ -73,10 +83,10 @@ export async function astToCompilationUnitThirdPass(
           substitution,
           watchFiles
         );
-      }
 
-      // repeat third pass to get nested macros
-      await v(substitution, ctx);
+        // repeat third pass to get nested macros
+        await v(substitution, ctx);
+      }
     },
   };
 

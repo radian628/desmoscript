@@ -117,7 +117,11 @@ export async function createVariableScopesAndDeclareImports(
     async fncall(e, ctx, v) {
       // do not calc scopes inside of a macro! variables defined in macros
       // may not actually mean anything
-      if (e.isMacro) return;
+      if (e.isMacro) {
+        symbolScopes.set(e.id, ctx.scope);
+        symbolScopes.set(e.name.id, ctx.scope);
+        return;
+      }
 
       await v(e.name, ctx);
       await Promise.all(e.args.map((arg) => v(arg, ctx)));

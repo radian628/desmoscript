@@ -29,6 +29,9 @@ export async function compileDesmoscript(entryPoint: string, filesOut: Set<strin
       await astToCompilationUnitThirdPass(ctx, unit, filesOut);
     }
   }
+  for (const [unitName, unit] of ctx.compilationUnits) {
+    await astToCompilationUnitThirdPass(ctx, unit, filesOut, true);
+  }
 
   return {
     graphState: await compile(ctx),

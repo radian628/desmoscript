@@ -1,0 +1,10 @@
+{
+    "scripts": {
+        "start": "node --experimental-specifier-resolution=node ./dist/index.mjs",
+        "dev": "npx tsc --watch"
+    },
+    "dependencies": {
+        "desmoscript": "file:../../desmoscript",
+        "typescript": "^4.8.4"
+    }
+}

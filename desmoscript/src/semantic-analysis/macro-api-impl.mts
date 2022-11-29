@@ -23,7 +23,6 @@ function remapIDs(value: any) {
 
 export async function getMacroAPI(e: RawASTExpr<{}>, unit: DesmoscriptCompilationUnit): Promise<MacroAPI> {
   let ctx = getExprContext(e);
-  ctx.id = makeExprId();
 
   return {
     clone: (e) => {
@@ -37,6 +36,7 @@ export async function getMacroAPI(e: RawASTExpr<{}>, unit: DesmoscriptCompilatio
     number: (n) => {
       return {
         ...ctx,
+        id: makeExprId(),
         type: ASTType.NUMBER,
         number: n,
       };
@@ -44,6 +44,7 @@ export async function getMacroAPI(e: RawASTExpr<{}>, unit: DesmoscriptCompilatio
     binop: (left, op, right) => {
       return {
         ...ctx,
+        id: makeExprId(),
         type: ASTType.BINOP,
         left,
         op,
@@ -53,6 +54,7 @@ export async function getMacroAPI(e: RawASTExpr<{}>, unit: DesmoscriptCompilatio
     list: (...elements) => {
       return {
         ...ctx,
+        id: makeExprId(),
         type: ASTType.LIST,
         elements,
       };
@@ -60,6 +62,7 @@ export async function getMacroAPI(e: RawASTExpr<{}>, unit: DesmoscriptCompilatio
     fndef: (name, args, body) => {
       return {
         ...ctx,
+        id: makeExprId(),
         type: ASTType.FNDEF,
         name,
         args,
@@ -69,6 +72,7 @@ export async function getMacroAPI(e: RawASTExpr<{}>, unit: DesmoscriptCompilatio
     fn: (name, ...args) => {
       return {
         ...ctx,
+        id: makeExprId(),
         type: ASTType.FNCALL,
         name,
         args,
@@ -78,6 +82,7 @@ export async function getMacroAPI(e: RawASTExpr<{}>, unit: DesmoscriptCompilatio
     macro: (name, ...args) => {
       return {
         ...ctx,
+        id: makeExprId(),
         type: ASTType.FNCALL,
         name,
         args,
@@ -87,6 +92,7 @@ export async function getMacroAPI(e: RawASTExpr<{}>, unit: DesmoscriptCompilatio
     note: (text) => {
       return {
         ...ctx,
+        id: makeExprId(),
         type: ASTType.NOTE,
         text,
       };
@@ -94,6 +100,7 @@ export async function getMacroAPI(e: RawASTExpr<{}>, unit: DesmoscriptCompilatio
     ident: (...segments) => {
       return {
         ...ctx,
+        id: makeExprId(),
         type: ASTType.IDENTIFIER,
         segments,
       };
@@ -101,6 +108,7 @@ export async function getMacroAPI(e: RawASTExpr<{}>, unit: DesmoscriptCompilatio
     point: (x, y) => {
       return {
         ...ctx,
+        id: makeExprId(),
         type: ASTType.POINT,
         x,
         y,
@@ -109,6 +117,7 @@ export async function getMacroAPI(e: RawASTExpr<{}>, unit: DesmoscriptCompilatio
     range: (left, step, right) => {
       return {
         ...ctx,
+        id: makeExprId(),
         type: ASTType.STEP_RANGE,
         left,
         step,
@@ -118,6 +127,7 @@ export async function getMacroAPI(e: RawASTExpr<{}>, unit: DesmoscriptCompilatio
     ns: (name, args) => {
       return {
         ...ctx,
+        id: makeExprId(),
         type: ASTType.NAMESPACE,
         bodyExprs: args,
         name,
@@ -126,6 +136,7 @@ export async function getMacroAPI(e: RawASTExpr<{}>, unit: DesmoscriptCompilatio
     block: (bodyExprs) => {
       return {
         ...ctx,
+        id: makeExprId(),
         type: ASTType.BLOCK,
         bodyExprs,
       };
@@ -133,6 +144,7 @@ export async function getMacroAPI(e: RawASTExpr<{}>, unit: DesmoscriptCompilatio
     match: (branches, fallback) => {
       return {
         ...ctx,
+        id: makeExprId(),
         type: ASTType.MATCH,
         branches,
         fallback,
@@ -141,6 +153,7 @@ export async function getMacroAPI(e: RawASTExpr<{}>, unit: DesmoscriptCompilatio
     import: (filename, alias) => {
       return {
         ...ctx,
+        id: makeExprId(),
         type: ASTType.IMPORT,
         filename,
         alias,
@@ -149,6 +162,7 @@ export async function getMacroAPI(e: RawASTExpr<{}>, unit: DesmoscriptCompilatio
     sumprodint: (op, varName, lo, hi, body) => {
       return {
         ...ctx,
+        id: makeExprId(),
         type: ASTType.SUMPRODINT,
         opType: op,
         varName,
@@ -160,6 +174,7 @@ export async function getMacroAPI(e: RawASTExpr<{}>, unit: DesmoscriptCompilatio
     derivative: (varName, body) => {
       return {
         ...ctx,
+        id: makeExprId(),
         type: ASTType.DERIVATIVE,
         variable: varName,
         body,
@@ -168,6 +183,7 @@ export async function getMacroAPI(e: RawASTExpr<{}>, unit: DesmoscriptCompilatio
     listcomp: (variables, body) => {
       return {
         ...ctx,
+        id: makeExprId(),
         type: ASTType.LISTCOMP,
         variables,
         body,
@@ -176,6 +192,7 @@ export async function getMacroAPI(e: RawASTExpr<{}>, unit: DesmoscriptCompilatio
     member: (left, right) => {
       return {
         ...ctx,
+        id: makeExprId(),
         type: ASTType.MEMBERACCESS,
         left,
         right,
@@ -184,12 +201,14 @@ export async function getMacroAPI(e: RawASTExpr<{}>, unit: DesmoscriptCompilatio
     json: (json) => {
       return {
         ...ctx,
+        id: makeExprId(),
         type: ASTType.JSON,
         data: { jsontype: JSONType.NUMBER, data: 0 },
       };
     },
     namedjson: (name, json) => {
-      return { ...ctx, name, type: ASTType.NAMED_JSON, json };
+      return { ...ctx, 
+        id: makeExprId(),name, type: ASTType.NAMED_JSON, json };
     },
     error: (message) => {
       throw {

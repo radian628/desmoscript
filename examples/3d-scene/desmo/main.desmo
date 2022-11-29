@@ -1,0 +1,5 @@
+import "../../../desmo-lib/3d.desmo" as t;
+
+y = x;
+
+loadObj!(carmesh, "assets/desmos-car-assets.obj")
