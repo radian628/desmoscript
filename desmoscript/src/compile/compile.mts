@@ -50,7 +50,7 @@ function toDesmosVar(str: string) {
   return `${str[0]}_{${str.slice(1)}}`;
 }
 
-function lastof<T>(arr: T[]) {
+export function lastof<T>(arr: T[]) {
   return arr[arr.length - 1];
 }
 

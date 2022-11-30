@@ -159,7 +159,7 @@ export type MacroAPI = {
   note: (content: string) => ASTNote<ScopeInfo>;
   ident: (...segments: string[]) => ASTIdentifier<ScopeInfo>;
   point: (x: ScopedASTExpr, y: ScopedASTExpr) => ASTPoint<ScopeInfo>;
-  range: (
+  steprange: (
     start: ScopedASTExpr,
     step: ScopedASTExpr,
     end: ScopedASTExpr
@@ -190,6 +190,8 @@ export type MacroAPI = {
   json: (json: any) => ASTJSON<ScopeInfo>;
   namedjson: (name: string, json: ScopedASTExpr) => ASTNamedJSON<ScopeInfo>;
   error: (message: string) => never;
+  fromstrraw: (str: string) => ASTExpr;
+  fromstr: (str: string) => ASTExpr;
 };
 
 export enum ErrorType {

@@ -1,5 +1,11 @@
+import { ASTExpr } from "../../ast/ast.mjs";
+import { MacroAPI, ScopeContent } from "../../semantic-analysis/analysis-types.mjs";
 import { AABB, BVHNode } from "./bvh.mjs";
-import { OBJSingleObject, ParsedMultiOBJ } from "./multi-obj-importer.mjs";
+import { bvhifyMultiObj, OBJSingleObject, ParsedMultiOBJ, parseMultiObj } from "./multi-obj-importer.mjs";
+import {lastof} from "../../compile/compile.mjs";
+import { parseIdentSingleString, parseNoteString } from "../macroutils.mjs";
+import * as fs from "node:fs/promises";
+import * as path from "node:path";
 
 /*
 Compact Desmos 3D Object Specification:
@@ -69,9 +75,9 @@ function desmosify(obj: OBJSingleObject): DesmosifiedMesh {
   for (let i = 0; i < obj.vertexIndices.length; i+=3) {
     faces.push({
       normal: getNormal(
-        obj.vertices[obj.vertexIndices[i]],
-        obj.vertices[obj.vertexIndices[i + 1]],
-        obj.vertices[obj.vertexIndices[i + 2]],
+        obj.vertices[indices[i]-1],
+        obj.vertices[indices[i + 1]-1],
+        obj.vertices[indices[i + 2]-1],
       ),
       material: obj.faceMaterials[i / 3]
     });
@@ -113,9 +119,9 @@ function binaryPackList(list: number[], bitsPerElement: number, elementsPerNumbe
 function serializeForDesmos(mesh: DesmosifiedMesh) {
   const output: number[] = [];
   const averagePosition = [
-    mean(mesh.vertices.map(v => v[0])),
-    mean(mesh.vertices.map(v => v[1])),
-    mean(mesh.vertices.map(v => v[2]))
+    mean(mesh.vertices.map(v => v.position[0])),
+    mean(mesh.vertices.map(v => v.position[1])),
+    mean(mesh.vertices.map(v => v.position[2]))
   ];
 
   // create a copy of the mesh where vertices are centered
@@ -179,6 +185,269 @@ function serializeForDesmos(mesh: DesmosifiedMesh) {
   return output;
 }
 
-function multiOBJBVHToDesmoscript(bvh: BVHNode<AABB & ParsedMultiOBJ>) {
-  // TODO: actually convert BVHs to desmoscript code
+function getBVHLayers<T extends AABB>(bvh: BVHNode<T>) {
+  let isLayerEmpty = false;
+  function getAtLayer(node: BVHNode<T>, layersLeft: number, data: BVHNode<T>[]) {
+    if (layersLeft == 0) {
+      data.push(node);
+      isLayerEmpty = false;
+      return;
+    }
+    
+    if (layersLeft == 1) {
+      if (node.children.length == 0) {
+        data.push(node);
+        data.push({
+          children: [],
+          min: [0, 0, 0],
+          max: [-1, -1, -1],
+          data: []
+        });
+        return;
+      }
+      for (let i = 0; i < 2; i++) {
+        let child = node.children[i];
+        if (child) {
+          data.push(child);
+          isLayerEmpty = false;
+        } else {
+          data.push({
+            children: [],
+            min: [0, 0, 0],
+            max: [-1, -1, -1],
+            data: []
+          });
+        }
+      }
+    } else {
+      for (let child of node.children) {
+        getAtLayer(child, layersLeft - 1, data);
+      }
+    }
+  }
+
+  let layerIndex = 0;
+  
+  const layers: BVHNode<T>[][] = [];
+
+  while (!isLayerEmpty) {
+    isLayerEmpty = true;
+    const layerList: BVHNode<T>[] = [];
+    getAtLayer(bvh, layerIndex, layerList);
+    layerIndex++;
+    layers.push(layerList);
+  }
+
+  return layers.slice(0, -1);
+}
+
+export function multiOBJBVHToDesmoscript(namespaceName: string, bvh: BVHNode<AABB & OBJSingleObject>, a: MacroAPI) {
+  const expressions: ASTExpr[] = [];
+
+  expressions.push(a.fromstr(`
+  fn isOverlapping(amin, amax, bmin, bmax) {
+    min(
+      match { (amax >= bmin) => 1; 0; },
+      match { (bmax >= amin) => 1; 0; }
+    )
+  }`));
+
+  expressions.push(a.fromstr(`
+    fn rectRectIntersect(axmin, aymin, azmin, axmax, aymax, azmax, bxmin, bymin, bzmin, bxmax, bymax, bzmax) {
+      min(
+        isOverlapping(axmin, axmax, bxmin, bxmax),
+        isOverlapping(aymin, aymax, bymin, bymax),
+        isOverlapping(azmin, azmax, bzmin, bzmax)
+      )
+    }
+  `));
+
+  const lookupFunctionExpressions: ASTExpr[] = [];
+
+  const layers = getBVHLayers(bvh);
+
+  console.log(layers);
+  const layerNumbers = layers
+    .map(l => l.map(n => [...n.min, ...n.max]).flat());
+
+  // build up BVH bounding box layers
+  let i = 0;
+  for (const layer of layers) {
+    expressions.push(a.binop(a.ident(`layer${i}`), '=',
+      a.list(
+        ...layerNumbers[i].map(n => a.number(n))
+      ))
+    );
+
+    const prevMatchingLayer = (i == 0) ? a.list(a.number(1)) : a.fn(
+      a.ident("join"),
+      a.ident(`matchingLayer${i - 1}`),
+      a.binop(a.ident(`matchingLayer${i - 1}`), "-", a.number(1))
+    );
+
+    lookupFunctionExpressions.push(
+      a.binop(
+        a.ident(`matchingLayerTemp${i}`),
+        "=",
+        prevMatchingLayer
+      )
+    )
+    lookupFunctionExpressions.push(
+      a.binop(
+        a.ident(`matchingLayerAABBBaseIndex${i}`),
+        "=",
+        a.binop(a.binop(prevMatchingLayer, "*", a.number(6)), "-", a.number(5))
+      )
+    )
+    lookupFunctionExpressions.push(
+      a.binop(
+        a.ident(`matchingLayer${i}`),
+        '=',
+        a.binop(
+        a.binop(
+          a.ident(`matchingLayerTemp${i}`),
+          "[",
+          a.binop(a.fn(a.ident("rectRectIntersect"), 
+          a.binop(a.ident(`layer${i}`), '[', 
+            a.binop(a.ident(`matchingLayerAABBBaseIndex${i}`), '+', a.number(0))),
+          a.binop(a.ident(`layer${i}`), '[', 
+            a.binop(a.ident(`matchingLayerAABBBaseIndex${i}`), '+', a.number(1))),
+          a.binop(a.ident(`layer${i}`), '[', 
+            a.binop(a.ident(`matchingLayerAABBBaseIndex${i}`), '+', a.number(2))),
+          a.binop(a.ident(`layer${i}`), '[', 
+            a.binop(a.ident(`matchingLayerAABBBaseIndex${i}`), '+', a.number(3))),
+          a.binop(a.ident(`layer${i}`), '[', 
+            a.binop(a.ident(`matchingLayerAABBBaseIndex${i}`), '+', a.number(4))),
+          a.binop(a.ident(`layer${i}`), '[', 
+            a.binop(a.ident(`matchingLayerAABBBaseIndex${i}`), '+', a.number(5))),
+            a.ident("xmin"),
+            a.ident("ymin"),
+            a.ident("zmin"),
+            a.ident("xmax"),
+            a.ident("ymax"),
+            a.ident("zmax"),
+          ), "==", a.number(1))
+        ), '*', a.number(2)
+        )
+      )
+    );
+    i++;
+  }
+
+  lookupFunctionExpressions.push(
+    a.ident(`matchingLayer${i - 1}`)
+  );
+
+  type MeshIndex = { 
+    outerIndex: number, // zero-indexed
+    innerIndex: number, // one-indexed
+    size: number 
+  };
+
+  // Mesh LUT
+  const meshLUTExprData = [] as number[][];
+  const meshLUTExprDataOffsetMap = new Map<string, MeshIndex>();
+  for (const node of lastof(layers)) {
+    if (node.data.length > 1) {
+      a.error("INTERNAL ERROR: Mesh LUT should not have more than one mesh per node at lowest level.");
+    }
+    if (node.children.length > 0) {
+      a.error("INTERNAL ERROR: Mesh LUT should not have any children at this level.")
+    }
+    const mesh = node.data[0];
+    if (!mesh) continue;
+    const serializedMesh = serializeForDesmos(desmosify(mesh));
+    if ( meshLUTExprData.length == 0 || lastof(meshLUTExprData).length + serializedMesh.length > 10000) {
+      meshLUTExprData.push([]);
+    }
+    meshLUTExprDataOffsetMap.set(mesh.name, {
+      outerIndex: meshLUTExprData.length,
+      innerIndex: lastof(meshLUTExprData).length,
+      size: serializedMesh.length
+    });
+    lastof(meshLUTExprData).push(...serializedMesh);
+  }
+
+  // function that retrieves mesh data from one big "multi-list"
+  expressions.push(
+    a.fndef(
+      // fn name
+      "getMeshData",
+      // fn params
+      ["outerIndex", "innerIndex", "size"],
+      // fn body
+      [a.binop(
+        //create lists
+        a.match(meshLUTExprData.map((e, i) => {
+          return [
+            a.binop(a.ident("outerIndex"), "==", a.number(i)),
+            a.list(...e.map(n => a.number(n)))
+          ] as [ASTExpr, ASTExpr];
+        }))
+      , 
+      // index the chosen list to get data
+      "[", 
+      a.binop(
+        a.ident("innerIndex"), 
+        "..", 
+        a.binop(a.ident("innerIndex"), "+", a.ident("size"))
+      ))]
+    )
+  )
+  
+  // Array to convert between BVH indices and mesh indexing information
+  const bvhToMeshIndexLUT = [] as MeshIndex[];
+  for (const layer of lastof(layers)) {
+    if (layer.data.length == 1) {
+      const meshIndex = meshLUTExprDataOffsetMap.get(layer.data[0].name);
+      if (!meshIndex) {
+        a.error("INTERNAL ERROR: Mesh should be in the mesh array when it isn't.");
+      }
+      bvhToMeshIndexLUT.push(meshIndex);
+    } else {
+      bvhToMeshIndexLUT.push({ outerIndex: 0, innerIndex: 0, size: 0 });
+    }
+  }
+
+  expressions.push(
+    a.binop(a.ident("outerIndex"), "=", a.list(...bvhToMeshIndexLUT.map(e => a.number(e.outerIndex))))
+  );
+  expressions.push(
+    a.binop(a.ident("innerIndex"), "=", a.list(...bvhToMeshIndexLUT.map(e => a.number(e.innerIndex))))
+  );
+  expressions.push(
+    a.binop(a.ident("size"), "=", a.list(...bvhToMeshIndexLUT.map(e => a.number(e.size))))
+  );
+
+  expressions.push(
+    a.fndef("getMeshesInRect",
+      ["xmin", "ymin", "zmin", "xmax", "ymax", "zmax"],
+      lookupFunctionExpressions
+    )
+  );
+
+  return a.ns(namespaceName, expressions);
+}
+
+
+
+export const multiObjToDesmoscriptBVH: ScopeContent.Macro["fn"] = async function (expr, ctx, a) {
+  const namespace = parseIdentSingleString(expr.args[0], a, "argument 1");
+  const filepathArg = parseNoteString(expr.args[1], a, "argument 2");
+
+  let maybeObj: ParsedMultiOBJ | undefined = undefined;
+
+  try {
+    let objFileStr = (await fs.readFile(filepathArg)).toString();
+    maybeObj = await parseMultiObj(objFileStr, path.dirname(filepathArg));
+  } catch {
+    a.error("Failed to get/load OBJ file.");
+  }
+
+  if (!maybeObj) a.error("Failed to load OBJ file.");
+  let obj = maybeObj as ParsedMultiOBJ;
+
+  const bvh = bvhifyMultiObj(obj);
+
+  return multiOBJBVHToDesmoscript(namespace, bvh, a);
 }

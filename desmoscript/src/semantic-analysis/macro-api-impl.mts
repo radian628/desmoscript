@@ -1,8 +1,9 @@
 import { ASTType, JSONType, RawASTExpr } from "../ast/ast.mjs";
 import { getExprContext } from "./builtins.mjs";
 import { DesmoscriptCompilationUnit, MacroAPI, ScopedASTExpr } from "./analysis-types.mjs";
-import { makeExprId, uniqueAnonScopeName } from "../ast/parse.mjs";
+import { desmoscriptFileToAST, desmoscriptStringToAST, makeExprId, uniqueAnonScopeName } from "../ast/parse.mjs";
 import { getScopeOfExpr } from "./analyze-utils.mjs";
+import { err } from "./analyze-first-pass.mjs";
 
 
 function remapIDs(value: any) {
@@ -114,7 +115,7 @@ export async function getMacroAPI(e: RawASTExpr<{}>, unit: DesmoscriptCompilatio
         y,
       };
     },
-    range: (left, step, right) => {
+    steprange: (left, step, right) => {
       return {
         ...ctx,
         id: makeExprId(),
@@ -216,5 +217,14 @@ export async function getMacroAPI(e: RawASTExpr<{}>, unit: DesmoscriptCompilatio
         reason: message,
       };
     },
+    fromstrraw: (str: string) => {
+      return desmoscriptStringToAST(str, e.file);
+    },
+    fromstr: (str: string) => {
+      const astNode = desmoscriptStringToAST(str, e.file);
+      if (astNode.type != ASTType.ROOT) err(astNode, "INTERNAL ERROR: EXPECTED ROOT NODE.");
+      if (astNode.expressions.length == 0) err(astNode, "INTERNAL ERROR: EXPECTED ONE OR MORE EXPRESSIONS.");
+      return astNode.expressions[0];
+    }
   };
 }

@@ -78,8 +78,9 @@ export function bvhify<T extends AABB>(data: T[]): BVHNode<T> {
   helper(bvhNode);
 
   function helper(data: BVHNode<T>) {
-    splitBVHNode(bvhNode);
-    for (const child of bvhNode.children) {
+    if (data.data.length < 2) return;
+    splitBVHNode(data);
+    for (const child of data.children) {
       helper(child);
     }
   }
@@ -93,7 +94,7 @@ export function getBounds(obj: { vertices: [number, number, number][] }) {
   return obj.vertices.reduce((prev: AABB, curr) => {
     return {
       min: [ Math.min(curr[0], prev.min[0]), Math.min(curr[1], prev.min[1]), Math.min(curr[2], prev.min[2]) ],
-      max: [ Math.max(curr[0], prev.min[0]), Math.max(curr[1], prev.min[1]), Math.max(curr[2], prev.min[2]) ],
+      max: [ Math.max(curr[0], prev.max[0]), Math.max(curr[1], prev.max[1]), Math.max(curr[2], prev.max[2]) ],
     } as AABB;
   }, { min: [Infinity, Infinity, Infinity], max: [-Infinity, -Infinity, -Infinity]});
 }

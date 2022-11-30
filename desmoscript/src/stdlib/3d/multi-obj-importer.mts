@@ -12,6 +12,7 @@ export type OBJSingleObject = {
   normalIndices: number[];
   texcoordIndices: number[];
   faceMaterials: number[];
+  name: string
 };
 export type ParsedMultiOBJ = {
   objects: Map<string, OBJSingleObject>,
@@ -40,7 +41,7 @@ export async function parseMultiObj(src: string, objdir: string) {
         const newObject: OBJSingleObject = {
           vertices: [], normals: [], texcoords: [],
           vertexIndices: [], normalIndices: [], texcoordIndices: [],
-          faceMaterials: []
+          faceMaterials: [], name: line[1]
         };
         output.objects.set(line[1], newObject);
         currentObject = newObject;

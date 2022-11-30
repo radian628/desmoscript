@@ -473,6 +473,12 @@ export class DesmoscriptASTBuilder
 
 export async function desmoscriptFileToAST(filename: string) {
   const src = (await fs.readFile(filename)).toString();
+  return desmoscriptStringToAST(src, filename);
+}
+
+
+
+export function desmoscriptStringToAST(src: string, filename: string) {
   let lexer = new DesmoscriptLexer(CharStreams.fromString(src));
   let tokenStream = new CommonTokenStream(lexer);
   let parser = new DesmoscriptParser(tokenStream);
