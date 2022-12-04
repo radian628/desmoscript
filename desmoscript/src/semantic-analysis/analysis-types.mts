@@ -124,6 +124,7 @@ export namespace ScopeContent {
 type Scope2 = Scope;
 export type Scope = {
   name: string;
+  correspondingFunctionName?: string;
   contents: Map<string, ScopeContent.Content>;
   parent?: Scope;
   isRoot?: boolean;

@@ -5,7 +5,7 @@ import {
   ScopeContent,
 } from "../semantic-analysis/analysis-types.mjs";
 
-import { ExpressionState, expressionStateParser, GrapherStateParser, GraphState, tickerParser } from "../graphstate.mjs";
+import { ExpressionState, expressionStateParser, FolderState, GrapherStateParser, GraphState, tickerParser } from "../graphstate.mjs";
 import {
   ASTBinop,
   ASTExpr,
@@ -23,6 +23,7 @@ import { ASTVisitorLUT, noOpLUT, visitAST } from "../ast/ast-visitor.mjs";
 import {
   findIdentifier,
   getCanonicalPath,
+  getHumanReadablePath,
   getInnerScopeOfExpr,
   getScopeOfExpr,
 } from "../semantic-analysis/analyze-utils.mjs";
@@ -366,11 +367,33 @@ async function compileScope(
 ) {
   const { ctx, unit, graphState } = props;
 
+  const folderText = 
+  getHumanReadablePath(scope)
+    .reverse()
+    .map(s => `📁${s}`)
+    .join(" / ");
+
+  let folderState: FolderState = {
+    type: "folder",
+    title: folderText,
+    id: getGraphExprID(),
+    collapsed: true
+  };
+
+  let hasFolderChanged = true;
+
+  function actuallyAddFolder() {
+    if (!hasFolderChanged) return;
+    hasFolderChanged = false;
+    graphState.expressions.list.push(folderState);
+  }
+  
   for (let [name, c] of scope.contents) {
     switch (c.type) {
       case ScopeContent.Type.VARIABLE:
         {
           if (c.isBuiltin || c.isPartOfDesmos) break;
+          actuallyAddFolder();
           const latex = await compileExpression(props, c.data);
           let additionalProperties: Partial<ExpressionState> = {};
           if (c.decoratorInfo) {
@@ -383,6 +406,7 @@ async function compileScope(
             latex,
             id: getGraphExprID(),
             color: "black",
+            folderId: folderState.id,
             ...additionalProperties
           });
           break;
@@ -390,17 +414,20 @@ async function compileScope(
       case ScopeContent.Type.FUNCTION:
         {
           if (c.isBuiltin || c.isPartOfDesmos) break;
+          actuallyAddFolder();
           const latex = await compileFunctionDefinition(props, c.data, c.finalExpr);
           graphState.expressions.list.push({
             type: "expression",
             latex,
             id: getGraphExprID(),
-            color: "black"
+            color: "black",
+            folderId: folderState.id,
           })
           break;
         }
       case ScopeContent.Type.NAMED_JSON:
         {
+          actuallyAddFolder();
           const json = await compileJSONExpression(props, c.data);
           if (c.name == "settings") {
             const parsedJSON = GrapherStateParser.parse(json);
@@ -412,13 +439,23 @@ async function compileScope(
         }
         break;
       case ScopeContent.Type.SCOPE:
-        compileScope(props, c.data);
+        const exprCount = graphState.expressions.list.length;
+        await compileScope(props, c.data);
+        const didExprCountChange = exprCount != graphState.expressions.list.length;
+        if (didExprCountChange) {
+          folderState = {
+            ...folderState, id: getGraphExprID()
+          }
+          hasFolderChanged = true;
+        }
         break;
       case ScopeContent.Type.NOTE:
+        actuallyAddFolder();
         graphState.expressions.list.push({
           type: "text",
           text: c.data,
           id: getGraphExprID(),
+          folderId: folderState.id,
         });
     }
   }

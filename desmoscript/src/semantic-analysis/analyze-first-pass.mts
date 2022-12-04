@@ -137,6 +137,7 @@ export async function createVariableScopesAndDeclareImports(
 
     async fndef(e, ctx, v) {
       const innerScope = makeAndBindNewScope(ctx.scope, e.id.toString(), e, symbolInnerScopes);
+      innerScope.correspondingFunctionName = e.name;
       const innerctx = {
         scope: innerScope,
       };
