@@ -373,8 +373,8 @@ export function multiOBJBVHToDesmoscript(namespaceName: string, bvh: BVHNode<AAB
       meshLUTExprData.push([]);
     }
     meshLUTExprDataOffsetMap.set(mesh.name, {
-      outerIndex: meshLUTExprData.length,
-      innerIndex: lastof(meshLUTExprData).length,
+      outerIndex: meshLUTExprData.length - 1,
+      innerIndex: lastof(meshLUTExprData).length + 1,
       size: serializedMesh.length
     });
     lastof(meshLUTExprData).push(...serializedMesh);
@@ -395,7 +395,9 @@ export function multiOBJBVHToDesmoscript(namespaceName: string, bvh: BVHNode<AAB
             a.binop(a.ident("outerIndex"), "==", a.number(i)),
             a.list(...e.map(n => a.number(n)))
           ] as [ASTExpr, ASTExpr];
-        }))
+        }),
+          a.list()
+        )
       , 
       // index the chosen list to get data
       "[", 
@@ -501,9 +503,16 @@ export const lookupMeshBVH: ScopeContent.Macro["fn"] = async function (expr, ctx
         .map((e, i) => {
           return a.fn(a.ident("bin", "getComponentOfVertexOfMesh"),
             a.fn(a.ident(inputNamespace, "getMeshData"),
-              a.binop(a.ident(inputNamespace, "outerIndex"), '[', 
-                a.binop(a.ident("meshIndices"), "[", a.number(i + 1))
-              )
+            a.binop(a.ident(inputNamespace, "outerIndex"), '[', 
+              a.binop(a.ident("meshIndices"), "[", a.number(i + 1))
+            ),
+            a.binop(a.ident(inputNamespace, "innerIndex"), '[', 
+              a.binop(a.ident("meshIndices"), "[", a.number(i + 1))
+            ),
+            a.binop(a.ident(inputNamespace, "size"), '[', 
+              a.binop(a.ident("meshIndices"), "[", a.number(i + 1))
+            ),
+
             ),
             a.number(componentIndex + 1)
           );
