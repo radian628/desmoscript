@@ -9,10 +9,15 @@ import {
 import { err } from "./analyze-first-pass.mjs";
 
 // get the "canonical path" (local to its compilation unit) of a scope
-// use this to generate human-readable variable names
 export function getCanonicalPath(scope?: Scope): string[] {
   if (!scope || scope.isRoot) return [];
   return [scope.name, ...getCanonicalPath(scope.parent)];
+}
+
+// use this to generate human-readable variable names
+export function getHumanReadablePath(scope?: Scope): string[] {
+  if (!scope || scope.isRoot) return [];
+  return [scope.correspondingFunctionName ?? scope.name, ...getCanonicalPath(scope.parent)];
 }
 
 // determine whether an identifier has a namespace collision in its scope

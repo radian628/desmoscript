@@ -245,6 +245,14 @@ function getBVHLayers<T extends AABB>(bvh: BVHNode<T>) {
   return layers.slice(0, -1);
 }
 
+export function getBinaryUnpacker(bitsPerNumber: number, numbersPerNumber: number, a: MacroAPI) {
+  return a.fromstr(`
+    fn binaryUnpack(list) {
+      [mod(floor(listItem / (i * ${2 ** bitsPerNumber})), ${2 ** bitsPerNumber}) for i=(1 .. ${numbersPerNumber}); listItem=list]
+    }
+  `);
+}
+
 export function multiOBJBVHToDesmoscript(namespaceName: string, bvh: BVHNode<AABB & OBJSingleObject>, a: MacroAPI) {
   const expressions: ASTExpr[] = [];
 
@@ -259,6 +267,7 @@ export function multiOBJBVHToDesmoscript(namespaceName: string, bvh: BVHNode<AAB
   expressions.push(a.fromstr(`
     fn rectRectIntersect(axmin, aymin, azmin, axmax, aymax, azmax, bxmin, bymin, bzmin, bxmax, bymax, bzmax) {
       min(
+        match { (axmax >= axmin ) => 1; 0; },
         isOverlapping(axmin, axmax, bxmin, bxmax),
         isOverlapping(aymin, aymax, bymin, bymax),
         isOverlapping(azmin, azmax, bzmin, bzmax)
@@ -270,7 +279,6 @@ export function multiOBJBVHToDesmoscript(namespaceName: string, bvh: BVHNode<AAB
 
   const layers = getBVHLayers(bvh);
 
-  console.log(layers);
   const layerNumbers = layers
     .map(l => l.map(n => [...n.min, ...n.max]).flat());
 
