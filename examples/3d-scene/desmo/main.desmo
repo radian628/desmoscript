@@ -1,13 +1,22 @@
 import "../../../desmo-lib/3d.desmo" as t;
+import "../../../desmo-lib/binary.desmo" as bin;
 
 loadObj!(carmesh, "assets/desmos-car-assets.obj")
 
 multiObjToDesmoscriptBVH!(test, "assets/testing.obj")
 
+/*
 test2 = test.getMeshesInRect(
   -10, -10, -10,
   10, 10, 10
 );
 
+y = x^2 + 1;*/
 
-y = x^2 + 1;
+lookupMeshBVH!(
+  testLookup, test,
+  -10, -10, -10,
+  10, 10, 10,
+  5
+)
+

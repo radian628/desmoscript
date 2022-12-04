@@ -1,4 +1,4 @@
-import { ASTExpr } from "../../ast/ast.mjs";
+import { ASTExpr, ASTNumber, ASTType } from "../../ast/ast.mjs";
 import { MacroAPI, ScopeContent } from "../../semantic-analysis/analysis-types.mjs";
 import { AABB, BVHNode } from "./bvh.mjs";
 import { bvhifyMultiObj, OBJSingleObject, ParsedMultiOBJ, parseMultiObj } from "./multi-obj-importer.mjs";
@@ -170,8 +170,12 @@ function serializeForDesmos(mesh: DesmosifiedMesh) {
   // lengths of vertex and index list
   output.push(...binaryPackList([centeredMesh.vertices.length, centeredMesh.indices.length], 26, 2));
 
-  // vertices
-  output.push(...binaryPackList(centeredMesh.vertices.map(v => v.position).flat(), 16, 3));
+  // x positions
+  output.push(...binaryPackList(centeredMesh.vertices.map(v => v.position[0]), 16, 3));
+  // y positions
+  output.push(...binaryPackList(centeredMesh.vertices.map(v => v.position[1]), 16, 3));
+  // z positions
+  output.push(...binaryPackList(centeredMesh.vertices.map(v => v.position[2]), 16, 3));
 
   // materials
   output.push(...binaryPackList(centeredMesh.faces.map(f => f.material), 6, 8));
@@ -450,4 +454,55 @@ export const multiObjToDesmoscriptBVH: ScopeContent.Macro["fn"] = async function
   const bvh = bvhifyMultiObj(obj);
 
   return multiOBJBVHToDesmoscript(namespace, bvh, a);
+}
+
+
+export const lookupMeshBVH: ScopeContent.Macro["fn"] = async function (expr, ctx, a) {
+  const outputNamespace = parseIdentSingleString(expr.args[0], a, "argument 1");
+  const inputNamespace = parseIdentSingleString(expr.args[1], a, "argument 2");
+  const xmin = expr.args[2];
+  const ymin = expr.args[3];
+  const zmin = expr.args[4];
+  const xmax = expr.args[5];
+  const ymax = expr.args[6];
+  const zmax = expr.args[7];
+  if (!xmin || !ymin || !zmin || !xmax || !ymax || !zmax) {
+    a.error("Arguments 3 through 8 all must exist, and should represent the bounds of the lookup rectangle.");
+  }
+
+  const meshCountExpr = expr.args[8];
+  if (!meshCountExpr || meshCountExpr.type != ASTType.NUMBER) {
+    a.error("Argument 9 must be a constant positive integer number representing the number of meshes to load.");
+  }
+  const meshCount = (meshCountExpr as ASTNumber<{}, {}>).number;
+
+
+  let expressions: ASTExpr[] = [];
+  expressions.push(a.binop(a.ident("meshIndices"),
+    "=",
+    a.binop(a.fn(a.ident(inputNamespace, "getMeshesInRect"),
+      xmin, ymin, zmin, xmax, ymax, zmax
+    ), "/", a.number(2))));
+
+  "XYZ".split("")
+  .forEach((component, componentIndex) => {
+    expressions.push(a.binop(a.ident(`mesh${component}Positions`),
+      "=",
+      a.fn(a.ident("join"), 
+        ...new Array(meshCount).fill(0)
+        .map((e, i) => {
+          return a.fn(a.ident("bin", "getComponentOfVertexOfMesh"),
+            a.fn(a.ident(inputNamespace, "getMeshData"),
+              a.binop(a.ident(inputNamespace, "outerIndex"), '[', 
+                a.binop(a.ident("meshIndices"), "[", a.number(i + 1))
+              )
+            ),
+            a.number(componentIndex + 1)
+          );
+        })
+      )
+    ));
+  })
+  
+  return a.ns(outputNamespace, expressions);
 }

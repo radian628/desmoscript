@@ -3,7 +3,7 @@ import * as path from "node:path";
 import { ScopeInfo, ScopeContent } from "./analysis-types.mjs";
 import { sub } from "../stdlib/macroutils.mjs";
 import { loadObj } from "../stdlib/3d/obj-to-desmoscript.mjs";
-import { multiObjToDesmoscriptBVH } from "../stdlib/3d/multi-obj-to-desmoscript.mjs";
+import { lookupMeshBVH, multiObjToDesmoscriptBVH } from "../stdlib/3d/multi-obj-to-desmoscript.mjs";
 
 const fn: ScopeContent.Content = { type: ScopeContent.Type.FUNCTION, isPartOfDesmos: true };
 
@@ -45,7 +45,11 @@ export function createDesmosBuiltins(): Map<string, ScopeContent.Content> {
   map.set("multiObjToDesmoscriptBVH", {
     type: ScopeContent.Type.MACRO,
     fn: multiObjToDesmoscriptBVH
-  })
+  });
+  map.set("lookupMeshBVH", {
+    type: ScopeContent.Type.MACRO,
+    fn: lookupMeshBVH
+  });
   map.set("sub", sub);
   [
     "sin", 
