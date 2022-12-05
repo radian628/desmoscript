@@ -1,22 +1,40 @@
 import "../../../desmo-lib/3d.desmo" as t;
 import "../../../desmo-lib/binary.desmo" as bin;
 
-loadObj!(carmesh, "assets/desmos-car-assets.obj")
+multiObjToDesmoscript!(test, "assets/monkeytest.obj")
 
-multiObjToDesmoscriptBVH!(test, "assets/testing.obj")
 
-/*
-test2 = test.getMeshesInRect(
-  -10, -10, -10,
-  10, 10, 10
-);
+ns controls {
+  xpos = 0;
+  ypos = 0;
+  zpos = -10;
+}
 
-y = x^2 + 1;*/
 
-lookupMeshBVH!(
+lookupMesh!(
   testLookup, test,
-  -10, -10, -10,
-  10, 10, 10,
-  1
+  -10 + controls.xpos, -10 + controls.ypos, -10 + controls.zpos,
+  10 + controls.xpos, 10 + controls.ypos, 10 + controls.zpos,
+  20
 )
 
+show proj = (
+  (testLookup.vertexPosition.x - controls.xpos) / (testLookup.vertexPosition.z - controls.zpos),
+  (testLookup.vertexPosition.y - controls.ypos) / (testLookup.vertexPosition.z - controls.zpos)
+)[(testLookup.vertexPosition.z - controls.zpos) > 0]; with @{
+  color: "black"
+}
+
+/*
+ns perftest {
+  naiveTest = test.rectRectIntersect(
+    random(700, 1),
+    random(700, 2),
+    random(700, 3),
+    random(700, 4),
+    random(700, 5),
+    random(700, 6),
+  -10 + controls.xpos, -10 + controls.ypos, -10 + controls.zpos,
+  10 + controls.xpos, 10 + controls.ypos, 10 + controls.zpos
+  );
+}*/

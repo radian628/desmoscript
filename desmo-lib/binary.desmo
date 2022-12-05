@@ -2,8 +2,8 @@ fn binaryUnpack(list, bitsPerNumber, numbersPerNumber, count) {
   [
     mod(floor(num / bitDivFactor), 2 ^ bitsPerNumber)
     for
-    bitDivFactor=2 ^ ((0 .. numbersPerNumber - 1) * bitsPerNumber);
-    num=list
+    bitDivFactor=(2 ^ ((0 .. numbersPerNumber - 1) * bitsPerNumber));
+    num=join(list, [])
   ][1 .. count]
 }
 
@@ -12,10 +12,11 @@ fn getComponentOfVertexOfMesh(mesh, component) {
   scaleFactor = mesh[4];
   vertexListLength = mod(mesh[5], 2 ^ 26);
   packedListLength = ceil(vertexListLength / 3);
-  binaryUnpack(
-    mesh[1 .. packedListLength] + 6 + packedListLength * component, 
+  ((binaryUnpack(
+    mesh[(1 .. packedListLength) + 5 + packedListLength * component], 
     16, 
     3,
     vertexListLength
-  ) * scaleFactor + averagePosition
+  ) - 2^15)) * scaleFactor / 2^15 + averagePosition
 }
+
