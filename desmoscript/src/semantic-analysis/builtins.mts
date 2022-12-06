@@ -1,12 +1,27 @@
-import { ASTBinop, ASTExpr, ASTNote, ASTType, RawASTExpr } from "../ast/ast.mjs";
+import {
+  ASTBinop,
+  ASTExpr,
+  ASTNote,
+  ASTType,
+  RawASTExpr,
+} from "../ast/ast.mjs";
 import * as path from "node:path";
 import { ScopeInfo, ScopeContent } from "./analysis-types.mjs";
 import { sub } from "../stdlib/macroutils.mjs";
 import { loadObj } from "../stdlib/3d/obj-to-desmoscript.mjs";
-import { lookupMeshBVH, multiObjToDesmoscriptBVH } from "../stdlib/3d/multi-obj-bvh-to-desmoscript.mjs";
-import { lookupMesh, multiObjToDesmoscript } from "../stdlib/3d/multi-obj-to-desmoscript.mjs";
+import {
+  lookupMeshBVH,
+  multiObjToDesmoscriptBVH,
+} from "../stdlib/3d/multi-obj-bvh-to-desmoscript.mjs";
+import {
+  lookupMesh,
+  multiObjToDesmoscript,
+} from "../stdlib/3d/multi-obj-to-desmoscript.mjs";
 
-const fn: ScopeContent.Content = { type: ScopeContent.Type.FUNCTION, isPartOfDesmos: true };
+const fn: ScopeContent.Content = {
+  type: ScopeContent.Type.FUNCTION,
+  isPartOfDesmos: true,
+};
 
 const builtinVar = {
   type: ScopeContent.Type.VARIABLE,
@@ -18,7 +33,7 @@ export function getExprContext(expr: RawASTExpr<{}>) {
     line: expr.line,
     col: expr.col,
     file: expr.file,
-    _isexpr: true as const
+    _isexpr: true as const,
   };
 }
 
@@ -27,42 +42,42 @@ export function createDesmosBuiltins(): Map<string, ScopeContent.Content> {
     type: ScopeContent.Type.MACRO,
     fn: (expr, ctx, a): ASTExpr => {
       return a.number(3);
-    }
+    },
   };
 
   const map = new Map<string, ScopeContent.Content>();
   map.set("x", {
-      type: ScopeContent.Type.VARIABLE,
-      isPartOfDesmos: true
-    }),
-  map.set("rgb", {
+    type: ScopeContent.Type.VARIABLE,
+    isPartOfDesmos: true,
+  }),
+    map.set("rgb", {
       type: ScopeContent.Type.FUNCTION,
-      isPartOfDesmos: true
-    })
+      isPartOfDesmos: true,
+    });
   map.set("loadObj", {
     type: ScopeContent.Type.MACRO,
-    fn: loadObj
+    fn: loadObj,
   });
   map.set("multiObjToDesmoscriptBVH", {
     type: ScopeContent.Type.MACRO,
-    fn: multiObjToDesmoscriptBVH
+    fn: multiObjToDesmoscriptBVH,
   });
   map.set("lookupMeshBVH", {
     type: ScopeContent.Type.MACRO,
-    fn: lookupMeshBVH
+    fn: lookupMeshBVH,
   });
   map.set("multiObjToDesmoscript", {
     type: ScopeContent.Type.MACRO,
-    fn: multiObjToDesmoscript
+    fn: multiObjToDesmoscript,
   });
   map.set("lookupMesh", {
     type: ScopeContent.Type.MACRO,
-    fn: lookupMesh
-  })
+    fn: lookupMesh,
+  });
   map.set("sub", sub);
   [
-    "sin", 
-    "cos", 
+    "sin",
+    "cos",
     "tan",
     "sec",
     "csc",
@@ -86,9 +101,8 @@ export function createDesmosBuiltins(): Map<string, ScopeContent.Content> {
 
     "polygon",
 
-    "random"
-  ]
-  .map(name => map.set(name, fn));
+    "random",
+  ].map((name) => map.set(name, fn));
   return map;
 }
 

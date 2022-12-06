@@ -3,10 +3,9 @@ function tail(str: string) {
 }
 
 export function levenshtein(a: string, b: string) {
-  
   // lookup table for efficiency
   const lut = new Map<string, Map<string, number>>();
-  
+
   // helper function for levenshtein distance
   function levenshteinHelper(a: string, b: string): number {
     if (a.length == 0) return b.length;
@@ -14,11 +13,7 @@ export function levenshtein(a: string, b: string) {
     if (a[0] == b[0]) {
       return l(tail(a), tail(b));
     }
-    return 1 + Math.min(
-      l(tail(a), b),
-      l(a, tail(b)),
-      l(tail(a), tail(b))
-    );
+    return 1 + Math.min(l(tail(a), b), l(a, tail(b)), l(tail(a), tail(b)));
   }
 
   // memoized helper function

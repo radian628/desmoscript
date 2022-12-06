@@ -17,7 +17,10 @@ export function getCanonicalPath(scope?: Scope): string[] {
 // use this to generate human-readable variable names
 export function getHumanReadablePath(scope?: Scope): string[] {
   if (!scope || scope.isRoot) return [];
-  return [scope.correspondingFunctionName ?? scope.name, ...getCanonicalPath(scope.parent)];
+  return [
+    scope.correspondingFunctionName ?? scope.name,
+    ...getCanonicalPath(scope.parent),
+  ];
 }
 
 // determine whether an identifier has a namespace collision in its scope
@@ -64,29 +67,35 @@ export function importScopeContentToCorrespondingRootScope(
   originalExpr: ASTExpr
 ) {
   const unit = compileContext.compilationUnits.get(importContent.unit);
-  if (!unit) return err(originalExpr, `INTERNAL ERROR: Imported file '${importContent.unit}' does not exist.`);
+  if (!unit)
+    return err(
+      originalExpr,
+      `INTERNAL ERROR: Imported file '${importContent.unit}' does not exist.`
+    );
   return unit.rootScope;
 }
 
-export type FindIdentifierSuccess = { 
-  result: ScopeContent.Content, 
-  enclosingScope: Scope, 
-  unit: string,
-  success: true
+export type FindIdentifierSuccess = {
+  result: ScopeContent.Content;
+  enclosingScope: Scope;
+  unit: string;
+  success: true;
 };
 
-export type FindIdentifierResult = FindIdentifierSuccess | {
-  success: false,
-  alternatives: { name: string, badSegment: string }[]
-} 
-
-export type FindIdentifierDirectlyInScopeResult
-  = FindIdentifierSuccess
+export type FindIdentifierResult =
+  | FindIdentifierSuccess
   | {
-    success: false,
-    badSegment: string
-    badScope: Scope
-  }
+      success: false;
+      alternatives: { name: string; badSegment: string }[];
+    };
+
+export type FindIdentifierDirectlyInScopeResult =
+  | FindIdentifierSuccess
+  | {
+      success: false;
+      badSegment: string;
+      badScope: Scope;
+    };
 
 export function findIdentifierDirectlyInScope(
   scope: Scope,
@@ -103,14 +112,18 @@ export function findIdentifierDirectlyInScope(
         result: entry,
         enclosingScope: scope,
         unit,
-        success: true
+        success: true,
       };
     } else {
       const nextPath = path.slice(1);
 
       if (entry.type == ScopeContent.Type.IMPORT) {
         const result = findIdentifierDirectlyInScope(
-          importScopeContentToCorrespondingRootScope(entry, compileContext, originalExpr),
+          importScopeContentToCorrespondingRootScope(
+            entry,
+            compileContext,
+            originalExpr
+          ),
           compileContext,
           nextPath,
           originalExpr,
@@ -132,8 +145,8 @@ export function findIdentifierDirectlyInScope(
   return {
     success: false,
     badSegment: path[0],
-    badScope: scope
-  }
+    badScope: scope,
+  };
 }
 
 // given a scope and a path, find the given identifier relative to that scope
@@ -142,19 +155,19 @@ export function findIdentifier(
   compileContext: DesmoscriptCompileContext,
   unit: string,
   path: string[],
-  originalExpr: ASTExpr,
+  originalExpr: ASTExpr
 ): FindIdentifierResult {
   let searchScope: Scope | undefined = startScope;
 
   const failures: {
-    success: false,
-    badSegment: string
-    badScope: Scope
+    success: false;
+    badSegment: string;
+    badScope: Scope;
   }[] = [];
 
   while (searchScope != undefined) {
     const result = findIdentifierDirectlyInScope(
-      searchScope, 
+      searchScope,
       compileContext,
       path,
       originalExpr,
@@ -166,20 +179,25 @@ export function findIdentifier(
   }
 
   // TODO: Figure out how to format spelling suggestions
-  // for unknown variable names. 
+  // for unknown variable names.
   const allAlternatives = failures
-    .map(failure => {
-      return Array.from(failure.badScope.contents.keys())
-        .map(scopeContent => {return {
-          distance: levenshtein(failure.badSegment, scopeContent),
-          badSegment: failure.badSegment,
-          badScope: failure.badScope,
-          alternative: scopeContent
-        }});
+    .map((failure) => {
+      return Array.from(failure.badScope.contents.keys()).map(
+        (scopeContent) => {
+          return {
+            distance: levenshtein(failure.badSegment, scopeContent),
+            badSegment: failure.badSegment,
+            badScope: failure.badScope,
+            alternative: scopeContent,
+          };
+        }
+      );
     })
     .flat()
     .sort((a, b) => a.distance - b.distance)
-    .map(alt => { return { name: alt.alternative, badSegment: alt.badSegment } });
+    .map((alt) => {
+      return { name: alt.alternative, badSegment: alt.badSegment };
+    });
 
   return { success: false, alternatives: allAlternatives };
 

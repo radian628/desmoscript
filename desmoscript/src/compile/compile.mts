@@ -5,7 +5,14 @@ import {
   ScopeContent,
 } from "../semantic-analysis/analysis-types.mjs";
 
-import { ExpressionState, expressionStateParser, FolderState, GrapherStateParser, GraphState, tickerParser } from "../graphstate.mjs";
+import {
+  ExpressionState,
+  expressionStateParser,
+  FolderState,
+  GrapherStateParser,
+  GraphState,
+  tickerParser,
+} from "../graphstate.mjs";
 import {
   ASTBinop,
   ASTExpr,
@@ -74,23 +81,34 @@ function getGraphExprID() {
   return (currentExprID++).toString();
 }
 
-const dummyExpr: ASTNote<{}> = { line: 0, col: 0, file: ".", id: -1, type: ASTType.NOTE, text: "dummy", _isexpr: true };
+const dummyExpr: ASTNote<{}> = {
+  line: 0,
+  col: 0,
+  file: ".",
+  id: -1,
+  type: ASTType.NOTE,
+  text: "dummy",
+  _isexpr: true,
+};
 function createVariableName(
   compileContext: DesmoscriptCompileContext,
   unit: string,
   path: string[],
-  name: string,
+  name: string
 ) {
   const unitVarNameSegment = compileContext.compilationUnitPrefixes.get(unit);
-  if (!unitVarNameSegment) err(dummyExpr, "INTERNAL ERROR: No corresponding file prefix.");
-  return [unitVarNameSegment, ...path, name].join(compileContext.namespaceSeparator);
+  if (!unitVarNameSegment)
+    err(dummyExpr, "INTERNAL ERROR: No corresponding file prefix.");
+  return [unitVarNameSegment, ...path, name].join(
+    compileContext.namespaceSeparator
+  );
 }
 
 function makeDesmosVarName(
   compileContext: DesmoscriptCompileContext,
   unit: string,
   path: string[],
-  name: string,
+  name: string
 ) {
   return toDesmosVar(createVariableName(compileContext, unit, path, name));
 }
@@ -100,7 +118,8 @@ function getMacroSubstitution(
   expr: ASTFunctionCall<{}>
 ) {
   const substitution = unit.substitutionLUT.get(expr.id);
-  if (!substitution) err(expr, "INTERNAL ERROR: Macro call has no corresponding substitution.");
+  if (!substitution)
+    err(expr, "INTERNAL ERROR: Macro call has no corresponding substitution.");
   return substitution;
 }
 
@@ -141,11 +160,19 @@ async function compileExpression(
   const u = undefined;
   const lut: ASTVisitorLUT<{}, any, string> = {
     // unhandled variants
-    json(e,c,v) { return "" },
-    decorator(e,c,v) { return "" },
-    note(e,c,v) { return "" },
-    named_json(e,c,v) { return "" },
-    async all(e,c) {  },
+    json(e, c, v) {
+      return "";
+    },
+    decorator(e, c, v) {
+      return "";
+    },
+    note(e, c, v) {
+      return "";
+    },
+    named_json(e, c, v) {
+      return "";
+    },
+    async all(e, c) {},
 
     // handled variants
     number(e, c, v) {
@@ -179,24 +206,27 @@ async function compileExpression(
         ctx,
         unit.filePath,
         e.segments,
-        e        
+        e
       );
 
       if (!foundIdentifier.success) {
-        err(e, `'${e.segments.join(".")}' does not exist in this scope.
-Did you intend to use one of the following names?\n${
-foundIdentifier.alternatives.slice(0,6).map(alt => `${alt.badSegment} => ${alt.name}`).join("\n")
-}`);
-      } 
+        err(
+          e,
+          `'${e.segments.join(".")}' does not exist in this scope.
+Did you intend to use one of the following names?\n${foundIdentifier.alternatives
+            .slice(0, 6)
+            .map((alt) => `${alt.badSegment} => ${alt.name}`)
+            .join("\n")}`
+        );
+      }
 
       if (
-          (
-            foundIdentifier.result.type == ScopeContent.Type.VARIABLE
-            || foundIdentifier.result.type == ScopeContent.Type.FUNCTION
-          ) && foundIdentifier.result.isPartOfDesmos
-        ) {
-          return `\\operatorname{${lastof(e.segments)}}`;
-        }
+        (foundIdentifier.result.type == ScopeContent.Type.VARIABLE ||
+          foundIdentifier.result.type == ScopeContent.Type.FUNCTION) &&
+        foundIdentifier.result.isPartOfDesmos
+      ) {
+        return `\\operatorname{${lastof(e.segments)}}`;
+      }
 
       const varName = createVariableName(
         ctx,
@@ -263,40 +293,62 @@ foundIdentifier.alternatives.slice(0,6).map(alt => `${alt.badSegment} => ${alt.n
     listcomp(e, c, v) {
       const scopeChain = getCanonicalPath(getInnerScopeOfExpr(e, unit));
       return `\\left[${v(e.body, c)}\\operatorname{for}${e.variables
-        .map(([varname, list]) => 
-          `${
-            makeDesmosVarName(ctx, unit.filePath, scopeChain, varname)
-          }=${v(list, c)}`
+        .map(
+          ([varname, list]) =>
+            `${makeDesmosVarName(ctx, unit.filePath, scopeChain, varname)}=${v(
+              list,
+              c
+            )}`
         )
         .join(",")}\\right]`;
     },
 
     sumprodint(e, v, c) {
       const scopeChain = getCanonicalPath(getInnerScopeOfExpr(e, unit));
-      const counterVarName = makeDesmosVarName(ctx, unit.filePath, scopeChain, e.varName);
+      const counterVarName = makeDesmosVarName(
+        ctx,
+        unit.filePath,
+        scopeChain,
+        e.varName
+      );
       if (e.opType == "integral") {
-          return `\\left(\\int_{${c(e.lo,v)}}^{${c(e.hi,v)}}\\left(${c(e.body,v)}\\right)d${counterVarName}\\right)`;
+        return `\\left(\\int_{${c(e.lo, v)}}^{${c(e.hi, v)}}\\left(${c(
+          e.body,
+          v
+        )}\\right)d${counterVarName}\\right)`;
       } else {
-          let op = (e.opType == "product") ? "prod" : "sum"
-          return `\\left(\\${op}_{${counterVarName}=${c(e.lo,v)}}^{${c(e.hi,v)}}\\left(${c(e.body,v)}\\right)\\right)`;
+        let op = e.opType == "product" ? "prod" : "sum";
+        return `\\left(\\${op}_{${counterVarName}=${c(e.lo, v)}}^{${c(
+          e.hi,
+          v
+        )}}\\left(${c(e.body, v)}\\right)\\right)`;
       }
     },
 
     derivative(e, c, v) {
       const scopeChain = getCanonicalPath(getInnerScopeOfExpr(e, unit));
-      const varname = makeDesmosVarName(ctx, unit.filePath, scopeChain, e.variable);
-      return `\\left(\\frac{d}{d${varname}}\\left(${v(e.body,c)}\\right)\\right)`;
+      const varname = makeDesmosVarName(
+        ctx,
+        unit.filePath,
+        scopeChain,
+        e.variable
+      );
+      return `\\left(\\frac{d}{d${varname}}\\left(${v(
+        e.body,
+        c
+      )}\\right)\\right)`;
     },
 
-    memberaccess(e, c, v) { 
-      return `${v(e.left,c)}.${e.right}`;
+    memberaccess(e, c, v) {
+      return `${v(e.left, c)}.${e.right}`;
     },
 
     actions(e, c, v) {
-      return e.actions.map(([l, r]) => `${v(l,c)}\\to ${v(r,c)}`)
-      .concat(e.actionAliases.map(a => v(a,c)))
-      .join(",");
-    }
+      return e.actions
+        .map(([l, r]) => `${v(l, c)}\\to ${v(r, c)}`)
+        .concat(e.actionAliases.map((a) => v(a, c)))
+        .join(",");
+    },
   };
 
   return visitAST(rootExpr, lut, ctx);
@@ -314,21 +366,19 @@ async function compileFunctionDefinition(
   const functionDefScope = getScopeOfExpr(rootExpr, unit);
   const compiledFinalExpr = compileExpression(props, finalExpr);
   const fnNameVar = makeDesmosVarName(
-    ctx, 
-    unit.filePath, 
-    getCanonicalPath(functionDefScope), 
+    ctx,
+    unit.filePath,
+    getCanonicalPath(functionDefScope),
     rootExpr.name
   );
   const argScopePath = getCanonicalPath(getInnerScopeOfExpr(rootExpr, unit));
-  const fnArgsVars = rootExpr.args.map(arg => makeDesmosVarName(
-    ctx,
-    unit.filePath,
-    argScopePath,
-    arg
-  ));
-  return `${fnNameVar}\\left(${fnArgsVars.join(",")}\\right)=${await compiledFinalExpr}`;
+  const fnArgsVars = rootExpr.args.map((arg) =>
+    makeDesmosVarName(ctx, unit.filePath, argScopePath, arg)
+  );
+  return `${fnNameVar}\\left(${fnArgsVars.join(
+    ","
+  )}\\right)=${await compiledFinalExpr}`;
 }
-
 
 async function compileJSONExpression(
   props: {
@@ -336,22 +386,28 @@ async function compileJSONExpression(
     unit: DesmoscriptCompilationUnit;
     graphState: GraphState;
   },
-  expr: ASTJSON<{}>) {
+  expr: ASTJSON<{}>
+) {
   async function c(e: ASTJSON<{}>): Promise<any> {
-      switch (e.data.jsontype) {
+    switch (e.data.jsontype) {
       case JSONType.NUMBER:
       case JSONType.STRING:
       case JSONType.NULL:
       case JSONType.BOOLEAN:
-          return e.data.data;
+        return e.data.data;
       case JSONType.OBJECT:
-          return Object.fromEntries(await Promise.all(Object.entries(e.data.data)
-              .map(async ([k,v]): Promise<[string, any]> => [k, await c(v)])));
+        return Object.fromEntries(
+          await Promise.all(
+            Object.entries(e.data.data).map(
+              async ([k, v]): Promise<[string, any]> => [k, await c(v)]
+            )
+          )
+        );
       case JSONType.ARRAY:
-          return Promise.all(e.data.data.map(async e => await c(e)));
+        return Promise.all(e.data.data.map(async (e) => await c(e)));
       case JSONType.DESMOSCRIPT:
-          return await compileExpression(props, e.data.data);
-      }
+        return await compileExpression(props, e.data.data);
+    }
   }
 
   return c(expr);
@@ -361,23 +417,22 @@ async function compileScope(
   props: {
     ctx: DesmoscriptCompileContext;
     unit: DesmoscriptCompilationUnit;
-    graphState: GraphState,
+    graphState: GraphState;
   },
   scope: Scope
 ) {
   const { ctx, unit, graphState } = props;
 
-  const folderText = 
-  getHumanReadablePath(scope)
+  const folderText = getHumanReadablePath(scope)
     .reverse()
-    .map(s => `📁${s}`)
+    .map((s) => `📁${s}`)
     .join(" / ");
 
   let folderState: FolderState = {
     type: "folder",
     title: folderText,
     id: getGraphExprID(),
-    collapsed: true
+    collapsed: true,
   };
 
   let hasFolderChanged = true;
@@ -387,44 +442,47 @@ async function compileScope(
     hasFolderChanged = false;
     graphState.expressions.list.push(folderState);
   }
-  
+
   for (let [name, c] of scope.contents) {
     switch (c.type) {
-      case ScopeContent.Type.VARIABLE:
-        {
-          if (c.isBuiltin || c.isPartOfDesmos) break;
-          actuallyAddFolder();
-          const latex = await compileExpression(props, c.data);
-          let additionalProperties: Partial<ExpressionState> = {};
-          if (c.decoratorInfo) {
-            additionalProperties = expressionStateParser.strict().partial().parse(
-              await compileJSONExpression(props, c.decoratorInfo.json)
-            );
-          }
-          graphState.expressions.list.push({
-            type: "expression",
-            latex,
-            id: getGraphExprID(),
-            color: "black",
-            folderId: folderState.id,
-            ...additionalProperties
-          });
-          break;
+      case ScopeContent.Type.VARIABLE: {
+        if (c.isBuiltin || c.isPartOfDesmos) break;
+        actuallyAddFolder();
+        const latex = await compileExpression(props, c.data);
+        let additionalProperties: Partial<ExpressionState> = {};
+        if (c.decoratorInfo) {
+          additionalProperties = expressionStateParser
+            .strict()
+            .partial()
+            .parse(await compileJSONExpression(props, c.decoratorInfo.json));
         }
-      case ScopeContent.Type.FUNCTION:
-        {
-          if (c.isBuiltin || c.isPartOfDesmos) break;
-          actuallyAddFolder();
-          const latex = await compileFunctionDefinition(props, c.data, c.finalExpr);
-          graphState.expressions.list.push({
-            type: "expression",
-            latex,
-            id: getGraphExprID(),
-            color: "black",
-            folderId: folderState.id,
-          })
-          break;
-        }
+        graphState.expressions.list.push({
+          type: "expression",
+          latex,
+          id: getGraphExprID(),
+          color: "black",
+          folderId: folderState.id,
+          ...additionalProperties,
+        });
+        break;
+      }
+      case ScopeContent.Type.FUNCTION: {
+        if (c.isBuiltin || c.isPartOfDesmos) break;
+        actuallyAddFolder();
+        const latex = await compileFunctionDefinition(
+          props,
+          c.data,
+          c.finalExpr
+        );
+        graphState.expressions.list.push({
+          type: "expression",
+          latex,
+          id: getGraphExprID(),
+          color: "black",
+          folderId: folderState.id,
+        });
+        break;
+      }
       case ScopeContent.Type.NAMED_JSON:
         {
           actuallyAddFolder();
@@ -441,11 +499,13 @@ async function compileScope(
       case ScopeContent.Type.SCOPE:
         const exprCount = graphState.expressions.list.length;
         await compileScope(props, c.data);
-        const didExprCountChange = exprCount != graphState.expressions.list.length;
+        const didExprCountChange =
+          exprCount != graphState.expressions.list.length;
         if (didExprCountChange) {
           folderState = {
-            ...folderState, id: getGraphExprID()
-          }
+            ...folderState,
+            id: getGraphExprID(),
+          };
           hasFolderChanged = true;
         }
         break;
@@ -461,13 +521,11 @@ async function compileScope(
   }
 }
 
-async function compileCompilationUnit(
-  props: {
-    ctx: DesmoscriptCompileContext,
-    unit: DesmoscriptCompilationUnit,
-    graphState: GraphState
-  }
-) {
+async function compileCompilationUnit(props: {
+  ctx: DesmoscriptCompileContext;
+  unit: DesmoscriptCompilationUnit;
+  graphState: GraphState;
+}) {
   await compileScope(props, props.unit.rootScope);
 }
 

@@ -1,40 +1,142 @@
 import "../../../desmo-lib/3d.desmo" as t;
 import "../../../desmo-lib/binary.desmo" as bin;
 
-multiObjToDesmoscript!(test, "assets/monkeytest.obj")
+multiObjToDesmoscript!(test, "assets/2kicosphere.obj")
 
+currentFrame = 0;
+
+ticker @{
+  handlerLatex: ds(
+    & 
+    match { (mod(currentFrame, 30) == 0) => controls.updateMeshLookup; },
+    currentFrame -> currentFrame + 1
+  ),
+  playing: true,
+  open: true
+}
 
 ns controls {
   xpos = 0;
   ypos = 0;
-  zpos = -10;
+  zpos = -5;
+
+  xposMeshLookup = 0;
+  yposMeshLookup = 0;
+  zposMeshLookup = -5;
+
+  updateMeshLookup = &
+    xposMeshLookup -> xpos,
+    yposMeshLookup -> ypos,
+    zposMeshLookup -> zpos;
 }
 
 
 lookupMesh!(
   testLookup, test,
-  -10 + controls.xpos, -10 + controls.ypos, -10 + controls.zpos,
-  10 + controls.xpos, 10 + controls.ypos, 10 + controls.zpos,
-  20
+  -4 + controls.xposMeshLookup, -4 + controls.yposMeshLookup, -4 + controls.zposMeshLookup,
+  4 + controls.xposMeshLookup, 4 + controls.yposMeshLookup, 4 + controls.zposMeshLookup,
+  10
 )
 
-show proj = (
-  (testLookup.vertexPosition.x - controls.xpos) / (testLookup.vertexPosition.z - controls.zpos),
-  (testLookup.vertexPosition.y - controls.ypos) / (testLookup.vertexPosition.z - controls.zpos)
-)[(testLookup.vertexPosition.z - controls.zpos) > 0]; with @{
-  color: "black"
+ns display {
+  ns translated {
+    x = testLookup.vertexPosition.x - controls.xpos;
+    y = testLookup.vertexPosition.y - controls.ypos;
+    z = testLookup.vertexPosition.z - controls.zpos;
+  }
+
+  show polys = [
+  getClippedPolygon(
+    0.01,
+    translated.x[testLookup.index.tri1[i]],
+    translated.y[testLookup.index.tri1[i]],
+    translated.z[testLookup.index.tri1[i]],
+    translated.x[testLookup.index.tri2[i]],
+    translated.y[testLookup.index.tri2[i]],
+    translated.z[testLookup.index.tri2[i]],
+    translated.x[testLookup.index.tri3[i]],
+    translated.y[testLookup.index.tri3[i]],
+    translated.z[testLookup.index.tri3[i]]
+  )
+  for
+  i=1 .. length(testLookup.index.tri1)
+  ]; with @{
+    color: "red",
+    lines: false,
+    fillOpacity: ds(1)
+  }
+
 }
 
-/*
-ns perftest {
-  naiveTest = test.rectRectIntersect(
-    random(700, 1),
-    random(700, 2),
-    random(700, 3),
-    random(700, 4),
-    random(700, 5),
-    random(700, 6),
-  -10 + controls.xpos, -10 + controls.ypos, -10 + controls.zpos,
-  10 + controls.xpos, 10 + controls.ypos, 10 + controls.zpos
-  );
-}*/
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+fn getClippedPolygon(
+    near,
+    x1, y1, z1,
+    x2, y2, z2,
+    x3, y3, z3
+) {
+    sortedDepths = sort([z1, z2, z3]);
+    nonClippedCount = length(sortedDepths[sortedDepths > near]);
+    match {
+        (nonClippedCount == 3) => {polygon(
+            (x1 / z1, y1 / z1),
+            (x2 / z2, y2 / z2),
+            (x3 / z3, y3 / z3)
+        )};
+        (nonClippedCount == 2) => {
+            sortedXs = sort([x1, x2, x3], [z1, z2, z3]);
+            sortedYs = sort([y1, y2, y3], [z1, z2, z3]);
+            t1 = (near - sortedDepths[1]) / (sortedDepths[2] - sortedDepths[1]);
+            t2 = (near - sortedDepths[1]) / (sortedDepths[3] - sortedDepths[1]);
+
+            polygon(
+                (sortedXs[2] / sortedDepths[2], sortedYs[2] / sortedDepths[2]),
+                (sortedXs[3] / sortedDepths[3], sortedYs[3] / sortedDepths[3]),
+
+                (
+                    ((sortedXs[1] + t2 * (sortedXs[3] - sortedXs[1])) / near), 
+                    ((sortedYs[1] + t2 * (sortedYs[3] - sortedYs[1])) / near)
+                ),
+                (
+                    ((sortedXs[1] + t1 * (sortedXs[2] - sortedXs[1])) / near), 
+                    ((sortedYs[1] + t1 * (sortedYs[2] - sortedYs[1])) / near)
+                )
+            )
+        };
+        (nonClippedCount == 1) => {
+            sortedXs = sort([x1, x2, x3], [z1, z2, z3]);
+            sortedYs = sort([y1, y2, y3], [z1, z2, z3]);
+            t1 = (near - sortedDepths[3]) / (sortedDepths[1] - sortedDepths[3]);
+            t2 = (near - sortedDepths[3]) / (sortedDepths[2] - sortedDepths[3]);
+
+            polygon(
+                (sortedXs[3] / sortedDepths[3], sortedYs[3] / sortedDepths[3]),
+
+                (
+                    ((sortedXs[3] + t2 * (sortedXs[2] - sortedXs[3])) / near), 
+                    ((sortedYs[3] + t2 * (sortedYs[2] - sortedYs[3])) / near)
+                ),
+                (
+                    ((sortedXs[3] + t1 * (sortedXs[1] - sortedXs[3])) / near), 
+                    ((sortedYs[3] + t1 * (sortedYs[1] - sortedYs[3])) / near)
+                )
+            )
+        };
+        polygon((0/0,0/0));
+    }
+}

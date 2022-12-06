@@ -108,7 +108,7 @@ export type ASTFunctionDef<T, C = T> = {
   args: string[];
   bodyExprs: RawASTExpr<C, C>[];
   lastExpr?: RawASTExpr<C, C>;
-  type: ASTType.FNDEF
+  type: ASTType.FNDEF;
 } & LineCol &
   T;
 

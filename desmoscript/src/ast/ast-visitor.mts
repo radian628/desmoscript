@@ -58,6 +58,7 @@ export type ASTVisitorLUT<T, B, RT> = {
   note: VisitorEntry<T, B, RT, ASTNote<T>>;
   actions: VisitorEntry<T, B, RT, ASTActions<T>>;
   all: (expr: RawASTExpr<T>, ctx: B) => Promise<void>;
+  ctxmap?: (expr: RawASTExpr<T>, ctx: B) => B;
 };
 
 export async function visitAST<T, Ctx, RT>(
@@ -68,16 +69,22 @@ export async function visitAST<T, Ctx, RT>(
   const visit = (node: RawASTExpr<T>, ctx: Ctx) => {
     lut.all(node, ctx);
     //@ts-ignore
-    return lut[node.type](node, ctx, visit);
+    return lut[node.type](node, ctx, (n, c) => {
+      return visit(n, lut.ctxmap ? lut.ctxmap(n, c) : c);
+    });
   };
   return visit(root, context);
 }
 
-export function noOpLUT<T, U, RetType>(rt: Promise<RetType>): ASTVisitorLUT<T, U, Promise<RetType>> {
+export function noOpLUT<T, U, RetType>(
+  rt: Promise<RetType>
+): ASTVisitorLUT<T, U, Promise<RetType>> {
   return {
-    async all(e, ctx) {  },
+    async all(e, ctx) {},
 
-    async number(e, ctx, v) {return rt;},
+    async number(e, ctx, v) {
+      return rt;
+    },
 
     async binop(e, ctx, v) {
       await v(e.left, ctx);
@@ -86,30 +93,38 @@ export function noOpLUT<T, U, RetType>(rt: Promise<RetType>): ASTVisitorLUT<T, U
     },
 
     async root(e, ctx, v) {
-      await Promise.all(e.expressions.map((e2) => v(e2, ctx)));return rt;
+      await Promise.all(e.expressions.map((e2) => v(e2, ctx)));
+      return rt;
     },
 
-    async identifier(e, ctx, v) {return rt;},
+    async identifier(e, ctx, v) {
+      return rt;
+    },
 
     async point(e, ctx, v) {
-      await Promise.all([v(e.x, ctx), v(e.y, ctx)]);return rt;
+      await Promise.all([v(e.x, ctx), v(e.y, ctx)]);
+      return rt;
     },
 
     async fncall(e, ctx, v) {
       await v(e.name, ctx);
-      await Promise.all(e.args.map((arg) => v(arg, ctx)));return rt;
+      await Promise.all(e.args.map((arg) => v(arg, ctx)));
+      return rt;
     },
 
     async list(e, ctx, v) {
-      await Promise.all(e.elements.map((elem) => v(elem, ctx)));return rt;
+      await Promise.all(e.elements.map((elem) => v(elem, ctx)));
+      return rt;
     },
 
     async step_range(e, ctx, v) {
-      await Promise.all([v(e.left, ctx), v(e.step, ctx), v(e.right, ctx)]);return rt;
+      await Promise.all([v(e.left, ctx), v(e.step, ctx), v(e.right, ctx)]);
+      return rt;
     },
 
     async fndef(e, ctx, v) {
-      await Promise.all(e.bodyExprs.map((expr) => v(expr, ctx)));return rt;
+      await Promise.all(e.bodyExprs.map((expr) => v(expr, ctx)));
+      return rt;
     },
 
     async namespace(e, ctx, v) {
@@ -117,11 +132,13 @@ export function noOpLUT<T, U, RetType>(rt: Promise<RetType>): ASTVisitorLUT<T, U
         e.bodyExprs.map((expr) => {
           v(expr, ctx);
         })
-      );return rt;
+      );
+      return rt;
     },
 
     async block(e, ctx, v) {
-      await Promise.all(e.bodyExprs.map((expr) => v(expr, ctx)));return rt;
+      await Promise.all(e.bodyExprs.map((expr) => v(expr, ctx)));
+      return rt;
     },
 
     async match(e, ctx, v) {
@@ -130,17 +147,22 @@ export function noOpLUT<T, U, RetType>(rt: Promise<RetType>): ASTVisitorLUT<T, U
           .map(([predicate, value]) => [v(predicate, ctx), v(value, ctx)])
           .flat()
       );
-      if (e.fallback) await v(e.fallback, ctx);return rt;
+      if (e.fallback) await v(e.fallback, ctx);
+      return rt;
     },
 
-    async import(e, ctx, v) {return rt;},
+    async import(e, ctx, v) {
+      return rt;
+    },
 
     async sumprodint(e, ctx, v) {
-      await Promise.all([v(e.body, ctx), v(e.hi, ctx), v(e.lo, ctx)]);return rt;
+      await Promise.all([v(e.body, ctx), v(e.hi, ctx), v(e.lo, ctx)]);
+      return rt;
     },
 
     async derivative(e, ctx, v) {
-      await v(e.body, ctx);return rt;
+      await v(e.body, ctx);
+      return rt;
     },
 
     async listcomp(e, ctx, v) {
@@ -151,11 +173,13 @@ export function noOpLUT<T, U, RetType>(rt: Promise<RetType>): ASTVisitorLUT<T, U
           })
           .flat()
       );
-      await v(e.body, ctx);return rt;
+      await v(e.body, ctx);
+      return rt;
     },
 
     async memberaccess(e, ctx, v) {
-      await v(e.left, ctx);return rt;
+      await v(e.left, ctx);
+      return rt;
     },
 
     async json(e, ctx, v) {
@@ -168,25 +192,31 @@ export function noOpLUT<T, U, RetType>(rt: Promise<RetType>): ASTVisitorLUT<T, U
           break;
         case JSONType.DESMOSCRIPT:
           await v(e.data.data, ctx);
-      }return rt;
+      }
+      return rt;
     },
 
     async decorator(e, ctx, v) {
       await v(e.json, ctx);
-      await v(e.expr, ctx);return rt;
+      await v(e.expr, ctx);
+      return rt;
     },
 
     async named_json(e, ctx, v) {
-      await v(e.json, ctx);return rt;
+      await v(e.json, ctx);
+      return rt;
     },
 
-    async note(e, ctx, v) {return rt;},
+    async note(e, ctx, v) {
+      return rt;
+    },
 
     async actions(e, ctx, v) {
       await Promise.all(
         e.actions.map(([l, r]) => [v(l, ctx), v(r, ctx)]).flat()
       );
-      await Promise.all(e.actionAliases.map((alias) => v(alias, ctx)));return rt;
+      await Promise.all(e.actionAliases.map((alias) => v(alias, ctx)));
+      return rt;
     },
   };
 }
@@ -195,12 +225,15 @@ export function isASTExpr(value: any): value is ASTExpr {
   return value._isexpr;
 }
 
-export function mapAST(expr: ASTExpr, callback: (expr: ASTExpr) => ASTExpr): ASTExpr {
+export function mapAST(
+  expr: ASTExpr,
+  callback: (expr: ASTExpr) => ASTExpr
+): ASTExpr {
   function mapHelper(expr: any): any {
     if (Array.isArray(expr)) {
-      return expr.map(e => mapHelper(e));
+      return expr.map((e) => mapHelper(e));
     }
-    
+
     if (isASTExpr(expr)) {
       const newExpr = callback(expr);
       for (const [k, v] of Object.entries(newExpr)) {

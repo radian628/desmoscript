@@ -1,8 +1,16 @@
-
 import * as fs from "node:fs/promises";
 import * as path from "node:path";
-import { MacroAPI, ScopeContent } from "../../semantic-analysis/analysis-types.mjs";
-import { is1long, is2long, is3long, parsedOBJKeys, rest2num } from "./obj-importer-helpers.mjs"
+import {
+  MacroAPI,
+  ScopeContent,
+} from "../../semantic-analysis/analysis-types.mjs";
+import {
+  is1long,
+  is2long,
+  is3long,
+  parsedOBJKeys,
+  rest2num,
+} from "./obj-importer-helpers.mjs";
 
 export type ParsedOBJ = {
   vertices: [number, number, number][];

@@ -12,15 +12,15 @@ export type OBJSingleObject = {
   normalIndices: number[];
   texcoordIndices: number[];
   faceMaterials: number[];
-  name: string
+  name: string;
 };
 export type ParsedMultiOBJ = {
-  objects: Map<string, OBJSingleObject>,
-  materials: MTLMaterial[],
+  objects: Map<string, OBJSingleObject>;
+  materials: MTLMaterial[];
   materialMap: {
     [str: string]: number;
   };
-}
+};
 
 // parse an obj composed of multiple objects (i.e. with the "o" command)
 export async function parseMultiObj(src: string, objdir: string) {
@@ -31,17 +31,22 @@ export async function parseMultiObj(src: string, objdir: string) {
   };
   let currentObject: OBJSingleObject | undefined = undefined;
   let currentMaterial = -1;
-  
+
   const splitSrc = src.split("\n").map((s) => s.split(" "));
-  
+
   // read file line by line
   for (let line of splitSrc) {
     switch (line[0]) {
       case "o":
         const newObject: OBJSingleObject = {
-          vertices: [], normals: [], texcoords: [],
-          vertexIndices: [], normalIndices: [], texcoordIndices: [],
-          faceMaterials: [], name: line[1]
+          vertices: [],
+          normals: [],
+          texcoords: [],
+          vertexIndices: [],
+          normalIndices: [],
+          texcoordIndices: [],
+          faceMaterials: [],
+          name: line[1],
         };
         output.objects.set(line[1], newObject);
         currentObject = newObject;
@@ -59,10 +64,22 @@ export async function parseMultiObj(src: string, objdir: string) {
         const coords = line
           .slice(1)
           .map((s) => s.split("/").map((s) => Number(s)));
-          currentObject?.vertexIndices.push(coords[0][0], coords[1][0], coords[2][0]);
-          currentObject?.texcoordIndices.push(coords[0][1], coords[1][1], coords[2][1]);
-          currentObject?.normalIndices.push(coords[0][2], coords[1][2], coords[2][2]);
-          currentObject?.faceMaterials.push(currentMaterial);
+        currentObject?.vertexIndices.push(
+          coords[0][0],
+          coords[1][0],
+          coords[2][0]
+        );
+        currentObject?.texcoordIndices.push(
+          coords[0][1],
+          coords[1][1],
+          coords[2][1]
+        );
+        currentObject?.normalIndices.push(
+          coords[0][2],
+          coords[1][2],
+          coords[2][2]
+        );
+        currentObject?.faceMaterials.push(currentMaterial);
         break;
       case "mtllib":
         let mtls = (
@@ -92,10 +109,12 @@ export async function parseMultiObj(src: string, objdir: string) {
   return output;
 }
 
-
 export function bvhifyMultiObj(obj: ParsedMultiOBJ) {
-  const objChildrenWithBounds: (OBJSingleObject & AABB)[] = Array.from(obj.objects.values())
-    .map(child => { return { ...child, ...getBounds(child) } })
-  
+  const objChildrenWithBounds: (OBJSingleObject & AABB)[] = Array.from(
+    obj.objects.values()
+  ).map((child) => {
+    return { ...child, ...getBounds(child) };
+  });
+
   return bvhify(objChildrenWithBounds);
 }

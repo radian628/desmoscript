@@ -6,7 +6,10 @@ import * as ds from "./ast/ast.mjs";
 import * as fs from "fs/promises";
 import * as chokidar from "chokidar";
 import * as http from "node:http";
-export { compileDesmoscript, createDesmoscriptWatchServer } from "./all-steps/combined-compiler.mjs"
+export {
+  compileDesmoscript,
+  createDesmoscriptWatchServer,
+} from "./all-steps/combined-compiler.mjs";
 
 export { getExprContext } from "./semantic-analysis/builtins.mjs";
 

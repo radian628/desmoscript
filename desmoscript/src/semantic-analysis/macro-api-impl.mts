@@ -1,28 +1,38 @@
 import { ASTType, JSONType, RawASTExpr } from "../ast/ast.mjs";
 import { getExprContext } from "./builtins.mjs";
-import { DesmoscriptCompilationUnit, MacroAPI, ScopedASTExpr } from "./analysis-types.mjs";
-import { desmoscriptFileToAST, desmoscriptStringToAST, makeExprId, uniqueAnonScopeName } from "../ast/parse.mjs";
+import {
+  DesmoscriptCompilationUnit,
+  MacroAPI,
+  ScopedASTExpr,
+} from "./analysis-types.mjs";
+import {
+  desmoscriptFileToAST,
+  desmoscriptStringToAST,
+  makeExprId,
+  uniqueAnonScopeName,
+} from "../ast/parse.mjs";
 import { getScopeOfExpr } from "./analyze-utils.mjs";
 import { err } from "./analyze-first-pass.mjs";
 
-
 function remapIDs(value: any) {
   if (Array.isArray(value)) {
-    value.forEach(e => remapIDs(e));
+    value.forEach((e) => remapIDs(e));
     return;
   }
 
   if (typeof value.id == "number") {
     value.id = makeExprId();
   }
-  
+
   for (const [k, v] of Object.entries(value)) {
     remapIDs(v);
   }
 }
 
-
-export async function getMacroAPI(e: RawASTExpr<{}>, unit: DesmoscriptCompilationUnit): Promise<MacroAPI> {
+export async function getMacroAPI(
+  e: RawASTExpr<{}>,
+  unit: DesmoscriptCompilationUnit
+): Promise<MacroAPI> {
   let ctx = getExprContext(e);
 
   return {
@@ -31,7 +41,7 @@ export async function getMacroAPI(e: RawASTExpr<{}>, unit: DesmoscriptCompilatio
       remapIDs(eClone);
       return eClone;
     },
-    scopeof: e => {
+    scopeof: (e) => {
       return getScopeOfExpr(e, unit);
     },
     number: (n) => {
@@ -208,8 +218,7 @@ export async function getMacroAPI(e: RawASTExpr<{}>, unit: DesmoscriptCompilatio
       };
     },
     namedjson: (name, json) => {
-      return { ...ctx, 
-        id: makeExprId(),name, type: ASTType.NAMED_JSON, json };
+      return { ...ctx, id: makeExprId(), name, type: ASTType.NAMED_JSON, json };
     },
     error: (message) => {
       throw {
@@ -222,9 +231,11 @@ export async function getMacroAPI(e: RawASTExpr<{}>, unit: DesmoscriptCompilatio
     },
     fromstr: (str: string) => {
       const astNode = desmoscriptStringToAST(str, e.file);
-      if (astNode.type != ASTType.ROOT) err(astNode, "INTERNAL ERROR: EXPECTED ROOT NODE.");
-      if (astNode.expressions.length == 0) err(astNode, "INTERNAL ERROR: EXPECTED ONE OR MORE EXPRESSIONS.");
+      if (astNode.type != ASTType.ROOT)
+        err(astNode, "INTERNAL ERROR: EXPECTED ROOT NODE.");
+      if (astNode.expressions.length == 0)
+        err(astNode, "INTERNAL ERROR: EXPECTED ONE OR MORE EXPRESSIONS.");
       return astNode.expressions[0];
-    }
+    },
   };
 }

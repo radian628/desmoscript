@@ -92,7 +92,7 @@ export class DesmoscriptASTBuilder
       col: ctx.start.charPositionInLine,
       file: this.filename,
       id: makeExprId(),
-      _isexpr: true
+      _isexpr: true,
     };
   }
 
@@ -104,7 +104,7 @@ export class DesmoscriptASTBuilder
       col: 1,
       file: this.filename,
       id: makeExprId(),
-      _isexpr: true
+      _isexpr: true,
     };
   }
 
@@ -475,8 +475,6 @@ export async function desmoscriptFileToAST(filename: string) {
   const src = (await fs.readFile(filename)).toString();
   return desmoscriptStringToAST(src, filename);
 }
-
-
 
 export function desmoscriptStringToAST(src: string, filename: string) {
   let lexer = new DesmoscriptLexer(CharStreams.fromString(src));

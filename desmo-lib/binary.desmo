@@ -20,3 +20,48 @@ fn getComponentOfVertexOfMesh(mesh, component) {
   ) - 2^15)) * scaleFactor / 2^15 + averagePosition
 }
 
+fn getIndicesOfMesh(mesh, component) {
+  triCount = getTriangleCount(mesh);
+  packedVertexListLength = ceil(getVertexCount(mesh) / 3);
+  packedMaterialListLength = ceil(triCount / 8);
+  packedNormalListLength = ceil(triCount / 6);
+  packedListLength = ceil(triCount / 5);
+  binaryUnpack(
+    mesh[
+      (1 .. packedListLength) + 5
+      + packedVertexListLength * 3
+      + packedMaterialListLength
+      + packedNormalListLength * 3
+      + packedListLength * component
+    ],
+    10,
+    5,
+    triCount
+  )
+}
+
+fn getComponentOfNormalOfMesh(mesh, component) {
+  triCount = getTriangleCount(mesh);
+  packedVertexListLength = ceil(getVertexCount(mesh) / 3);
+  packedMaterialListLength = ceil(triCount / 8);
+  packedNormalListLength = ceil(triCount / 6);
+  binaryUnpack(
+    mesh[
+      (1 .. packedNormalListLength) + 5
+      + packedVertexListLength * 3
+      + packedMaterialListLength
+      + packedNormalListLength * component
+    ],
+    8,
+    6,
+    triCount
+  ) / 256 - 1
+}
+
+fn getTriangleCount(mesh) {
+  mod(floor(mesh[5] / 2^26), 2^26)
+}
+
+fn getVertexCount(mesh) {
+  mod(mesh[5], 2^26)
+}

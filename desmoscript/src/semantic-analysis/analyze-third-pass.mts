@@ -44,7 +44,6 @@ export async function astToCompilationUnitThirdPass(
 ) {
   const dirname = path.dirname(unit.filePath);
 
-
   const lut: ASTVisitorLUT<{}, any, Promise<void>> = {
     ...noOpLUT(new Promise<void>((resolve, reject) => resolve())),
     async fncall(e, ctx, v) {
@@ -57,10 +56,21 @@ export async function astToCompilationUnitThirdPass(
 
       const myScope = getScopeOfExpr(e, unit);
 
-      const ident = findIdentifier(myScope, compileContext, unit.filePath, parseIdent(e.name).segments, e);
+      const ident = findIdentifier(
+        myScope,
+        compileContext,
+        unit.filePath,
+        parseIdent(e.name).segments,
+        e
+      );
       if (!ident.success) {
         if (isLastPass) {
-          err(e, `Macro instantiation failed: Macro definition depth is too deep OR macro '${parseIdent(e.name).segments.join(".")}' does not exist!`);
+          err(
+            e,
+            `Macro instantiation failed: Macro definition depth is too deep OR macro '${parseIdent(
+              e.name
+            ).segments.join(".")}' does not exist!`
+          );
         }
         return;
       }
@@ -69,7 +79,11 @@ export async function astToCompilationUnitThirdPass(
       // if macro substitution already exists, then don't bother doing it again. just search below
       let substitution = unit.substitutionLUT.get(e.id);
       if (!substitution) {
-        substitution = await ident.result.fn(e, compileContext, await getMacroAPI(e, unit));
+        substitution = await ident.result.fn(
+          e,
+          compileContext,
+          await getMacroAPI(e, unit)
+        );
 
         unit.substitutionLUT.set(e.id, substitution);
 

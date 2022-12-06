@@ -1,31 +1,35 @@
 import { ParsedOBJ } from "./obj-importer.mjs";
 
 export type AABB = {
-  min: [number, number, number],
-  max: [number, number, number]
+  min: [number, number, number];
+  max: [number, number, number];
 };
 
 export type BVHNode<T extends AABB> = {
-  data: T[],
-  children: BVHNode<T>[]
+  data: T[];
+  children: BVHNode<T>[];
 } & AABB;
 
-enum Axis { X, Y, Z };
+enum Axis {
+  X,
+  Y,
+  Z,
+}
 
 function getCombinedBounds(aabbs: AABB[]): AABB {
   if (aabbs.length == 0) {
     return { min: [0, 0, 0], max: [-1, -1, -1] };
   }
   return {
-    min:[
-      Math.min(...aabbs.map(aabb => aabb.min[0])),
-      Math.min(...aabbs.map(aabb => aabb.min[1])),
-      Math.min(...aabbs.map(aabb => aabb.min[2])),
+    min: [
+      Math.min(...aabbs.map((aabb) => aabb.min[0])),
+      Math.min(...aabbs.map((aabb) => aabb.min[1])),
+      Math.min(...aabbs.map((aabb) => aabb.min[2])),
     ],
-    max:[
-      Math.max(...aabbs.map(aabb => aabb.max[0])),
-      Math.max(...aabbs.map(aabb => aabb.max[1])),
-      Math.max(...aabbs.map(aabb => aabb.max[2])),
+    max: [
+      Math.max(...aabbs.map((aabb) => aabb.max[0])),
+      Math.max(...aabbs.map((aabb) => aabb.max[1])),
+      Math.max(...aabbs.map((aabb) => aabb.max[2])),
     ],
   };
 }
@@ -34,8 +38,8 @@ function bvhNodeFromData<T extends AABB>(data: T[]) {
   return {
     ...getCombinedBounds(data),
     children: [],
-    data
-  }
+    data,
+  };
 }
 
 function splitBVHNode<T extends AABB>(node: BVHNode<T>): void {
@@ -46,13 +50,14 @@ function splitBVHNode<T extends AABB>(node: BVHNode<T>): void {
   const axis: Axis = {
     [xrange]: Axis.X,
     [yrange]: Axis.Y,
-    [zrange]: Axis.Z
+    [zrange]: Axis.Z,
   }[longestAxis];
 
   let sortedChildren: T[];
 
   function axisCallback(axis: number) {
-    return (a: AABB, b: AABB) => (a.max[axis] + a.min[axis]) / 2 - (b.max[axis] + b.min[axis]) / 2
+    return (a: AABB, b: AABB) =>
+      (a.max[axis] + a.min[axis]) / 2 - (b.max[axis] + b.min[axis]) / 2;
   }
 
   if (axis == Axis.X) {
@@ -67,10 +72,10 @@ function splitBVHNode<T extends AABB>(node: BVHNode<T>): void {
 
   const halves = [
     sortedChildren.slice(0, splitPoint),
-    sortedChildren.slice(splitPoint, sortedChildren.length)
+    sortedChildren.slice(splitPoint, sortedChildren.length),
   ];
 
-  node.children = halves.map(half => bvhNodeFromData(half));
+  node.children = halves.map((half) => bvhNodeFromData(half));
 }
 
 export function bvhify<T extends AABB>(data: T[]): BVHNode<T> {
@@ -84,24 +89,37 @@ export function bvhify<T extends AABB>(data: T[]): BVHNode<T> {
       helper(child);
     }
   }
-  
+
   return bvhNode;
 }
 
-
-
 export function getBounds(obj: { vertices: [number, number, number][] }) {
-  return obj.vertices.reduce((prev: AABB, curr) => {
-    return {
-      min: [ Math.min(curr[0], prev.min[0]), Math.min(curr[1], prev.min[1]), Math.min(curr[2], prev.min[2]) ],
-      max: [ Math.max(curr[0], prev.max[0]), Math.max(curr[1], prev.max[1]), Math.max(curr[2], prev.max[2]) ],
-    } as AABB;
-  }, { min: [Infinity, Infinity, Infinity], max: [-Infinity, -Infinity, -Infinity]});
+  return obj.vertices.reduce(
+    (prev: AABB, curr) => {
+      return {
+        min: [
+          Math.min(curr[0], prev.min[0]),
+          Math.min(curr[1], prev.min[1]),
+          Math.min(curr[2], prev.min[2]),
+        ],
+        max: [
+          Math.max(curr[0], prev.max[0]),
+          Math.max(curr[1], prev.max[1]),
+          Math.max(curr[2], prev.max[2]),
+        ],
+      } as AABB;
+    },
+    {
+      min: [Infinity, Infinity, Infinity],
+      max: [-Infinity, -Infinity, -Infinity],
+    }
+  );
 }
 
-
 export function makeOBJBVH(objs: ParsedOBJ[]): BVHNode<ParsedOBJ & AABB> {
-  return bvhify(objs.map(obj => {
-    return { ...obj, ...getBounds(obj) }
-  }));
+  return bvhify(
+    objs.map((obj) => {
+      return { ...obj, ...getBounds(obj) };
+    })
+  );
 }

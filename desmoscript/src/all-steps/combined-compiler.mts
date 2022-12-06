@@ -10,7 +10,10 @@ import { GraphState } from "../graphstate.mjs";
 import * as z from "zod";
 import { levenshtein } from "./error-hints.mjs";
 
-export async function compileDesmoscript(entryPoint: string, filesOut: Set<string>) {
+export async function compileDesmoscript(
+  entryPoint: string,
+  filesOut: Set<string>
+) {
   filesOut.add(path.resolve(entryPoint));
   const ctx: DesmoscriptCompileContext = {
     existingNames: new Set(),
@@ -18,7 +21,7 @@ export async function compileDesmoscript(entryPoint: string, filesOut: Set<strin
     compilationUnits: new Map(),
     compilationUnitPrefixes: new Map(),
     namespaceSeparator: "X",
-  }
+  };
   entryPoint = path.resolve(entryPoint);
   const ast = await desmoscriptFileToAST(entryPoint);
   await astToCompilationUnitFirstPass(ast, ctx, entryPoint, filesOut);
@@ -35,11 +38,9 @@ export async function compileDesmoscript(entryPoint: string, filesOut: Set<strin
 
   return {
     graphState: await compile(ctx),
-    files: Array.from(filesOut)
+    files: Array.from(filesOut),
   };
 }
-
-
 
 // coloured logging functions
 function logInfo(content: string) {
@@ -59,15 +60,16 @@ const desmoscriptErrorParser = z.object({
   expr: z.object({
     file: z.string(),
     line: z.number(),
-    col: z.number()
-  })
+    col: z.number(),
+  }),
 });
 
-
-export async function createDesmoscriptWatchServer(entryPoint: string, options?: {
-  port?: number
-}) {
-
+export async function createDesmoscriptWatchServer(
+  entryPoint: string,
+  options?: {
+    port?: number;
+  }
+) {
   const port = options?.port ?? 8081;
 
   let compiledOutput: GraphState | null = null;
@@ -75,12 +77,12 @@ export async function createDesmoscriptWatchServer(entryPoint: string, options?:
   let watchedFiles = new Set<string>();
 
   async function doCompilation() {
-
     // try to compile
     let hadErr = false;
     let err: any = undefined;
     try {
-      compiledOutput = (await compileDesmoscript(entryPoint, watchedFiles)).graphState;
+      compiledOutput = (await compileDesmoscript(entryPoint, watchedFiles))
+        .graphState;
     } catch (err2) {
       hadErr = true;
       err = err2;
@@ -95,7 +97,9 @@ export async function createDesmoscriptWatchServer(entryPoint: string, options?:
     if (hadErr) {
       const dserr = desmoscriptErrorParser.safeParse(err);
       if (dserr.success) {
-        logError(`${dserr.data.expr.file}\n line ${dserr.data.expr.line}; col ${dserr.data.expr.col}; ${dserr.data.reason}`);
+        logError(
+          `${dserr.data.expr.file}\n line ${dserr.data.expr.line}; col ${dserr.data.expr.col}; ${dserr.data.reason}`
+        );
       } else {
         logError(`err: ${JSON.stringify(dserr)} ${(err as Error).stack}`);
       }
@@ -105,8 +109,8 @@ export async function createDesmoscriptWatchServer(entryPoint: string, options?:
     const watcher = chokidar.watch(Array.from(watchedFiles), {
       ignoreInitial: true,
       awaitWriteFinish: {
-        stabilityThreshold: 500
-      }
+        stabilityThreshold: 500,
+      },
     });
     watcher.on("all", () => {
       watcher.close();
@@ -118,7 +122,7 @@ export async function createDesmoscriptWatchServer(entryPoint: string, options?:
       logSuccess("Compiled successfully!");
     }
   }
-  
+
   doCompilation();
 
   const server = http.createServer((req, res) => {

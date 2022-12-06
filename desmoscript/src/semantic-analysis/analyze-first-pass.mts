@@ -42,7 +42,12 @@ export function err(expr: RawASTExpr<{}>, reason: string): never {
   };
 }
 
-export function makeAndBindNewScope(parent: Scope, name: string, associatedExpression: ASTExpr, symbolInnerScopes: Map<number, Scope>): Scope {
+export function makeAndBindNewScope(
+  parent: Scope,
+  name: string,
+  associatedExpression: ASTExpr,
+  symbolInnerScopes: Map<number, Scope>
+): Scope {
   const newScope = {
     name,
     parent,
@@ -58,6 +63,8 @@ export function makeAndBindNewScope(parent: Scope, name: string, associatedExpre
 
 type ASTToCompilationUnitContext = {
   scope: Scope;
+  decoratorInfo?: ScopeContent.Variable["decoratorInfo"];
+  shouldRemoveDecoratorInfo?: boolean;
 };
 
 function checkLengthOneSegment(e: ASTIdentifier<{}>, typename: string) {
@@ -85,6 +92,22 @@ export async function createVariableScopesAndDeclareImports(
       symbolScopes.set(e.id, ctx.scope);
     },
 
+    ctxmap(expr, ctx) {
+      if (ctx.shouldRemoveDecoratorInfo) {
+        return {
+          ...ctx,
+          decoratorInfo: undefined,
+          shouldRemoveDecoratorInfo: undefined,
+        };
+      } else if (ctx.shouldRemoveDecoratorInfo === false) {
+        return {
+          ...ctx,
+          shouldRemoveDecoratorInfo: true,
+        };
+      }
+      return ctx;
+    },
+
     async number(e, ctx, v) {},
 
     async binop(e, ctx, v) {
@@ -97,10 +120,12 @@ export async function createVariableScopesAndDeclareImports(
         }
         checkLengthOneSegment(e.left, "Variable");
         checkNamespaceCollision(e.left, "Variable", ctx.scope);
+
         ctx.scope.contents.set(e.left.segments[0], {
           type: ScopeContent.Type.VARIABLE,
-          data: e
-        })
+          data: e,
+          decoratorInfo: ctx.decoratorInfo,
+        });
       }
     },
 
@@ -136,7 +161,12 @@ export async function createVariableScopesAndDeclareImports(
     },
 
     async fndef(e, ctx, v) {
-      const innerScope = makeAndBindNewScope(ctx.scope, e.id.toString(), e, symbolInnerScopes);
+      const innerScope = makeAndBindNewScope(
+        ctx.scope,
+        e.id.toString(),
+        e,
+        symbolInnerScopes
+      );
       innerScope.correspondingFunctionName = e.name;
       const innerctx = {
         scope: innerScope,
@@ -163,7 +193,12 @@ export async function createVariableScopesAndDeclareImports(
 
     async namespace(e, ctx, v) {
       checkNamespaceCollision([e, e.name], "Namespace", ctx.scope);
-      const innerScope = makeAndBindNewScope(ctx.scope, e.name, e, symbolInnerScopes);
+      const innerScope = makeAndBindNewScope(
+        ctx.scope,
+        e.name,
+        e,
+        symbolInnerScopes
+      );
       const innerctx = {
         scope: innerScope,
       };
@@ -171,7 +206,12 @@ export async function createVariableScopesAndDeclareImports(
     },
 
     async block(e, ctx, v) {
-      const innerScope = makeAndBindNewScope(ctx.scope, e.id.toString(), e, symbolInnerScopes);
+      const innerScope = makeAndBindNewScope(
+        ctx.scope,
+        e.id.toString(),
+        e,
+        symbolInnerScopes
+      );
       const innerctx = { scope: innerScope };
       for (const expr of e.bodyExprs) await v(expr, innerctx);
       //await Promise.all(e.bodyExprs.map((expr) => v(expr, innerctx)));
@@ -196,11 +236,21 @@ export async function createVariableScopesAndDeclareImports(
       if (compileContext.existingFiles.has(fullPath)) return;
       const parsedOutput = await desmoscriptFileToAST(fullPath);
       //(parsedOutput);
-      await astToCompilationUnitFirstPass(parsedOutput, compileContext, fullPath, watchFiles);
+      await astToCompilationUnitFirstPass(
+        parsedOutput,
+        compileContext,
+        fullPath,
+        watchFiles
+      );
     },
 
     async sumprodint(e, ctx, v) {
-      const innerScope = makeAndBindNewScope(ctx.scope, e.id.toString(), e, symbolInnerScopes);
+      const innerScope = makeAndBindNewScope(
+        ctx.scope,
+        e.id.toString(),
+        e,
+        symbolInnerScopes
+      );
       const innerctx = { scope: innerScope };
       innerScope.contents.set(e.varName, {
         type: ScopeContent.Type.VARIABLE,
@@ -214,7 +264,12 @@ export async function createVariableScopesAndDeclareImports(
     },
 
     async derivative(e, ctx, v) {
-      const innerScope = makeAndBindNewScope(ctx.scope, e.id.toString(), e, symbolInnerScopes);
+      const innerScope = makeAndBindNewScope(
+        ctx.scope,
+        e.id.toString(),
+        e,
+        symbolInnerScopes
+      );
       const innerctx = { scope: innerScope };
       innerScope.contents.set(e.variable, {
         type: ScopeContent.Type.VARIABLE,
@@ -224,7 +279,12 @@ export async function createVariableScopesAndDeclareImports(
     },
 
     async listcomp(e, ctx, v) {
-      const innerScope = makeAndBindNewScope(ctx.scope, e.id.toString(), e, symbolInnerScopes);
+      const innerScope = makeAndBindNewScope(
+        ctx.scope,
+        e.id.toString(),
+        e,
+        symbolInnerScopes
+      );
       const innerctx = { scope: innerScope };
       await Promise.all(
         e.variables
@@ -262,13 +322,12 @@ export async function createVariableScopesAndDeclareImports(
         err(e.json, "Expected a JSON expression here.");
       }
       await v(e.json, ctx);
-      await v(e.expr, ctx);
-      ctx.scope.contents.set(e.id.toString(), {
-        type: ScopeContent.Type.VARIABLE,
-        data: e.expr,
+      await v(e.expr, {
+        ...ctx,
         decoratorInfo: {
           json: e.json,
         },
+        shouldRemoveDecoratorInfo: false,
       });
     },
 
@@ -280,7 +339,7 @@ export async function createVariableScopesAndDeclareImports(
       ctx.scope.contents.set(e.id.toString(), {
         type: ScopeContent.Type.NAMED_JSON,
         data: e.json,
-        name: e.name
+        name: e.name,
       });
     },
 

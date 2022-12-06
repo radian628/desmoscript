@@ -1,5 +1,9 @@
 import * as path from "node:path";
-import { DesmoscriptCompileContext, Scope, ScopeContent } from "../semantic-analysis/analysis-types.mjs";
+import {
+  DesmoscriptCompileContext,
+  Scope,
+  ScopeContent,
+} from "../semantic-analysis/analysis-types.mjs";
 
 // determines what string to use for separating namespaces while completely
 // avoiding namespace collisions
@@ -21,7 +25,9 @@ export function determineNamespaceSeparator(ctx: DesmoscriptCompileContext) {
   const fileNames = new Set<string>();
 
   for (const [unitFilePath, unit] of ctx.compilationUnits) {
-    let initProposedName = path.parse(unitFilePath).name.replace(/[^a-zA-Z]/g, "");
+    let initProposedName = path
+      .parse(unitFilePath)
+      .name.replace(/[^a-zA-Z]/g, "");
     let proposedName = initProposedName;
     let disambiguator = 1;
     while (ctx.existingNames.has(proposedName)) {

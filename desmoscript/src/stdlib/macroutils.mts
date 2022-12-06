@@ -1,5 +1,8 @@
 import { ASTExpr, ASTType } from "../ast/ast.mjs";
-import { MacroAPI, ScopeContent } from "../semantic-analysis/analysis-types.mjs";
+import {
+  MacroAPI,
+  ScopeContent,
+} from "../semantic-analysis/analysis-types.mjs";
 import { mapAST } from "../ast/ast-visitor.mjs";
 
 export function parseNoteString(
@@ -75,53 +78,50 @@ export const sub: ScopeContent.Content = {
           );
         }
 
-        return mapAST(
-          body,
-          (expr3) => {
-            function substituteString(original: string) {
-              const index = args.indexOf(original);
-              if (index == -1) return original;
-              return parseIdentSingleString(
-                expr2.args[index],
-                a2,
-                `argument ${index}`,
-                `This macro argument is used in a context which requires it to be a one-segment identifier.`
-              );
-            }
-            if (expr3.type == ASTType.IDENTIFIER) {
-              if (expr3.segments.length == 1) {
-                const index = args.indexOf(expr3.segments[0]);
-                if (index != -1) {
-                  return expr2.args[index];
-                }
-              } else {
-                const newsegments = expr3.segments
-                  .map((segment) => {
-                    const index = args.indexOf(segment);
-                    if (index != -1) {
-                      const replacement = expr2.args[index];
-                      if (replacement.type != ASTType.IDENTIFIER) {
-                        a2.error(
-                          "Macro argument is used in a context that requires it to be an identifier."
-                        );
-                      } else {
-                        return replacement.segments;
-                      }
-                    }
-                    return segment;
-                  })
-                  .flat();
-                return {
-                  ...expr3,
-                  segments: newsegments,
-                };
-              }
-            } else if (expr3.type == ASTType.NAMESPACE) {
-              expr3.name = substituteString(expr3.name);
-            }
-            return expr3;
+        return mapAST(body, (expr3) => {
+          function substituteString(original: string) {
+            const index = args.indexOf(original);
+            if (index == -1) return original;
+            return parseIdentSingleString(
+              expr2.args[index],
+              a2,
+              `argument ${index}`,
+              `This macro argument is used in a context which requires it to be a one-segment identifier.`
+            );
           }
-        );
+          if (expr3.type == ASTType.IDENTIFIER) {
+            if (expr3.segments.length == 1) {
+              const index = args.indexOf(expr3.segments[0]);
+              if (index != -1) {
+                return expr2.args[index];
+              }
+            } else {
+              const newsegments = expr3.segments
+                .map((segment) => {
+                  const index = args.indexOf(segment);
+                  if (index != -1) {
+                    const replacement = expr2.args[index];
+                    if (replacement.type != ASTType.IDENTIFIER) {
+                      a2.error(
+                        "Macro argument is used in a context that requires it to be an identifier."
+                      );
+                    } else {
+                      return replacement.segments;
+                    }
+                  }
+                  return segment;
+                })
+                .flat();
+              return {
+                ...expr3,
+                segments: newsegments,
+              };
+            }
+          } else if (expr3.type == ASTType.NAMESPACE) {
+            expr3.name = substituteString(expr3.name);
+          }
+          return expr3;
+        });
       },
     });
 

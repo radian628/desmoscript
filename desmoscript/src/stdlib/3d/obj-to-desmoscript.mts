@@ -1,4 +1,3 @@
-
 import * as fs from "node:fs/promises";
 import * as path from "node:path";
 
@@ -8,8 +7,11 @@ import {
   parseIdentSingleString,
   parseNoteString,
 } from "../macroutils.mjs";
-import { AABB } from "./bvh.mjs"
-import { MacroAPI, ScopeContent } from "../../semantic-analysis/analysis-types.mjs";
+import { AABB } from "./bvh.mjs";
+import {
+  MacroAPI,
+  ScopeContent,
+} from "../../semantic-analysis/analysis-types.mjs";
 import { ParsedOBJ, parseObjKey, tryParseObj } from "./obj-importer.mjs";
 import { parsedOBJKeys } from "./obj-importer-helpers.mjs";
 
@@ -204,6 +206,3 @@ function desmoscriptObjMaterials(obj: ParsedOBJ, a: MacroAPI) {
     ),
   ]);
 }
-
-
-

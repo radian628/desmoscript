@@ -41,16 +41,16 @@ export namespace ScopeContent {
     };
   } & (
     | {
-      isPartOfDesmos?: false;
+        isPartOfDesmos?: false;
         isBuiltin?: false;
         data: RawASTExpr<{}>;
       }
     | {
-      isPartOfDesmos?: boolean;
+        isPartOfDesmos?: boolean;
         isBuiltin: true;
       }
     | {
-        isPartOfDesmos: true
+        isPartOfDesmos: true;
         isBuiltin?: false;
       }
   );
@@ -70,7 +70,7 @@ export namespace ScopeContent {
         isBuiltin: true;
       }
     | {
-        isPartOfDesmos: true
+        isPartOfDesmos: true;
         isBuiltin?: false;
       }
   );
@@ -96,7 +96,7 @@ export namespace ScopeContent {
     source?: string;
     type: Type.NAMED_JSON;
     data: ASTJSON<{}>;
-    name: string
+    name: string;
   };
 
   export type Note = {
@@ -212,7 +212,7 @@ export type DesmoscriptCompilationUnit = {
   symbolInnerScopes: Map<number, Scope>;
   rootScope: Scope;
   filePath: string;
-  substitutionLUT: Map<number, ASTExpr>
+  substitutionLUT: Map<number, ASTExpr>;
 };
 
 // represents all the data necessary to compile a desmoscript program
@@ -221,5 +221,5 @@ export type DesmoscriptCompileContext = {
   existingFiles: Set<string>;
   compilationUnits: Map<string, DesmoscriptCompilationUnit>;
   compilationUnitPrefixes: Map<string, string>;
-  namespaceSeparator: string
+  namespaceSeparator: string;
 };
