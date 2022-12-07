@@ -51,14 +51,19 @@ export function cross(
   ];
 }
 
+export function normalize(a: [number, number, number]): [number, number, number] {
+  const len = Math.hypot(...a);
+  return a.map(n => n / len) as [number, number, number];
+}
+
 export function getNormal(
   a: [number, number, number],
   b: [number, number, number],
   c: [number, number, number]
 ): [number, number, number] {
   return cross(
-    b.map((e, i) => e - a[i]) as [number, number, number],
-    c.map((e, i) => e - a[i]) as [number, number, number]
+    normalize(b.map((e, i) => e - a[i]) as [number, number, number]),
+    normalize(c.map((e, i) => e - a[i]) as [number, number, number])
   );
 }
 

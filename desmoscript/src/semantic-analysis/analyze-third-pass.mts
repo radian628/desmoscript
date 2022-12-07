@@ -48,7 +48,11 @@ export async function astToCompilationUnitThirdPass(
     ...noOpLUT(new Promise<void>((resolve, reject) => resolve())),
     async fncall(e, ctx, v) {
       // don't attempt to perform macro substitution on non-macros
-      if (!e.isMacro) return;
+      if (!e.isMacro) {
+        await v(e.name, ctx);
+        for (let arg of e.args) await v(arg, ctx);
+        return
+      }
 
       // for (const arg of e.args) {
       //   v(arg, ctx);

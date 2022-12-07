@@ -1,7 +1,7 @@
 import "../../../desmo-lib/3d.desmo" as t;
 import "../../../desmo-lib/binary.desmo" as bin;
 
-multiObjToDesmoscript!(test, "assets/2kicosphere.obj")
+multiObjToDesmoscript!(test, "assets/twomonkeys.obj")
 
 currentFrame = 0;
 
@@ -18,7 +18,7 @@ ticker @{
 ns controls {
   xpos = 0;
   ypos = 0;
-  zpos = -5;
+  zpos = -3;
 
   xposMeshLookup = 0;
   yposMeshLookup = 0;
@@ -35,7 +35,7 @@ lookupMesh!(
   testLookup, test,
   -4 + controls.xposMeshLookup, -4 + controls.yposMeshLookup, -4 + controls.zposMeshLookup,
   4 + controls.xposMeshLookup, 4 + controls.yposMeshLookup, 4 + controls.zposMeshLookup,
-  10
+  2
 )
 
 ns display {
@@ -86,8 +86,8 @@ ns display {
 
   ns light {
     x = 0;
-    y = 20;
-    z = -10;
+    y = 0;
+    z = 0;
   
     ns offset {
       x = light.x - average.x;
@@ -98,27 +98,42 @@ ns display {
     }
 
     diffuse = 
-      offset.x / offset.mag * testLookup.normal.x
+      (offset.x / offset.mag * testLookup.normal.x
     + offset.y / offset.mag * testLookup.normal.y
-    + offset.z / offset.mag * testLookup.normal.z;
+    + offset.z / offset.mag * testLookup.normal.z) * 1;
+
+    
+    ns offset2 {
+      x = -1 * light.x - average.x;
+      y = -1 * light.y - average.y;
+      z = 1 * light.z - average.z;
+
+      mag = (x*x + y*y + z*z) ^ 0.5;
+    }
+
 
     ns reflect {
       ndotl = 
-        t.dotns!(
-          testLookup.normal, normalizedViewAverage
-        );
-      x = -2 * ndotl * testLookup.normal.x + normalizedViewAverage.x;
-      y = -2 * ndotl * testLookup.normal.y + normalizedViewAverage.y;
-      z = -2 * ndotl * testLookup.normal.z + normalizedViewAverage.z;
+      (offset2.x / offset2.mag * testLookup.normal.x
+    + offset2.y / offset2.mag * testLookup.normal.y
+    + offset2.z / offset2.mag * testLookup.normal.z) * 1;
+      x = 2 * ndotl * testLookup.normal.x - offset2.x / offset2.mag * 1;
+      y = 2 * ndotl * testLookup.normal.y - offset2.y / offset2.mag * 1;
+      z = 2 * ndotl * testLookup.normal.z - offset2.z / offset2.mag * 1;
     }
 
-    specular = (t.dotns!(reflect, offset) / offset.mag) ^ 16.0;
+    specular = 
+        (max(t.dotns!(reflect, normalizedViewAverage), 0)) ^ 4;
 
   }
 
   // test = t.dotns!(a, b);
 
-  colors = rgb(light.diffuse * 256, light.specular * 256, 0);
+  colors = rgb(
+    max(light.diffuse, 0) * 256 + light.specular * 256, 
+    light.specular * 256, 
+    light.specular * 256
+  );  
 
   show polys = [
   getClippedPolygon(
