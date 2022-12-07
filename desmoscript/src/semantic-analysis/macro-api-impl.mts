@@ -14,7 +14,7 @@ import {
 import { getScopeOfExpr } from "./analyze-utils.mjs";
 import { err } from "./analyze-first-pass.mjs";
 
-function remapIDs(value: any) {
+export function remapIDs(value: any) {
   if (Array.isArray(value)) {
     value.forEach((e) => remapIDs(e));
     return;

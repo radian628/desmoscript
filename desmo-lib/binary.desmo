@@ -55,7 +55,7 @@ fn getComponentOfNormalOfMesh(mesh, component) {
     8,
     6,
     triCount
-  ) / 256 - 1
+  ) / 128 - 1
 }
 
 fn getTriangleCount(mesh) {

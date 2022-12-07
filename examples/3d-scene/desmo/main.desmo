@@ -45,6 +45,81 @@ ns display {
     z = testLookup.vertexPosition.z - controls.zpos;
   }
 
+  ns average {
+    x = 
+      (
+        testLookup.vertexPosition.x[testLookup.index.tri1]
+        + testLookup.vertexPosition.x[testLookup.index.tri2]
+        + testLookup.vertexPosition.x[testLookup.index.tri3]
+      ) / 3;
+    y = 
+      (
+        testLookup.vertexPosition.y[testLookup.index.tri1]
+        + testLookup.vertexPosition.y[testLookup.index.tri2]
+        + testLookup.vertexPosition.y[testLookup.index.tri3]
+      ) / 3;
+    z = 
+      (
+        testLookup.vertexPosition.z[testLookup.index.tri1]
+        + testLookup.vertexPosition.z[testLookup.index.tri2]
+        + testLookup.vertexPosition.z[testLookup.index.tri3]
+      ) / 3;
+  }
+
+  ns viewAverage {
+    x = average.x - controls.xpos;
+    y = average.y - controls.ypos;
+    z = average.z - controls.zpos;
+  }
+
+  polygonDepths = (
+    (average.x - controls.xpos) ^ 2 + (average.y - controls.ypos) ^ 2 + (average.z - controls.zpos) ^ 2
+  ) ^ 0.5;
+
+  ns normalizedViewAverage {
+    x = viewAverage.x / polygonDepths;
+    y = viewAverage.y / polygonDepths;
+    z = viewAverage.z / polygonDepths;
+  }
+
+  depthSortOrder = sort(1 .. length(testLookup.index.tri1), -1 * polygonDepths);
+
+  ns light {
+    x = 0;
+    y = 20;
+    z = -10;
+  
+    ns offset {
+      x = light.x - average.x;
+      y = light.y - average.y;
+      z = light.z - average.z;
+
+      mag = (x*x + y*y + z*z) ^ 0.5;
+    }
+
+    diffuse = 
+      offset.x / offset.mag * testLookup.normal.x
+    + offset.y / offset.mag * testLookup.normal.y
+    + offset.z / offset.mag * testLookup.normal.z;
+
+    ns reflect {
+      ndotl = 
+        t.dotns!(
+          testLookup.normal, normalizedViewAverage
+        );
+      x = -2 * ndotl * testLookup.normal.x + normalizedViewAverage.x;
+      y = -2 * ndotl * testLookup.normal.y + normalizedViewAverage.y;
+      z = -2 * ndotl * testLookup.normal.z + normalizedViewAverage.z;
+    }
+
+    specular = (t.dotns!(reflect, offset) / offset.mag) ^ 16.0;
+
+  }
+
+  // test = t.dotns!(a, b);
+
+  colors = rgb(light.diffuse * 256, light.specular * 256, 0);
+
   show polys = [
   getClippedPolygon(
     0.01,
@@ -57,15 +132,17 @@ ns display {
     translated.x[testLookup.index.tri3[i]],
     translated.y[testLookup.index.tri3[i]],
     translated.z[testLookup.index.tri3[i]]
-  )
+    )
   for
   i=1 .. length(testLookup.index.tri1)
-  ]; with @{
+  ][depthSortOrder]; with @{
     color: "red",
     lines: false,
-    fillOpacity: ds(1)
+    fillOpacity: ds(1),
+    colorLatex: ds(
+        colors[depthSortOrder]
+    )
   }
-
 }
 
 

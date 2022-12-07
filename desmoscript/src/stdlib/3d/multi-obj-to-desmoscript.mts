@@ -389,6 +389,7 @@ export const lookupMesh: ScopeContent.Macro["fn"] = async function (
     ));
   });
 
+  expressions.push(a.ns("normal", normalsNamespaceContents))
   expressions.push(a.ns("vertexPosition", verticesNamespaceContents));
   expressions.push(a.ns("index", indicesNamespaceContents));
 

@@ -4,6 +4,8 @@ import {
   ScopeContent,
 } from "../semantic-analysis/analysis-types.mjs";
 import { mapAST } from "../ast/ast-visitor.mjs";
+import { remapIDs } from "../semantic-analysis/macro-api-impl.mjs";
+import { makeExprId } from "../ast/parse.mjs";
 
 export function parseNoteString(
   expr: ASTExpr | undefined,
@@ -78,7 +80,7 @@ export const sub: ScopeContent.Content = {
           );
         }
 
-        return mapAST(body, (expr3) => {
+        const exprTreeClone = (mapAST(body, (expr3) => {
           function substituteString(original: string) {
             const index = args.indexOf(original);
             if (index == -1) return original;
@@ -93,7 +95,7 @@ export const sub: ScopeContent.Content = {
             if (expr3.segments.length == 1) {
               const index = args.indexOf(expr3.segments[0]);
               if (index != -1) {
-                return expr2.args[index];
+                return { ...expr2.args[index], id: makeExprId() };
               }
             } else {
               const newsegments = expr3.segments
@@ -115,13 +117,17 @@ export const sub: ScopeContent.Content = {
               return {
                 ...expr3,
                 segments: newsegments,
+                id: makeExprId()
               };
             }
           } else if (expr3.type == ASTType.NAMESPACE) {
             expr3.name = substituteString(expr3.name);
           }
-          return expr3;
-        });
+          return { ...expr3,
+            id: makeExprId() };
+        }));
+
+        return exprTreeClone;
       },
     });
 

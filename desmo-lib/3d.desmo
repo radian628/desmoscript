@@ -217,3 +217,7 @@ sub!(projection, outvec, u, v,
         z = v.z * factor;
     }
 )
+
+sub!(dotns, ns1, ns2,
+    ns1.x * ns2.x + ns1.y * ns2.y + ns1.z * ns2.z
+)
