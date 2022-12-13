@@ -61,7 +61,7 @@ export let loadObj: ScopeContent.Macro["fn"] = async function (expr, ctx, a) {
         case "texcoordIndices":
           return desmoscriptObjTexcoordIndices(obj, a);
         case "materials":
-          return desmoscriptObjMaterials(obj, a);
+          return desmoscriptObjMaterials(obj.materials, a);
         case "faceMaterials":
           return desmoscriptObjFaceMaterials(obj, a);
         default:
@@ -96,17 +96,17 @@ function desmoscriptObjNormals(obj: ParsedOBJ, a: MacroAPI) {
     a.binop(
       a.ident("x"),
       "=",
-      a.list(...obj.normals.map((v) => a.number(v[0])))
+      a.list(...obj.normals.map((v) => a.number(isNaN(v[0]) ? 0 : v[0])))
     ),
     a.binop(
       a.ident("y"),
       "=",
-      a.list(...obj.normals.map((v) => a.number(v[1])))
+      a.list(...obj.normals.map((v) => a.number(isNaN(v[1]) ? 0 : v[1])))
     ),
     a.binop(
       a.ident("z"),
       "=",
-      a.list(...obj.normals.map((v) => a.number(v[2])))
+      a.list(...obj.normals.map((v) => a.number(isNaN(v[2]) ? 0 : v[2])))
     ),
   ]);
 }
@@ -158,7 +158,7 @@ function desmoscriptObjFaceMaterials(obj: ParsedOBJ, a: MacroAPI) {
   );
 }
 
-function desmoscriptObjMaterials(obj: ParsedOBJ, a: MacroAPI) {
+export function desmoscriptObjMaterials(materials: ParsedOBJ["materials"], a: MacroAPI) {
   function rgbProperty(name: string, data: [number, number, number][]) {
     return a.ns(name, [
       a.binop(a.ident("r"), "=", a.list(...data.map((d) => a.number(d[0])))),
@@ -166,6 +166,8 @@ function desmoscriptObjMaterials(obj: ParsedOBJ, a: MacroAPI) {
       a.binop(a.ident("b"), "=", a.list(...data.map((d) => a.number(d[2])))),
     ]);
   }
+
+  const obj = { materials };
 
   return a.ns("materials", [
     rgbProperty(

@@ -7,7 +7,7 @@ import {
   ScopeContent,
   ScopeInfo,
 } from "./analysis-types.mjs";
-import { desmoscriptFileToAST, uniqueAnonScopeName } from "../ast/parse.mjs";
+import { desmoscriptFileToAST, makeExprId, uniqueAnonScopeName } from "../ast/parse.mjs";
 import * as path from "node:path";
 import {
   ASTExpr,
@@ -36,6 +36,7 @@ import { createDesmosBuiltins } from "./builtins.mjs";
 // }
 
 export function err(expr: RawASTExpr<{}>, reason: string): never {
+  console.trace();
   throw {
     expr,
     reason,
@@ -56,6 +57,7 @@ export function makeAndBindNewScope(
   parent.contents.set(name, {
     type: ScopeContent.Type.SCOPE,
     data: newScope,
+    id: makeExprId()
   });
   symbolInnerScopes.set(associatedExpression.id, newScope);
   return newScope;
@@ -122,6 +124,7 @@ export async function createVariableScopesAndDeclareImports(
         checkNamespaceCollision(e.left, "Variable", ctx.scope);
 
         ctx.scope.contents.set(e.left.segments[0], {
+          id: makeExprId(),
           type: ScopeContent.Type.VARIABLE,
           data: e,
           decoratorInfo: ctx.decoratorInfo,
@@ -173,6 +176,7 @@ export async function createVariableScopesAndDeclareImports(
       };
       e.args.forEach((arg) => {
         innerScope.contents.set(arg, {
+          id: makeExprId(),
           type: ScopeContent.Type.VARIABLE,
           isBuiltin: true,
         });
@@ -184,6 +188,7 @@ export async function createVariableScopesAndDeclareImports(
 
       checkNamespaceCollision([e, e.name], "Function", ctx.scope);
       ctx.scope.contents.set(e.name, {
+        id: makeExprId(),
         type: ScopeContent.Type.FUNCTION,
         isBuiltin: false,
         data: e,
@@ -229,6 +234,7 @@ export async function createVariableScopesAndDeclareImports(
     async import(e, ctx, v) {
       const fullPath = path.join(dirname, e.filename);
       ctx.scope.contents.set(e.alias, {
+        id: makeExprId(),
         type: ScopeContent.Type.IMPORT,
         unit: fullPath,
         alias: e.alias,
@@ -236,7 +242,7 @@ export async function createVariableScopesAndDeclareImports(
       if (compileContext.existingFiles.has(fullPath)) return;
       const parsedOutput = await desmoscriptFileToAST(fullPath);
       //(parsedOutput);
-      await astToCompilationUnitFirstPass(
+      await astToCompilationUnitScopePass(
         parsedOutput,
         compileContext,
         fullPath,
@@ -253,6 +259,7 @@ export async function createVariableScopesAndDeclareImports(
       );
       const innerctx = { scope: innerScope };
       innerScope.contents.set(e.varName, {
+        id: makeExprId(),
         type: ScopeContent.Type.VARIABLE,
         isBuiltin: true,
       });
@@ -272,6 +279,7 @@ export async function createVariableScopesAndDeclareImports(
       );
       const innerctx = { scope: innerScope };
       innerScope.contents.set(e.variable, {
+        id: makeExprId(),
         type: ScopeContent.Type.VARIABLE,
         isBuiltin: true,
       });
@@ -290,6 +298,7 @@ export async function createVariableScopesAndDeclareImports(
         e.variables
           .map(([varName, value]) => {
             innerScope.contents.set(varName, {
+              id: makeExprId(),
               type: ScopeContent.Type.VARIABLE,
               isBuiltin: true,
             });
@@ -337,6 +346,7 @@ export async function createVariableScopesAndDeclareImports(
       }
       await v(e.json, ctx);
       ctx.scope.contents.set(e.id.toString(), {
+        id: makeExprId(),
         type: ScopeContent.Type.NAMED_JSON,
         data: e.json,
         name: e.name,
@@ -345,6 +355,7 @@ export async function createVariableScopesAndDeclareImports(
 
     async note(e, ctx, v) {
       ctx.scope.contents.set(e.id.toString(), {
+        id: makeExprId(),
         type: ScopeContent.Type.NOTE,
         data: e.text,
       });
@@ -362,7 +373,7 @@ export async function createVariableScopesAndDeclareImports(
 }
 
 // compiler first pass: create variables scopes and gather files
-export async function astToCompilationUnitFirstPass(
+export async function astToCompilationUnitScopePass(
   ast: RawASTExpr<{}>,
   compileContext: DesmoscriptCompileContext,
   filePath: string,

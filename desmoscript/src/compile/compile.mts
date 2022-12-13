@@ -25,10 +25,11 @@ import {
   JSONType,
   RawASTExpr,
 } from "../ast/ast.mjs";
-import { err } from "../semantic-analysis/analyze-first-pass.mjs";
+import { err } from "../semantic-analysis/analyze-scope-pass.mjs";
 import { ASTVisitorLUT, noOpLUT, visitAST } from "../ast/ast-visitor.mjs";
 import {
   findIdentifier,
+  findIdentifierWithErrorFeedback,
   getCanonicalPath,
   getHumanReadablePath,
   getInnerScopeOfExpr,
@@ -37,6 +38,7 @@ import {
 import { determineNamespaceSeparator } from "./determine-namespace-separator.mjs";
 
 import * as fs from "node:fs/promises";
+import { makeExprId } from "../ast/parse.mjs";
 
 let exprIdCounter = 0;
 function uniqueExpressionID() {
@@ -110,16 +112,29 @@ function makeDesmosVarName(
   path: string[],
   name: string
 ) {
-  return toDesmosVar(createVariableName(compileContext, unit, path, name));
+  //return toDesmosVar(createVariableName(compileContext, unit, path, name));
 }
 
-function getMacroSubstitution(
+export function getMacroSubstitution(
   unit: DesmoscriptCompilationUnit,
   expr: ASTFunctionCall<{}>
 ) {
   const substitution = unit.substitutionLUT.get(expr.id);
   if (!substitution)
     err(expr, "INTERNAL ERROR: Macro call has no corresponding substitution.");
+  return substitution;
+}
+
+export function getIdentifierSubstitution(
+  ctx: DesmoscriptCompileContext,
+  e: ASTExpr,
+  varName: string,
+  scopeContent: ScopeContent.Content
+) {
+  const substitution = ctx.identifierInfo.get(scopeContent.id)?.name;
+  if (!substitution) {
+    err(e, `INTERNAL ERROR: Variable or function name '${varName}' has no valid substitution.`);
+  }
   return substitution;
 }
 
@@ -180,8 +195,8 @@ async function compileExpression(
     },
 
     binop(e, c, v) {
-      const lc = v(e.left, u);
-      const rc = v(e.right, u);
+      const lc = v(e.left, c);
+      const rc = v(e.right, c);
       if (e.op == "^") return `${lc}^{${rc}}`;
       if (e.op == "[") return `${lc}\\left[${rc}\\right]`;
       if (e.op == "/") return `\\frac{${lc}}{${rc}}`;
@@ -201,24 +216,13 @@ async function compileExpression(
     identifier(e, c, v) {
       const myScope = getScopeOfExpr(e, unit);
 
-      const foundIdentifier = findIdentifier(
+      const foundIdentifier = findIdentifierWithErrorFeedback(
         myScope,
         ctx,
         unit.filePath,
         e.segments,
         e
       );
-
-      if (!foundIdentifier.success) {
-        err(
-          e,
-          `'${e.segments.join(".")}' does not exist in this scope.
-Did you intend to use one of the following names?\n${foundIdentifier.alternatives
-            .slice(0, 6)
-            .map((alt) => `${alt.badSegment} => ${alt.name}`)
-            .join("\n")}`
-        );
-      }
 
       if (
         (foundIdentifier.result.type == ScopeContent.Type.VARIABLE ||
@@ -228,14 +232,34 @@ Did you intend to use one of the following names?\n${foundIdentifier.alternative
         return `\\operatorname{${lastof(e.segments)}}`;
       }
 
-      const varName = createVariableName(
-        ctx,
-        foundIdentifier.unit,
-        getCanonicalPath(foundIdentifier.enclosingScope),
-        lastof(e.segments)
-      );
+      const identInfo = ctx.identifierInfo.get(foundIdentifier.result.id);
 
-      return toDesmosVar(varName);
+      if (!identInfo) err(e, `INTERNAL ERROR: Failed to get identifier info.`);
+
+      if (identInfo.uses == 2
+        && (foundIdentifier.result.type == ScopeContent.Type.VARIABLE) 
+        && !foundIdentifier.result.isBuiltin
+        ) {
+        const expr = foundIdentifier.result.data;
+        if (expr.type == ASTType.BINOP) {
+          return v(expr.right, c);
+        }
+        return v(expr, c);
+      }
+
+      // const varName = createVariableName(
+      //   ctx,
+      //   foundIdentifier.unit,
+      //   getCanonicalPath(foundIdentifier.enclosingScope),
+      //   lastof(e.segments)
+      // );
+
+      // return toDesmosVar(varName);
+      const substitution = getIdentifierSubstitution(
+        ctx, e, e.segments.join("."), foundIdentifier.result
+      );
+      
+      return toDesmosVar(substitution);
     },
 
     point(e, c, v) {
@@ -279,7 +303,7 @@ Did you intend to use one of the following names?\n${foundIdentifier.alternative
       return (
         `\\left\\{` +
         `${e.branches
-          .map(([predicate, result]) => `${v(predicate, u)}: ${v(result, u)}`)
+          .map(([predicate, result]) => `${v(predicate, u)}: \\left(${v(result, u)}\\right)`)
           .join(",")}` +
         `${e.fallback ? `, ${v(e.fallback, u)}` : ""}` +
         `\\right\\}`
@@ -291,25 +315,28 @@ Did you intend to use one of the following names?\n${foundIdentifier.alternative
     },
 
     listcomp(e, c, v) {
-      const scopeChain = getCanonicalPath(getInnerScopeOfExpr(e, unit));
+      const innerScope = getInnerScopeOfExpr(e, unit);
+      const scopeChain = getCanonicalPath(innerScope);
       return `\\left[${v(e.body, c)}\\operatorname{for}${e.variables
         .map(
-          ([varname, list]) =>
-            `${makeDesmosVarName(ctx, unit.filePath, scopeChain, varname)}=${v(
-              list,
-              c
-            )}`
+          ([varname, list]) => {
+            const ident = innerScope.contents.get(varname);
+            if (!ident) err(e, "INTERNAL ERROR: Listcomp variable does not exist.");
+            const desmosVarName = getIdentifierSubstitution(
+              ctx, e, varname, ident
+            );
+            return `${toDesmosVar(desmosVarName)}=${v(list, c)}`
+          }
         )
         .join(",")}\\right]`;
     },
 
     sumprodint(e, v, c) {
       const scopeChain = getCanonicalPath(getInnerScopeOfExpr(e, unit));
-      const counterVarName = makeDesmosVarName(
-        ctx,
-        unit.filePath,
-        scopeChain,
-        e.varName
+      const counterVarName = toDesmosVar(
+        getIdentifierSubstitution(
+          ctx, e, e.varName, getInnerScopeOfExpr(e, unit).contents.get(e.varName) ?? err(e, "Sum/product/integral variable does not exist.")
+        )
       );
       if (e.opType == "integral") {
         return `\\left(\\int_{${c(e.lo, v)}}^{${c(e.hi, v)}}\\left(${c(
@@ -327,11 +354,10 @@ Did you intend to use one of the following names?\n${foundIdentifier.alternative
 
     derivative(e, c, v) {
       const scopeChain = getCanonicalPath(getInnerScopeOfExpr(e, unit));
-      const varname = makeDesmosVarName(
-        ctx,
-        unit.filePath,
-        scopeChain,
-        e.variable
+      const varname = toDesmosVar(
+        getIdentifierSubstitution(
+          ctx, e, e.variable, getInnerScopeOfExpr(e, unit).contents.get(e.variable) ?? err(e, "Derivative variable does not exist.")
+        )
       );
       return `\\left(\\frac{d}{d${varname}}\\left(${v(
         e.body,
@@ -365,15 +391,21 @@ async function compileFunctionDefinition(
   const { ctx, unit, graphState } = props;
   const functionDefScope = getScopeOfExpr(rootExpr, unit);
   const compiledFinalExpr = compileExpression(props, finalExpr);
-  const fnNameVar = makeDesmosVarName(
-    ctx,
-    unit.filePath,
-    getCanonicalPath(functionDefScope),
-    rootExpr.name
+  const fnNameVar = toDesmosVar(
+    getIdentifierSubstitution(
+      ctx, rootExpr, rootExpr.name, getScopeOfExpr(rootExpr, unit).contents.get(rootExpr.name) ?? err(rootExpr, "Function name does not exist.")
+    )
   );
   const argScopePath = getCanonicalPath(getInnerScopeOfExpr(rootExpr, unit));
-  const fnArgsVars = rootExpr.args.map((arg) =>
-    makeDesmosVarName(ctx, unit.filePath, argScopePath, arg)
+  const fnArgsVars = rootExpr.args.map((arg) => {
+    const counterVarName = toDesmosVar(
+      getIdentifierSubstitution(
+        ctx, rootExpr, arg, getInnerScopeOfExpr(rootExpr, unit).contents.get(arg) ?? err(rootExpr, "Function argument does not exist.")
+      )
+    );
+    return counterVarName;
+  }
+    //makeDesmosVarName(ctx, unit.filePath, argScopePath, arg)
   );
   return `${fnNameVar}\\left(${fnArgsVars.join(
     ","
@@ -413,6 +445,8 @@ async function compileJSONExpression(
   return c(expr);
 }
 
+const warningFolderThreshold = 10000;
+
 async function compileScope(
   props: {
     ctx: DesmoscriptCompileContext;
@@ -435,20 +469,52 @@ async function compileScope(
     collapsed: true,
   };
 
+  let currentFolderId = folderState.id;
+
   let hasFolderChanged = true;
 
   function actuallyAddFolder() {
     if (!hasFolderChanged) return;
     hasFolderChanged = false;
+    currentFolderId = folderState.id;
     graphState.expressions.list.push(folderState);
+  }
+
+  function addWarningFolder() {
+    hasFolderChanged = true;
+    currentFolderId = getGraphExprID();
+    graphState.expressions.list.push({
+      type: "folder",
+      title: `${folderText} / ⚠️ Big Expression!`,
+      id: currentFolderId,
+      collapsed: true
+    });
   }
 
   for (let [name, c] of scope.contents) {
     switch (c.type) {
       case ScopeContent.Type.VARIABLE: {
+        
+        const identInfo = ctx.identifierInfo.get(c.id);
+
+        if (!identInfo) err({ line: 0, col: 0, file: "", type: ASTType.NUMBER, number: 0, id: makeExprId(), _isexpr: true }, `INTERNAL ERROR: Failed to get identifier info.`);
+
+        if (identInfo.isInlineable && identInfo.uses == 2) {
+          if (c.decoratorInfo) {
+            identInfo.uses++;
+          } else {
+            break;
+          }
+        }
+        //if (identInfo.uses == 1 && !c.decoratorInfo) break;
+
         if (c.isBuiltin || c.isPartOfDesmos) break;
-        actuallyAddFolder();
         const latex = await compileExpression(props, c.data);
+        if (latex.length > warningFolderThreshold) {
+          addWarningFolder();
+        } else {
+          actuallyAddFolder();
+        }
         let additionalProperties: Partial<ExpressionState> = {};
         if (c.decoratorInfo) {
           additionalProperties = expressionStateParser
@@ -461,25 +527,36 @@ async function compileScope(
           latex,
           id: getGraphExprID(),
           color: "black",
-          folderId: folderState.id,
+          folderId: currentFolderId,
           ...additionalProperties,
         });
         break;
       }
       case ScopeContent.Type.FUNCTION: {
+        
+        const identInfo = ctx.identifierInfo.get(c.id);
+
+        if (!identInfo) err({ line: 0, col: 0, file: "", type: ASTType.NUMBER, number: 0, id: makeExprId(), _isexpr: true }, `INTERNAL ERROR: Failed to get identifier info.`);
+
+        if (identInfo.uses == 0) break;
+
         if (c.isBuiltin || c.isPartOfDesmos) break;
-        actuallyAddFolder();
         const latex = await compileFunctionDefinition(
           props,
           c.data,
           c.finalExpr
         );
+        if (latex.length > warningFolderThreshold) { 
+          addWarningFolder();
+        } else {
+          actuallyAddFolder();
+        }
         graphState.expressions.list.push({
           type: "expression",
           latex,
           id: getGraphExprID(),
           color: "black",
-          folderId: folderState.id,
+          folderId: currentFolderId,
         });
         break;
       }

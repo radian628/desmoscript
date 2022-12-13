@@ -1,6 +1,6 @@
 {
     "scripts": {
-        "start": "node --experimental-specifier-resolution=node ./dist/index.mjs",
+        "start": "node --experimental-specifier-resolution=node --trace-warnings ./dist/index.mjs",
         "dev": "npx tsc --watch"
     },
     "dependencies": {

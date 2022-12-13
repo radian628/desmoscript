@@ -16,7 +16,7 @@ enum Axis {
   Z,
 }
 
-function getCombinedBounds(aabbs: AABB[]): AABB {
+export function getCombinedBounds(aabbs: AABB[]): AABB {
   if (aabbs.length == 0) {
     return { min: [0, 0, 0], max: [-1, -1, -1] };
   }
@@ -32,6 +32,16 @@ function getCombinedBounds(aabbs: AABB[]): AABB {
       Math.max(...aabbs.map((aabb) => aabb.max[2])),
     ],
   };
+}
+
+export function rangeIntersect(amin: number, amax: number, bmin: number, bmax: number) {
+  return (amax >= bmin) && (bmax >= amin);
+}
+
+export function aabbIntersect(a: AABB, b: AABB) {
+  return rangeIntersect(a.min[0], a.max[0], b.min[0], b.max[0])
+  && rangeIntersect(a.min[1], a.max[1], b.min[1], b.max[1])
+  && rangeIntersect(a.min[2], a.max[2], b.min[2], b.max[2]);
 }
 
 function bvhNodeFromData<T extends AABB>(data: T[]) {

@@ -6,7 +6,7 @@ import {
   Scope,
   ScopeContent,
 } from "./analysis-types.mjs";
-import { err } from "./analyze-first-pass.mjs";
+import { err } from "./analyze-scope-pass.mjs";
 
 // get the "canonical path" (local to its compilation unit) of a scope
 export function getCanonicalPath(scope?: Scope): string[] {
@@ -207,6 +207,35 @@ export function findIdentifier(
   //   similarSegments
   // };
   //return findIdentifier(startScope.parent, compileContext, unit, path, originalExpr);
+}
+
+export function findIdentifierWithErrorFeedback(
+  startScope: Scope,
+  compileContext: DesmoscriptCompileContext,
+  unit: string,
+  path: string[],
+  originalExpr: ASTExpr
+): FindIdentifierSuccess {
+  const foundIdentifier = findIdentifier(
+    startScope,
+    compileContext,
+    unit,
+    path,
+    originalExpr
+  );
+
+  if (!foundIdentifier.success) {
+    err(
+      originalExpr,
+      `'${path.join(".")}' does not exist in this scope.
+Did you intend to use one of the following names?\n${foundIdentifier.alternatives
+        .slice(0, 6)
+        .map((alt) => `${alt.badSegment} => ${alt.name}`)
+        .join("\n")}`
+    );
+  }
+
+  return foundIdentifier;
 }
 
 // assert that an expression must be an identifier

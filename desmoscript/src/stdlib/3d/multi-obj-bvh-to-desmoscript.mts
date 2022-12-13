@@ -61,10 +61,10 @@ export function getNormal(
   b: [number, number, number],
   c: [number, number, number]
 ): [number, number, number] {
-  return cross(
+  return normalize(cross(
     normalize(b.map((e, i) => e - a[i]) as [number, number, number]),
     normalize(c.map((e, i) => e - a[i]) as [number, number, number])
-  );
+  ));
 }
 
 export type DesmosifiedMesh = {
@@ -188,8 +188,8 @@ export function serializeForDesmos(mesh: DesmosifiedMesh) {
   centeredMesh.faces = centeredMesh.faces.map((face) => {
     return {
       ...face,
-      normal: face.normal.map((c) => {
-        return Math.floor(((c + 1) / 2) * NORMAL_RANGE);
+      normal: face.normal.map((c) => { 
+        return Math.min(Math.max(Math.round(((c + 1) / 2) * NORMAL_RANGE), 0), NORMAL_RANGE - 1);
       }) as [number, number, number],
     };
   });
@@ -237,21 +237,25 @@ export function serializeForDesmos(mesh: DesmosifiedMesh) {
   // materials
   output.push(
     ...binaryPackList(
-      centeredMesh.faces.map((f) => f.material),
+      centeredMesh.faces.map((f) => f.material + 1),
       6,
       8
     )
   );
 
+  function unnan(x: number) {
+    return isNaN(x) ? 0 : x;
+  }
+
   // normals
   output.push(
-    ...binaryPackList(centeredMesh.faces.map((f) => f.normal[0]), 8, 6)
+    ...binaryPackList(centeredMesh.faces.map((f) => unnan(f.normal[0])), 8, 6)
   );
   output.push(
-    ...binaryPackList(centeredMesh.faces.map((f) => f.normal[1]), 8, 6)
+    ...binaryPackList(centeredMesh.faces.map((f) => unnan(f.normal[1])), 8, 6)
   );
   output.push(
-    ...binaryPackList(centeredMesh.faces.map((f) => f.normal[2]), 8, 6)
+    ...binaryPackList(centeredMesh.faces.map((f) => unnan(f.normal[2])), 8, 6)
   );
 
   // indices

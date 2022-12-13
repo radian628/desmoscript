@@ -39,6 +39,7 @@ export namespace ScopeContent {
     decoratorInfo?: {
       json: ASTJSON<{}>;
     };
+    id: number;
   } & (
     | {
         isPartOfDesmos?: false;
@@ -58,6 +59,7 @@ export namespace ScopeContent {
   export type Function = {
     source?: string;
     type: Type.FUNCTION;
+    id: number;
   } & (
     | {
         isPartOfDesmos?: false;
@@ -84,12 +86,14 @@ export namespace ScopeContent {
       ctx: DesmoscriptCompileContext,
       api: MacroAPI
     ) => RawASTExpr<{}> | Promise<RawASTExpr<{}>>;
+    id: number;
   };
 
   export type Scope = {
     source?: string;
     type: Type.SCOPE;
     data: Scope2;
+    id: number;
   };
 
   export type NamedJSON = {
@@ -97,28 +101,31 @@ export namespace ScopeContent {
     type: Type.NAMED_JSON;
     data: ASTJSON<{}>;
     name: string;
+    id: number;
   };
 
   export type Note = {
     source?: string;
     type: Type.NOTE;
     data: string;
+    id: number;
   };
 
   export type Import = {
     unit: string;
     type: Type.IMPORT;
     alias?: string;
+    id: number;
   };
 
   export type Content =
-    | Variable
+    (Variable
     | Function
     | Macro
     | Scope
     | NamedJSON
     | Note
-    | Import;
+    | Import);
 }
 
 type Scope2 = Scope;
@@ -222,4 +229,9 @@ export type DesmoscriptCompileContext = {
   compilationUnits: Map<string, DesmoscriptCompilationUnit>;
   compilationUnitPrefixes: Map<string, string>;
   namespaceSeparator: string;
+  identifierInfo: Map<number, {
+    name: string,
+    uses: number,
+    isInlineable: boolean
+  }>
 };

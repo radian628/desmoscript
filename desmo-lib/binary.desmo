@@ -58,6 +58,21 @@ fn getComponentOfNormalOfMesh(mesh, component) {
   ) / 128 - 1
 }
 
+fn getMaterialIndicesOfMesh(mesh) {
+  triCount = getTriangleCount(mesh);
+  packedVertexListLength = ceil(getVertexCount(mesh) / 3);
+  packedMaterialListLength = ceil(triCount / 8);
+  binaryUnpack(
+    mesh[
+      (1 .. packedMaterialListLength) + 5
+      + packedVertexListLength * 3
+    ],
+    6,
+    8,
+    triCount
+  )
+}
+
 fn getTriangleCount(mesh) {
   mod(floor(mesh[5] / 2^26), 2^26)
 }

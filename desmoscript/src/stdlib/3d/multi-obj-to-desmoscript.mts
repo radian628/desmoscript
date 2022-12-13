@@ -13,12 +13,14 @@ import {
 import { ParsedMultiOBJ, parseMultiObj } from "./multi-obj-importer.mjs";
 import * as path from "node:path";
 import * as fs from "node:fs/promises";
+import { desmoscriptObjMaterials } from "./obj-to-desmoscript.mjs";
 
 export function multiOBJToDesmoscriptInner(
   namespaceName: string,
   obj: ParsedMultiOBJ,
   a: MacroAPI
 ) {
+  console.log("got here!!!!");
   const expressions: ASTExpr[] = [];
   const serializedMeshes = new Map(
     Array.from(obj.objects.entries()).map(
@@ -193,6 +195,10 @@ export function multiOBJToDesmoscriptInner(
       ) == 1
     ]
   }`)
+  );
+
+  expressions.push(
+    desmoscriptObjMaterials(obj.materials, a)
   );
 
   return a.ns(namespaceName, expressions);
@@ -388,6 +394,18 @@ export const lookupMesh: ScopeContent.Macro["fn"] = async function (
       a.fn(a.ident("join"), ...ia)
     ));
   });
+
+  // load mesh materials
+  expressions.push(a.binop(
+    a.ident("materialIndices"),
+    "=",
+    a.fn(a.ident("join"),
+      ...new Array(meshCount).fill(0)
+      .map((e, i) => a.fromstr(`
+        bin.getMaterialIndicesOfMesh(mesh${i})
+      `))
+    )
+  ));
 
   expressions.push(a.ns("normal", normalsNamespaceContents))
   expressions.push(a.ns("vertexPosition", verticesNamespaceContents));

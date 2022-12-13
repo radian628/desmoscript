@@ -60,7 +60,9 @@ export function parseIdentUnpackedList(
   );
 }
 
+
 export const sub: ScopeContent.Content = {
+  id: makeExprId(),
   type: ScopeContent.Type.MACRO,
   isBuiltin: true,
   fn: (expr, ctx, a) => {
@@ -72,6 +74,7 @@ export const sub: ScopeContent.Content = {
     const body = expr.args.slice(-1)[0];
 
     a.scopeof(expr).contents.set(name, {
+      id: makeExprId(),
       type: ScopeContent.Type.MACRO,
       fn: (expr2, ctx2, a2) => {
         if (expr2.args.length != args.length) {
@@ -80,7 +83,7 @@ export const sub: ScopeContent.Content = {
           );
         }
 
-        const exprTreeClone = (mapAST(body, (expr3) => {
+        const exprTreeClone = (mapAST(a.clone(body), (expr3) => {
           function substituteString(original: string) {
             const index = args.indexOf(original);
             if (index == -1) return original;

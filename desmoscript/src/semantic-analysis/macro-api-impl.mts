@@ -1,4 +1,4 @@
-import { ASTType, JSONType, RawASTExpr } from "../ast/ast.mjs";
+import { ASTExpr, ASTType, JSONType, RawASTExpr } from "../ast/ast.mjs";
 import { getExprContext } from "./builtins.mjs";
 import {
   DesmoscriptCompilationUnit,
@@ -12,21 +12,16 @@ import {
   uniqueAnonScopeName,
 } from "../ast/parse.mjs";
 import { getScopeOfExpr } from "./analyze-utils.mjs";
-import { err } from "./analyze-first-pass.mjs";
+import { err } from "./analyze-scope-pass.mjs";
+import { mapAST } from "../ast/ast-visitor.mjs";
 
-export function remapIDs(value: any) {
-  if (Array.isArray(value)) {
-    value.forEach((e) => remapIDs(e));
-    return;
-  }
-
-  if (typeof value.id == "number") {
-    value.id = makeExprId();
-  }
-
-  for (const [k, v] of Object.entries(value)) {
-    remapIDs(v);
-  }
+export function remapIDs(value: ASTExpr) {
+  return mapAST(value, e => {
+    return {
+      ...e,
+      id: makeExprId()
+    }
+  });
 }
 
 export async function getMacroAPI(
@@ -38,8 +33,7 @@ export async function getMacroAPI(
   return {
     clone: (e) => {
       const eClone = structuredClone(e);
-      remapIDs(eClone);
-      return eClone;
+      return remapIDs(eClone);
     },
     scopeof: (e) => {
       return getScopeOfExpr(e, unit);

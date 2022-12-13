@@ -2,8 +2,9 @@ import * as path from "node:path";
 import { desmoscriptFileToAST } from "../ast/parse.mjs";
 import { compile } from "../compile/compile.mjs";
 import { DesmoscriptCompileContext } from "../semantic-analysis/analysis-types.mjs";
-import { astToCompilationUnitFirstPass } from "../semantic-analysis/analyze-first-pass.mjs";
-import { astToCompilationUnitThirdPass } from "../semantic-analysis/analyze-third-pass.mjs";
+import { astToCompilationUnitScopePass } from "../semantic-analysis/analyze-scope-pass.mjs";
+import { astToCompilationUnitMacroPass } from "../semantic-analysis/analyze-macro-pass.mjs";
+import { enumerateUses, getVariableNamesAndSubstitutions, reserveBuiltins } from "../semantic-analysis/analyze-inline-pass.mjs";
 import * as http from "node:http";
 import * as chokidar from "chokidar";
 import { GraphState } from "../graphstate.mjs";
@@ -18,23 +19,34 @@ export async function compileDesmoscript(
   const ctx: DesmoscriptCompileContext = {
     existingNames: new Set(),
     existingFiles: new Set(),
+    identifierInfo: new Map(),
     compilationUnits: new Map(),
     compilationUnitPrefixes: new Map(),
     namespaceSeparator: "X",
   };
   entryPoint = path.resolve(entryPoint);
   const ast = await desmoscriptFileToAST(entryPoint);
-  await astToCompilationUnitFirstPass(ast, ctx, entryPoint, filesOut);
+  await astToCompilationUnitScopePass(ast, ctx, entryPoint, filesOut);
 
   // stupid loop to make macro instantiation work better
   for (let i = 0; i < 10; i++) {
     for (const [unitName, unit] of ctx.compilationUnits) {
-      await astToCompilationUnitThirdPass(ctx, unit, filesOut);
+      await astToCompilationUnitMacroPass(ctx, unit, filesOut);
     }
   }
   for (const [unitName, unit] of ctx.compilationUnits) {
-    await astToCompilationUnitThirdPass(ctx, unit, filesOut, true);
+    await astToCompilationUnitMacroPass(ctx, unit, filesOut, true);
   }
+  for (const [unitName, unit] of ctx.compilationUnits) {
+    await reserveBuiltins(ctx, unit);
+  }
+  for (const [unitName, unit] of ctx.compilationUnits) {
+    await getVariableNamesAndSubstitutions(ctx, unit);
+  }
+  for (const [unitName, unit] of ctx.compilationUnits) {
+    await enumerateUses(ctx, unit);
+  }
+
 
   return {
     graphState: await compile(ctx),

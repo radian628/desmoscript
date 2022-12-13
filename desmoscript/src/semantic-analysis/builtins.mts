@@ -17,16 +17,9 @@ import {
   lookupMesh,
   multiObjToDesmoscript,
 } from "../stdlib/3d/multi-obj-to-desmoscript.mjs";
+import { makeExprId } from "../ast/parse.mjs";
+import { deswizzle } from "../stdlib/3d/swizzle.mjs";
 
-const fn: ScopeContent.Content = {
-  type: ScopeContent.Type.FUNCTION,
-  isPartOfDesmos: true,
-};
-
-const builtinVar = {
-  type: ScopeContent.Type.VARIABLE,
-  data: { builtin: true },
-};
 
 export function getExprContext(expr: RawASTExpr<{}>) {
   return {
@@ -43,37 +36,55 @@ export function createDesmosBuiltins(): Map<string, ScopeContent.Content> {
     fn: (expr, ctx, a): ASTExpr => {
       return a.number(3);
     },
+    id: makeExprId(),
   };
 
   const map = new Map<string, ScopeContent.Content>();
   map.set("x", {
     type: ScopeContent.Type.VARIABLE,
     isPartOfDesmos: true,
-  }),
+    id: makeExprId(),
+  });
+  map.set("y", {
+    type: ScopeContent.Type.VARIABLE,
+    isPartOfDesmos: true,
+    id: makeExprId(),
+  });
     map.set("rgb", {
+      id: makeExprId(),
       type: ScopeContent.Type.FUNCTION,
       isPartOfDesmos: true,
     });
   map.set("loadObj", {
+    id: makeExprId(),
     type: ScopeContent.Type.MACRO,
     fn: loadObj,
   });
   map.set("multiObjToDesmoscriptBVH", {
+    id: makeExprId(),
     type: ScopeContent.Type.MACRO,
     fn: multiObjToDesmoscriptBVH,
   });
   map.set("lookupMeshBVH", {
+    id: makeExprId(),
     type: ScopeContent.Type.MACRO,
     fn: lookupMeshBVH,
   });
   map.set("multiObjToDesmoscript", {
+    id: makeExprId(),
     type: ScopeContent.Type.MACRO,
     fn: multiObjToDesmoscript,
   });
   map.set("lookupMesh", {
+    id: makeExprId(),
     type: ScopeContent.Type.MACRO,
     fn: lookupMesh,
   });
+  map.set("deswizzle", {
+    id: makeExprId(),
+    type: ScopeContent.Type.MACRO,
+    fn: deswizzle
+  })
   map.set("sub", sub);
   [
     "sin",
@@ -102,7 +113,11 @@ export function createDesmosBuiltins(): Map<string, ScopeContent.Content> {
     "polygon",
 
     "random",
-  ].map((name) => map.set(name, fn));
+  ].map((name) => map.set(name, {
+    type: ScopeContent.Type.FUNCTION,
+    isPartOfDesmos: true,
+    id: makeExprId()
+  }));
   return map;
 }
 

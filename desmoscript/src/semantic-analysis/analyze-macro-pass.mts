@@ -13,7 +13,7 @@ import {
 import {
   createVariableScopesAndDeclareImports,
   err,
-} from "./analyze-first-pass.mjs";
+} from "./analyze-scope-pass.mjs";
 import { ASTType, RawASTExpr } from "../ast/ast.mjs";
 import { getMacroAPI } from "./macro-api-impl.mjs";
 
@@ -36,7 +36,7 @@ iterate over the AST a bunch of times! I am going to
 iterate over the AST like 20 times, this should be fine because
 none of my projects are gonna get that large anyway.
 */
-export async function astToCompilationUnitThirdPass(
+export async function astToCompilationUnitMacroPass(
   compileContext: DesmoscriptCompileContext,
   unit: DesmoscriptCompilationUnit,
   watchFiles: Set<string>,
