@@ -215,6 +215,7 @@ export function distance(p1, p2) {
 export type DesmosLightingModelMesh = {
   triangles: {
     vertices: Triangle,
+    color: [number, number, number],
     lighting: {
       color: [number, number, number], // light color
       type: number // determines how the light flickers over time

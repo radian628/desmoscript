@@ -86,6 +86,7 @@ export function lightMeshWithOneLight(mesh: DesmosLightingModelMesh, light: Ligh
       newTriangles.push(...sphereIntersectTriangle(triangle.vertices, light.position, radius)
         .map(tri => {
           return {
+            color: triangle.color,
             vertices: tri,
             lighting: triangle.lighting
           }
@@ -134,6 +135,7 @@ export function doDesmosMultiObjCelShading(obj: ParsedMultiOBJ, a: MacroAPI) {
               mesh.vertices[mesh.vertexIndices[i*3+1]],
               mesh.vertices[mesh.vertexIndices[i*3+1]],
             ],
+            color: obj.materials[mesh.faceMaterials[i]].diffuse ?? [0,0,0],
             lighting: []
           }
         }),
