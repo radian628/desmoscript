@@ -1,9 +1,10 @@
 import { MacroAPI } from "../../../semantic-analysis/analysis-types.mjs";
 import { AABB, aabbIntersect, getCombinedBounds } from "../bvh.mjs";
+import { getNormal } from "../multi-obj-bvh-to-desmoscript.mjs";
 import { OBJSingleObject, ParsedMultiOBJ } from "../multi-obj-importer.mjs";
-import { center, DesmosLightingModelMesh, distance, getAABBOfTriangle, sphereIntersectTriangle } from "./triangle.mjs";
+import { center, DesmosLightingModelMesh, distance, getAABBOfTriangle, sphereIntersectTriangle, Triangle } from "./triangle.mjs";
 
-function range(end) {
+export function range(end: number) {
   const arr = [] as number[];
   for (let i = 0; i < end; i++) {
     arr.push(i);
@@ -49,7 +50,8 @@ function parseLightNameAndMesh(meshName: string, mesh: OBJSingleObject, a: Macro
     a.error(`Invalid light name format '${meshName}': invalid power`);
   }
 
-  const type: LightType = lightTypeNameMap[nameSplit[5]];
+  //@ts-ignore
+  const type: LightType | undefined = lightTypeNameMap[nameSplit[5]];
   if (type === undefined) {
     a.error(`Invalid light name format '${meshName}': invalid type`);
   }
@@ -74,43 +76,62 @@ function parseLightNameAndMesh(meshName: string, mesh: OBJSingleObject, a: Macro
   }
 }
 
+function dot(a: [number, number, number], b: [number, number, number]) {
+  return a[0]*b[0] + a[1]*b[1] + a[2]*b[2];
+}
 
-const radiusMultipliers = [0.25, 1, 8];
+function isAligned(tri: Triangle, normal: [number, number, number]) {
+  return dot(getNormal(...tri), normal) > 0;
+}
+
+const radiusMultipliers = [1/3, 1, 3];
 export function lightMeshWithOneLight(mesh: DesmosLightingModelMesh, light: Light) {
-  const newTriangles = [] as DesmosLightingModelMesh["triangles"];
+  let newTriangles = mesh.triangles as DesmosLightingModelMesh["triangles"];
   for (let i = 0; i < 3; i++) {
 
     const radius = radiusMultipliers[i] * light.radius;
-    
-    for (const triangle of mesh.triangles) {
-      newTriangles.push(...sphereIntersectTriangle(triangle.vertices, light.position, radius)
+
+    const newTriangles2 = [];
+
+    for (const triangle of newTriangles) {
+      const triCenter = center(triangle.vertices);
+      const aligned = isAligned(triangle.vertices, triCenter.map((e, i) => light.position[i] - e) as [number, number, number]);
+      
+      newTriangles2.push(...(aligned ? sphereIntersectTriangle(triangle.vertices, light.position, radius) : [triangle.vertices])
         .map(tri => {
           return {
-            color: triangle.color,
-            vertices: tri,
-            lighting: triangle.lighting
+            color: triangle.color.concat() as [number, number, number],
+            vertices: tri as Triangle,
+            lighting: triangle.lighting.concat()
           }
         })
       );
     }
+
+    newTriangles = newTriangles2;
   }
 
   
   for (let i = 0; i < 3; i++) {
     const radius = radiusMultipliers[i] * light.radius;
-    const lastRadius = (i == 0) ? 0 : radiusMultipliers[i - 1];
+    const lastRadius = (i == 0) ? 0 : radiusMultipliers[i - 1] * light.radius;
 
-    for (const triangle of mesh.triangles) {
+    for (const triangle of newTriangles) {
       const triCenter = center(triangle.vertices);
-      const dist = distance(triCenter, light.position);
+      const aligned = isAligned(triangle.vertices, triCenter.map((e, i) => light.position[i] - e) as [number, number, number]);
+      if (!aligned) continue;
+
+      const dist = Math.max(
+        ...triangle.vertices.map(v => distance(v, light.position) - 0.001)
+      );
 
       if (dist > lastRadius && dist < radius) {
         triangle.lighting.push({
-          color: light.color.map(c => c * 1 / (radius ** 2)) as [number, number, number],
+          color: light.color.map(c => c * 1 / (radiusMultipliers[i] ** 1)) as [number, number, number],
           type: light.type
         });
       }
-    }
+    } 
   }
 
   return {
@@ -123,7 +144,9 @@ export function doDesmosMultiObjCelShading(obj: ParsedMultiOBJ, a: MacroAPI) {
   let meshes: Map<string, DesmosLightingModelMesh> = new Map();
   const lights: Light[] = [];
 
+
   for (const [meshName, mesh] of obj.objects.entries()) {
+    const lowestIndex = mesh.vertexIndices.reduce((prev, curr) => Math.min(prev, curr), Infinity);
     if (meshName.slice(0, 5) == "light") {
       lights.push(parseLightNameAndMesh(meshName, mesh, a));
     } else {
@@ -131,9 +154,9 @@ export function doDesmosMultiObjCelShading(obj: ParsedMultiOBJ, a: MacroAPI) {
         triangles: range(mesh.vertexIndices.length / 3).map(i => {
           return {
             vertices: [
-              mesh.vertices[mesh.vertexIndices[i*3]],
-              mesh.vertices[mesh.vertexIndices[i*3+1]],
-              mesh.vertices[mesh.vertexIndices[i*3+1]],
+              mesh.vertices[mesh.vertexIndices[i*3] - lowestIndex],
+              mesh.vertices[mesh.vertexIndices[i*3+1] - lowestIndex],
+              mesh.vertices[mesh.vertexIndices[i*3+2] - lowestIndex],
             ],
             color: obj.materials[mesh.faceMaterials[i]].diffuse ?? [0,0,0],
             lighting: []
@@ -154,6 +177,8 @@ export function doDesmosMultiObjCelShading(obj: ParsedMultiOBJ, a: MacroAPI) {
     for (const [meshName, mesh] of meshes.entries()) {
       if (aabbIntersect(mesh.aabb, light.aabb)) {
         newMeshes.set(meshName, lightMeshWithOneLight(mesh, light));
+      } else {
+        newMeshes.set(meshName, mesh);
       }
     }
     meshes = newMeshes;

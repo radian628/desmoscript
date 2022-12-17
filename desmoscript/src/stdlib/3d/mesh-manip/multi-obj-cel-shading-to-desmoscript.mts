@@ -6,16 +6,16 @@ import { AABB } from "../bvh.mjs";
 import { createDesmosCompoundDataTypeGetters, DesmosCompoundDataType, fillOutDesmosCompoundDataType } from "../data-packing/data-packing.mjs";
 import { mean } from "../multi-obj-bvh-to-desmoscript.mjs";
 import { ParsedMultiOBJ, parseMultiObj } from "../multi-obj-importer.mjs";
-import { doDesmosMultiObjCelShading, Light } from "./multi-obj-cel-shading.mjs";
+import { doDesmosMultiObjCelShading, Light, range } from "./multi-obj-cel-shading.mjs";
 import { DesmosLightingModelMesh } from "./triangle.mjs";
 
 export type DesmosifiedDesmosLightingModelMesh = {
   vertices: [number, number, number][];
   triangles: {
     indices: [number, number, number],
-    color: [number, number, number],
+    color: number,
     lighting: {
-      color: [number, number, number],
+      color: number,
       type: number
     }[]
   }[],
@@ -29,8 +29,46 @@ function approxEqual(v1: [number, number, number], v2: [number, number, number],
 
 }
 
+export function colorToNumber(color: [number, number, number]) {
+  return color[0] + 256 * color[1] + 65536 * color[2];
+}
+
+export function getAllCelShadingModelColors(
+  meshes: Map<string, DesmosLightingModelMesh>
+) {
+  let index = 2;
+  const colorMap = new Map<number, number>();
+  colorMap.set(0, 1);
+  const colorArray: [number, number, number][] = [[0,0,0]];
+
+  function tryAddColor(color: [number, number, number]) {
+    const colorAsNumber = colorToNumber(color);
+    const colorMapEntry = colorMap.get(colorAsNumber);
+    if (colorMapEntry === undefined) {
+      colorMap.set(colorAsNumber, index);
+      colorArray.push(color);
+      index += 1;
+    }
+  }
+
+  for (const mesh of meshes.values()) {
+    for (const tri of mesh.triangles) {
+      tryAddColor(tri.color);
+      for (const light of tri.lighting) {
+        tryAddColor(light.color);
+      }
+    }
+  }
+
+  return {
+    colorMap,
+    colorArray
+  };
+}
+
 export function desmosifyCelShadingModel(
-  mesh: DesmosLightingModelMesh
+  mesh: DesmosLightingModelMesh,
+  colors: Map<number, number>
 ): DesmosifiedDesmosLightingModelMesh {
   const vertices: [number, number, number][] = [];
   const triangles: DesmosifiedDesmosLightingModelMesh["triangles"] = [];
@@ -49,9 +87,14 @@ export function desmosifyCelShadingModel(
       i++;
     }
     triangles.push({
-      color: tri.color,
+      color: colors.get(colorToNumber(tri.color)) ?? 0,
       indices: thisTrianglesIndices as [number, number, number],
-      lighting: tri.lighting
+      lighting: tri.lighting.map(light => {
+        return {
+          ...light,
+          color: colors.get(colorToNumber(light.color)) ?? 0
+        }
+      })
     });
   }
 
@@ -110,18 +153,27 @@ const commonIndexInfo = {
 celShadingDesmosFormat.set("tri1", { ...commonIndexInfo });
 celShadingDesmosFormat.set("tri2", { ...commonIndexInfo });
 celShadingDesmosFormat.set("tri3", { ...commonIndexInfo });
-const commonLightInfo = {
+const commonColorInfo = {
   type: "array" as const,
   bitsPerNumber: 8,
   lengthVarName: "triCount",
   unpackerVarName: "l",
   unpackerExprs: "l"
 }
-celShadingDesmosFormat.set("r", { ...commonLightInfo });
-celShadingDesmosFormat.set("g", { ...commonLightInfo });
-celShadingDesmosFormat.set("b", { ...commonLightInfo });
+celShadingDesmosFormat.set("baseColor", { ...commonColorInfo });
+celShadingDesmosFormat.set("light1Color", { ...commonColorInfo });
+celShadingDesmosFormat.set("light2Color", { ...commonColorInfo });
+const commonLightTypeInfo = {
+  type: "array" as const,
+  bitsPerNumber: 4,
+  lengthVarName: "triCount",
+  unpackerVarName: "l",
+  unpackerExprs: "l"
+}
+celShadingDesmosFormat.set("light1Type", { ...commonLightTypeInfo });
+celShadingDesmosFormat.set("light2Type", { ...commonLightTypeInfo });
 
-export function clamp(value, min, max) {
+export function clamp(value: number, min: number, max: number) {
   return Math.min(Math.max(value, min), max);
 }
 
@@ -134,14 +186,16 @@ export function multiObjCelShadingToDesmoscriptInner(
 
   const expressions: ASTExpr[] = [];
 
+  const colors = getAllCelShadingModelColors(meshes);
+
   for (const mesh of meshes.values()) {
-    outputMeshes.push(desmosifyCelShadingModel(mesh));
+    outputMeshes.push(desmosifyCelShadingModel(mesh, colors.colorMap));
   }
 
   const getters = createDesmosCompoundDataTypeGetters("getters", celShadingDesmosFormat, a);
   expressions.push(getters);
 
-  const normalizeVertex = (v: number) => Math.floor((v + 1) / 2 * 2 ** 16);
+  const normalizeVertex = (v: number) => Math.floor((v + 1) / 2 * (2 ** 16 - 1));
 
   type MeshIndex = {
     outerIndex: number; // zero-indexed
@@ -161,14 +215,16 @@ export function multiObjCelShadingToDesmoscriptInner(
       ypos: meshStats.averagePosition[1],
       zpos: meshStats.averagePosition[2],
       scale: meshStats.largestScale,
+      vertexCount: mesh.vertices.length,
+      triCount: mesh.triangles.length,
       xVertex: mesh.vertices.map(
-        v => clamp((v[0] - meshStats.averagePosition[0]) / meshStats.largestScale, 0, 1))
+        v => clamp((v[0] - meshStats.averagePosition[0]) / meshStats.largestScale, -1, 1))
         .map(normalizeVertex),
       yVertex: mesh.vertices.map(
-        v => clamp((v[1] - meshStats.averagePosition[1]) / meshStats.largestScale, 0, 1))
+        v => clamp((v[1] - meshStats.averagePosition[1]) / meshStats.largestScale, -1, 1))
         .map(normalizeVertex),
       zVertex: mesh.vertices.map(
-        v => clamp((v[2] - meshStats.averagePosition[2]) / meshStats.largestScale, 0, 1))
+        v => clamp((v[2] - meshStats.averagePosition[2]) / meshStats.largestScale, -1, 1))
         .map(normalizeVertex),
       tri1: mesh.triangles.map(
         tri => tri.indices[0] + 1
@@ -179,15 +235,11 @@ export function multiObjCelShadingToDesmoscriptInner(
       tri3: mesh.triangles.map(
         tri => tri.indices[2] + 1
       ),
-      r: mesh.triangles.map(
-        tri => Math.floor(tri.color[0] * 256 + (tri.lighting[0]?.color[0] ?? 0) * 256)
-      ),
-      g: mesh.triangles.map(
-        tri => Math.floor(tri.color[0] * 256 + (tri.lighting[0]?.color[0] ?? 0) * 256)
-      ),
-      b: mesh.triangles.map(
-        tri => Math.floor(tri.color[0] * 256 + (tri.lighting[0]?.color[0] ?? 0) * 256)
-      )
+      baseColor: mesh.triangles.map(tri => tri.color),
+      light1Color: mesh.triangles.map(tri => tri.lighting[0]?.color ?? 1),
+      light2Color: mesh.triangles.map(tri => tri.lighting[1]?.color ?? 1),
+      light1Type: mesh.triangles.map(tri => tri.lighting[0]?.type ?? 1),
+      light2Type: mesh.triangles.map(tri => tri.lighting[1]?.type ?? 1),
     });
 
     if (meshLUTExprData.length == 0 
@@ -234,6 +286,15 @@ export function multiObjCelShadingToDesmoscriptInner(
       ]
     )
   );
+
+
+  "rgb".split("").forEach((component, i) => {
+    expressions.push(
+      a.fromstr(`
+        ${component} = [${colors.colorArray.map(col => 256 * col[i]).join(",")}];
+      `)
+    );
+  })
 
 
   
@@ -344,6 +405,8 @@ export function multiObjCelShadingToDesmoscriptInner(
 
 import * as fs from "node:fs/promises";
 import * as path from "node:path";
+import { string } from "zod";
+import { err } from "../../../semantic-analysis/analyze-scope-pass.mjs";
 
 export const multiObjCelShadingToDesmoscript: ScopeContent.Macro["fn"] = async function (
   expr,
@@ -374,7 +437,7 @@ export const multiObjCelShadingToDesmoscript: ScopeContent.Macro["fn"] = async f
 
 
 
-export const lookupMesh: ScopeContent.Macro["fn"] = async function (
+export const lookupCelShadingMesh: ScopeContent.Macro["fn"] = async function (
   expr, ctx, a 
 ) {
   
@@ -483,8 +546,7 @@ export const lookupMesh: ScopeContent.Macro["fn"] = async function (
           ...new Array(meshCount).fill(0).map((e, i) => {
             const meshVertexGetter = a.fn(
               a.ident(inputNamespace, "getters", `${component}Vertex`),
-              a.ident(`mesh${i}`),
-              a.number(componentIndex)
+              a.ident(`mesh${i}`)
             );
 
             return ithMeshGetter(i, meshVertexGetter);
@@ -504,11 +566,11 @@ export const lookupMesh: ScopeContent.Macro["fn"] = async function (
     indicesNamespaceContents.push(a.binop(
       a.ident(`indexOffsetOf${i+1}`),
       "=",
-      a.fromstr(`${inputNamespace}.getters.triCount(mesh${i}) + indexOffsetOf${i}`)
+      a.fromstr(`${inputNamespace}.getters.vertexCount(mesh${i}) + indexOffsetOf${i}`)
     ));
     for (let j = 0; j < 3; j++) {
       indexArrays[j].push(a.fromstr(`
-        ${inputNamespace}.getters.tri${i+1}(mesh${i}) + indexOffsetOf${i}
+        ${inputNamespace}.getters.tri${j+1}(mesh${i}) + indexOffsetOf${i}
       `));
     }
   }
@@ -521,7 +583,20 @@ export const lookupMesh: ScopeContent.Macro["fn"] = async function (
     ));
   });
 
-  // load mesh materials
+  // load mesh materials (TODO)
+  [
+    "baseColor",
+    "light1Color",
+    "light2Color",
+    "light1Type",
+    "light2Type"
+  ].forEach(varName => {
+    expressions.push(a.binop(
+      a.ident(varName),
+      "=",
+      a.fn(a.ident("join"), ...range(meshCount).map(i => a.fromstr(`${inputNamespace}.getters.${varName}(mesh${i})`)))
+    ));
+  });
 
   expressions.push(a.ns("vertexPosition", verticesNamespaceContents));
   expressions.push(a.ns("index", indicesNamespaceContents));

@@ -93,7 +93,7 @@ export function createDesmosCompoundDataTypeGetters<T extends string>(namespaceN
     }
     
     const numbersPerNumber = Math.floor(52 / arr.bitsPerNumber);
-    return `floor(${arr.lengthVarName}(data) / ${numbersPerNumber})`;
+    return `ceil(${arr.lengthVarName}(data) / ${numbersPerNumber})`;
   }
 
   //first pass; create simple getters
@@ -115,11 +115,11 @@ export function createDesmosCompoundDataTypeGetters<T extends string>(namespaceN
       fn ${varName}(data) {
         mod(floor(data[${accumOffset + 1}] / ${2 ** accumBits}), ${2 ** templateEntry.bits})
       }`));
-      accumOffset += templateEntry.bits;
+      accumBits += templateEntry.bits;
     } else {
       if (noArraysYet) {
         noArraysYet = false;
-        constantOffset = accumBits;
+        constantOffset = accumOffset + 1;
       }
       exprs.push(a.fromstr(`
         fn ${varName}(data) {
@@ -128,10 +128,11 @@ export function createDesmosCompoundDataTypeGetters<T extends string>(namespaceN
               ${pastArrays.map(pastArrName => {
                 const pastArr = template.get(pastArrName) as DesmosCompoundArray<T>;
                 return `+ ${getArrayLengthExpr(pastArr)}`;
-              })}
+              }).join("")}
             ],
             ${templateEntry.bitsPerNumber},
-            ${Math.floor(52 / templateEntry.bitsPerNumber)}
+            ${Math.floor(52 / templateEntry.bitsPerNumber)},
+            ${templateEntry.lengthVarName}(data)
           );
           ${templateEntry.unpackerExprs}
         }

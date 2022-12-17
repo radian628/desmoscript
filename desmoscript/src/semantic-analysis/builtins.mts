@@ -19,6 +19,7 @@ import {
 } from "../stdlib/3d/multi-obj-to-desmoscript.mjs";
 import { makeExprId } from "../ast/parse.mjs";
 import { deswizzle } from "../stdlib/3d/swizzle.mjs";
+import { lookupCelShadingMesh, multiObjCelShadingToDesmoscript } from "../stdlib/3d/mesh-manip/multi-obj-cel-shading-to-desmoscript.mjs";
 
 
 export function getExprContext(expr: RawASTExpr<{}>) {
@@ -84,7 +85,17 @@ export function createDesmosBuiltins(): Map<string, ScopeContent.Content> {
     id: makeExprId(),
     type: ScopeContent.Type.MACRO,
     fn: deswizzle
-  })
+  });
+  map.set("lookupCelShadingMesh", {
+    id: makeExprId(),
+    type: ScopeContent.Type.MACRO,
+    fn: lookupCelShadingMesh
+  });
+  map.set("multiObjCelShadingToDesmoscript", {
+    id: makeExprId(),
+    type: ScopeContent.Type.MACRO,
+    fn: multiObjCelShadingToDesmoscript
+  });
   map.set("sub", sub);
   [
     "sin",

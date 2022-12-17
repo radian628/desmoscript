@@ -1,7 +1,6 @@
 import "../../../desmo-lib/3d.desmo" as t;
 import "../../../desmo-lib/binary.desmo" as bin;
-
-multiObjToDesmoscript!(test, "assets/labyrinth_of_bernard.obj")
+multiObjCelShadingToDesmoscript!(test, "assets/cubesagain2.obj")
 
 currentFrame = 0;
 
@@ -28,13 +27,14 @@ ns controls {
  
   rotation = 10 * rotationView;
 }
- 
 
-lookupMesh!( 
+sdfsdfsdf = 123123;
+
+lookupCelShadingMesh!( 
   testLookup, test,
   -4 + controls.lookupPos.x, -4 + controls.lookupPos.y, -4 + controls.lookupPos.z,
   4 + controls.lookupPos.x, 4 + controls.lookupPos.y, 4 + controls.lookupPos.z,
-  12
+  3
 )
 
 ns display {
@@ -45,15 +45,15 @@ ns display {
     y = translated.y;
     z = translated.x * sin(controls.rotation\x) + translated.z * cos(controls.rotation\x);
   }
-  ns view {
-    x = rotated1.x;
-    y = rotated1.y * cos(controls.rotation\y) - rotated1.z * sin(controls.rotation\y);
+  ns view {  
+    x = rotated1.x;     
+    y = rotated1.y * cos(controls.rotation\y) - rotated1.z * sin(controls.rotation\y);  
     z = rotated1.y * sin(controls.rotation\y) + rotated1.z * cos(controls.rotation\y);
   }
-
+    
   // get average positions in world and view space
-  deswizzle!(average, (
-    testLookup.vertexPosition.xyz[testLookup.index.tri1]
+  deswizzle!(average, (   
+    testLookup.vertexPosition.xyz[testLookup.index.tri1] 
     + testLookup.vertexPosition.xyz[testLookup.index.tri2]
     + testLookup.vertexPosition.xyz[testLookup.index.tri3]
   ) / 3)
@@ -63,59 +63,22 @@ ns display {
   // depth sorting
   polygonDepths = normalizedViewAverage.mag;
   depthSortOrder = sort(1 .. length(testLookup.index.tri1), -1 * polygonDepths);
-  polygonFilter = depthSortOrder[
-    t.dotns!(normalizedViewAverage, testLookup.normal)[depthSortOrder] < 0
-  ];
+  polygonFilter = depthSortOrder;
 
-  ns light {
-    show x = 0; with @{}
-    show y = 0; with @{}
-    show z = 0; with @{}
-  
-    // calculate diffuse light
-    deswizzle!(offset, light.xyz - average.xyz)
-    t.normalize!(normalizedOffset, offset)
-    diffuse = t.dotns!(normalizedOffset, testLookup.normal);
-
-    // calculate specular light
-    ndotl = diffuse;
-    deswizzle!(reflect, 2 * ndotl * testLookup.normal.xyz - normalizedOffset.xyz)
-    deswizzle!(viewerVector, controls.pos.xyz - average.xyz)
-    t.normalize!(normalizedViewerVector, viewerVector)
-    reflectMag = (reflect.x^2 + reflect.y^2 + reflect.z^2)^0.5;
-    specular = 
-      match {
-        (diffuse > 0) => 
-          (max(t.dotns!(reflect, normalizedViewerVector), 0)) ^ 6;
-        0;
-      };
-
-  }
 
   fn mix(a, b, factor) {
     clampedFactor = min(max(factor, 0), 1);
     b * clampedFactor + a * (1 - clampedFactor)
   }
 
-  fogDistance = 55555;
-
-  // calculate polygon colors
-  ns polygonColorChannels {
-    r = floor(max(light.diffuse, 0) * 4) / 4 * test.materials.diffuse.r[testLookup.materialIndices] * 256
-     + light.specular * test.materials.specular.r[testLookup.materialIndices] * 256;
-    g = floor(max(light.diffuse, 0) * 4) / 4 * test.materials.diffuse.g[testLookup.materialIndices] * 256
-     + light.specular * test.materials.specular.g[testLookup.materialIndices] * 256;
-    b = floor(max(light.diffuse, 0) * 4) / 4 * test.materials.diffuse.b[testLookup.materialIndices] * 256
-     + light.specular * test.materials.specular.b[testLookup.materialIndices] * 256;
-  }
-
-  fogFactor = (polygonDepths / fogDistance * 4) / 4;
 
   colors = rgb(
-    mix(polygonColorChannels.r, 0, fogFactor),
-    mix(polygonColorChannels.g, 0, fogFactor),
-    mix(polygonColorChannels.b, 0, fogFactor)    
+    test.r[testLookup.baseColor] + test.r[testLookup.light1Color] + test.r[testLookup.light2Color],
+    test.g[testLookup.baseColor] + test.g[testLookup.light1Color] + test.g[testLookup.light2Color],
+    test.b[testLookup.baseColor] + test.b[testLookup.light1Color] + test.b[testLookup.light2Color]
   );  
+
+  colors2 = colors;
 
   // display polygons
   show polys = [
@@ -158,6 +121,16 @@ ns display {
 
 
 
+fn pointMag(p) { (p\x * p\x + p\y * p\y) ^ 0.5 }
+
+sub!(dist, nsname, xv, yv, zv, 
+  ((nsname.x-xv)^2+(nsname.x-yv)^2+(nsname.x-zv)^2)^0.5
+)
+sub!(mag, nsname, 
+  ((nsname.x)^2+nsname.y^2 +nsname.z^2)^0.5
+)
+
+polygonShift = 0.01;
 
 fn getClippedPolygon(
     near,
@@ -167,17 +140,43 @@ fn getClippedPolygon(
 ) {
     sortedDepths = sort([z1, z2, z3]);
     nonClippedCount = length(sortedDepths[sortedDepths > near]);
-    screenSpace1 = (x1 / z1, y1 / z1);
-    screenSpace2 = (x2 / z2, y2 / z2);
-    screenSpace3 = (x3 / z3, y3 / z3);
-    
-    screenSpaceAvg = (screenSpace1 + screenSpace2 + screenSpace3) / 3;
+
+    ns center {
+      x = (x1 + x2 + x3) / 3;
+      y = (y1 + y2 + y3) / 3;
+      z = (z1 + z2 + z3) / 3;
+    }
+
+    ns offset1 {
+      x = x1 - center.x;
+      y = y1 - center.y;
+      z = z1 - center.z;
+    }
+    offset1mag = mag!(offset1);
+    ns offset2 {
+      x = x2 - center.x;
+      y = y2 - center.y;
+      z = z2 - center.z;
+    }
+    offset2mag = mag!(offset2);
+    ns offset3 {
+      x = x3 - center.x;
+      y = y3 - center.y;
+      z = z3 - center.z;
+    }
+    offset3mag = mag!(offset3);
+
+    deswizzle!(shifted1, offset1.xyz * (1 + center.z * polygonShift / offset1mag) + center.xyz)
+    deswizzle!(shifted2, offset2.xyz * (1 + center.z * polygonShift / offset2mag) + center.xyz)
+    deswizzle!(shifted3, offset3.xyz * (1 + center.z * polygonShift / offset3mag) + center.xyz)
+
+    screenSpace1 = (shifted1.x / shifted1.z, shifted1.y / shifted1.z);
+    screenSpace2 = (shifted2.x / shifted2.z, shifted2.y / shifted2.z);
+    screenSpace3 = (shifted3.x / shifted3.z, shifted3.y / shifted3.z);
 
     match {
         (nonClippedCount == 3) => {polygon(
-            (screenSpace1 - screenSpaceAvg) * 1.03 + screenSpaceAvg,
-            (screenSpace2 - screenSpaceAvg) * 1.03 + screenSpaceAvg,
-            (screenSpace3 - screenSpaceAvg) * 1.03 + screenSpaceAvg
+            screenSpace1, screenSpace2, screenSpace3
         )};
         (nonClippedCount == 2) => {
             sortedXs = sort([x1, x2, x3], [z1, z2, z3]);

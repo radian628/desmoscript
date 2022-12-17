@@ -224,12 +224,17 @@ export async function getMacroAPI(
       return desmoscriptStringToAST(str, e.file);
     },
     fromstr: (str: string) => {
-      const astNode = desmoscriptStringToAST(str, e.file);
-      if (astNode.type != ASTType.ROOT)
-        err(astNode, "INTERNAL ERROR: EXPECTED ROOT NODE.");
-      if (astNode.expressions.length == 0)
-        err(astNode, "INTERNAL ERROR: EXPECTED ONE OR MORE EXPRESSIONS.");
-      return astNode.expressions[0];
+      try {
+        const astNode = desmoscriptStringToAST(str, e.file);
+        if (astNode.type != ASTType.ROOT)
+          err(astNode, "INTERNAL ERROR: EXPECTED ROOT NODE.");
+        if (astNode.expressions.length == 0)
+          err(astNode, "INTERNAL ERROR: EXPECTED ONE OR MORE EXPRESSIONS.");
+        return astNode.expressions[0];
+      } catch (e) {
+        //@ts-ignore
+        throw err(e.expr, `Error in macro string expansion of '${str}': ${e.reason}`);
+      }
     },
   };
 }

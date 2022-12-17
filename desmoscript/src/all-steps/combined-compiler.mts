@@ -113,7 +113,7 @@ export async function createDesmoscriptWatchServer(
           `${dserr.data.expr.file}\n line ${dserr.data.expr.line}; col ${dserr.data.expr.col}; ${dserr.data.reason}`
         );
       } else {
-        logError(`err: ${JSON.stringify(dserr)} ${(err as Error).stack}`);
+        logError(`err: ${err} ${(err as Error).stack}`);
       }
     }
 

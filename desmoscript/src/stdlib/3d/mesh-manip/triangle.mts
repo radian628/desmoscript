@@ -70,8 +70,10 @@ import { getNormal, normalize } from "../multi-obj-bvh-to-desmoscript.mjs";
 
 export function makeNormalsConsistent(triangles: Triangle[], correctTriangle: Triangle): Triangle[] {
   const correctNormal = getNormal(...correctTriangle);
-  return triangles.map(t => 
-    (Math.sign(correctNormal[0]) == Math.sign(getNormal(...t)[0])) ? t : flipNormal(t));
+  return triangles.map(t => {
+    const otherNormal = getNormal(...t);
+    return (otherNormal.every((c, i) => Math.sign(c) == Math.sign(correctNormal[i]))) ? t : flipNormal(t)
+  });
 }
 
 export function sphereIntersectTriangle(triangle: Triangle, center: [number, number, number], radius: number): Triangle[] {
@@ -196,7 +198,7 @@ export function getSmoothSurfaceLightToDarkFactor(start: [number, number, number
 //   // split triangle into six if there's three intersections
 // }
 
-export function center(triangle: Triangle) {
+export function center(triangle: Triangle): [number, number, number] {
   return [
     (triangle[0][0] + triangle[1][0] + triangle[2][0]) / 3,
     (triangle[0][1] + triangle[1][1] + triangle[2][1]) / 3,
@@ -204,7 +206,7 @@ export function center(triangle: Triangle) {
   ];
 }
 
-export function distance(p1, p2) {
+export function distance(p1: [number, number, number], p2: [number, number, number]) {
   return Math.hypot(
     p1[0] - p2[0],
     p1[1] - p2[1],
