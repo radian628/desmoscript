@@ -47,7 +47,7 @@ export function parseMtl(src: string) {
   };
   let currentMaterial: MTLMaterial | undefined;
 
-  const splitSrc = src.split("\n").map((s) => s.split(" "));
+  const splitSrc = src.replace(/\r/g, "").split("\n").map((s) => s.split(" "));
   for (let line of splitSrc) {
     switch (line[0]) {
       case "newmtl":

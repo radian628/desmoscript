@@ -1,0 +1,164 @@
+
+fn closeTriangleGaps(a, b, c) {
+  a2 = rotate90(normalizePoint(normalizePoint(a - b) + normalizePoint(a - c)));
+  b2 = rotate90(normalizePoint(normalizePoint(b - a) + normalizePoint(b - c)));
+  c2 = rotate90(normalizePoint(normalizePoint(c - a) + normalizePoint(c - b)));
+
+  polygon(
+    a - polygonShift * a2,
+    a + polygonShift * a2,
+    b - polygonShift * b2,
+    b + polygonShift * b2,
+    c - polygonShift * c2,
+    c + polygonShift * c2
+  ) 
+}
+
+fn closeTriangleGapsWO(a, b, c) {
+  windingOrder = windingOrderContrib!(a, b)
+    + windingOrderContrib!(b, c)
+    + windingOrderContrib!(c, a);
+
+  factor = match { windingOrder > 0 => 1; -1; }; 
+
+  a2 = rotate90(normalizePoint(normalizePoint(a - b) + normalizePoint(a - c))) * factor;
+  b2 = rotate90(normalizePoint(normalizePoint(b - a) + normalizePoint(b - c))) * factor;
+  c2 = rotate90(normalizePoint(normalizePoint(c - a) + normalizePoint(c - b))) * factor;
+
+  polygon(
+    a - polygonShift * a2,
+    a + polygonShift * a2,
+    b - polygonShift * b2,
+    b + polygonShift * b2,
+    c - polygonShift * c2, 
+    c + polygonShift * c2
+  )
+}
+
+sub!(windingOrderContrib, start, end, (end\x - start\x) * (end\y + start\y))
+
+sub!(distSq, a, b, (a\x - b\x) ^ 2 + (a\y - b\y) ^ 2)
+
+fn doLineSegmentsIntersect(aStart, aEnd, bStart, bEnd) {
+  a = aStart\x;
+  b = aStart\y;
+  c = aEnd\x - aStart\x;
+  d = aEnd\y - aStart\y;
+  f = bStart\x;
+  g = bStart\y;
+  h = bEnd\x - bStart\x;
+  i = bEnd\y - bStart\y;
+
+  t1 = (g + i*a/h - i*f/h - b) / (d - i*c/h);
+  t2 = (a - f + c*t1) / h;
+  match {
+    (t2 > 1) => 1;
+    (t2 < 0) => 1;
+    match {
+      (t1 > 1) => 1;
+      (t1 < 0) => 1;
+      -1;
+    };
+  }
+}
+
+fn closeClippedQuadGaps(a, b, c, d) {
+  a2 = rotate90(normalizePoint(normalizePoint(a - d) + normalizePoint(a - b)));
+  b2 = rotate90(normalizePoint(normalizePoint(b - a) + normalizePoint(b - c)));
+  
+  p1 = a - polygonShift * a2;
+  p2 = a + polygonShift * a2;
+  p3 = b - polygonShift * b2;
+  p4 = b + polygonShift * b2;
+  
+  reverseFactor1 = doLineSegmentsIntersect(
+    d, p1, p2, p3
+  );
+  reverseFactor2 = doLineSegmentsIntersect(
+    p2, p3, p4, c
+  );
+
+  polygon(
+    a - polygonShift * a2 * reverseFactor1,
+    a + polygonShift * a2 * reverseFactor1,
+    b - polygonShift * b2 * reverseFactor2,
+    b + polygonShift * b2 * reverseFactor2,
+    c, d
+  )
+}
+
+fn pointMag(p) { (p\x * p\x + p\y * p\y) ^ 0.5 }
+
+fn normalizePoint(p) { p / pointMag(p) } 
+
+fn rotate90(p) { (p\y, -1 * p\x) }
+fn rotateN90(p) { (-1 * p\y, p\x) }
+
+sub!(dist, nsname, xv, yv, zv, 
+  ((nsname.x-xv)^2+(nsname.x-yv)^2+(nsname.x-zv)^2)^0.5
+)
+sub!(mag, nsname, 
+  ((nsname.x)^2+nsname.y^2 +nsname.z^2)^0.5
+)
+
+polygonShift = 0.002;
+
+fn getClippedPolygon(
+    near,
+    x1, y1, z1,
+    x2, y2, z2,
+    x3, y3, z3
+) {
+    sortedDepths = sort([z1, z2, z3]);
+    nonClippedCount = length(sortedDepths[sortedDepths > near]);
+
+    screenSpace1 = (x1 / z1, y1/z1);
+    screenSpace2 = (x2 / z2, y2/z2);
+    screenSpace3 = (x3 / z3, y3/z3);
+
+    match {
+        (nonClippedCount == 3) => {closeTriangleGaps(
+            screenSpace1, screenSpace2, screenSpace3
+        )};
+        (nonClippedCount == 2) => {
+            sortedXs = sort([x1, x2, x3], [z1, z2, z3]);
+            sortedYs = sort([y1, y2, y3], [z1, z2, z3]);
+            t1 = (near - sortedDepths[1]) / (sortedDepths[2] - sortedDepths[1]);
+            t2 = (near - sortedDepths[1]) / (sortedDepths[3] - sortedDepths[1]);
+
+            closeClippedQuadGaps(
+                (sortedXs[2] / sortedDepths[2], sortedYs[2] / sortedDepths[2]),
+                (sortedXs[3] / sortedDepths[3], sortedYs[3] / sortedDepths[3]),
+
+                (
+                    ((sortedXs[1] + t2 * (sortedXs[3] - sortedXs[1])) / near), 
+                    ((sortedYs[1] + t2 * (sortedYs[3] - sortedYs[1])) / near)
+                ),
+                (
+                    ((sortedXs[1] + t1 * (sortedXs[2] - sortedXs[1])) / near), 
+                    ((sortedYs[1] + t1 * (sortedYs[2] - sortedYs[1])) / near)
+                )
+            )
+        };
+        (nonClippedCount == 1) => {
+            sortedXs = sort([x1, x2, x3], [z1, z2, z3]);
+            sortedYs = sort([y1, y2, y3], [z1, z2, z3]);
+            t1 = (near - sortedDepths[3]) / (sortedDepths[1] - sortedDepths[3]);
+            t2 = (near - sortedDepths[3]) / (sortedDepths[2] - sortedDepths[3]);
+
+            closeTriangleGapsWO(
+                (sortedXs[3] / sortedDepths[3], sortedYs[3] / sortedDepths[3]),
+
+                (
+                    ((sortedXs[3] + t2 * (sortedXs[2] - sortedXs[3])) / near), 
+                    ((sortedYs[3] + t2 * (sortedYs[2] - sortedYs[3])) / near)
+                ),
+                (
+                    ((sortedXs[3] + t1 * (sortedXs[1] - sortedXs[3])) / near), 
+                    ((sortedYs[3] + t1 * (sortedYs[1] - sortedYs[3])) / near)
+                )
+            )
+        };
+        polygon((0/0,0/0));
+    }
+}  

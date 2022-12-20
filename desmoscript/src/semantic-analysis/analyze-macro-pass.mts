@@ -17,6 +17,11 @@ import {
 import { ASTType, RawASTExpr } from "../ast/ast.mjs";
 import { getMacroAPI } from "./macro-api-impl.mjs";
 
+export function noUndefined<T>(t: T | undefined): T {
+  if (t === undefined) throw "UNDEFINED SHOULD BE IMPOSSIBLE HERE";
+  return t;
+}
+
 // compiler third pass: macro substitution
 /*
 Problem with macro substitution: 
@@ -102,8 +107,14 @@ export async function astToCompilationUnitMacroPass(
           watchFiles
         );
 
-        // repeat third pass to get nested macros
-        await v(substitution, ctx);
+        // // repeat third pass to get nested macros
+        // await astToCompilationUnitMacroPass(
+        //   compileContext,
+        //   noUndefined(compileContext.compilationUnits.get(ident.unit)),
+        //   watchFiles,
+        //   isLastPass
+        // );
+        v(substitution, ctx);
       }
     },
   };

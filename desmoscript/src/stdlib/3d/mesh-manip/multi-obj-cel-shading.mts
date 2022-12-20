@@ -53,7 +53,7 @@ function parseLightNameAndMesh(meshName: string, mesh: OBJSingleObject, a: Macro
   //@ts-ignore
   const type: LightType | undefined = lightTypeNameMap[nameSplit[5]];
   if (type === undefined) {
-    a.error(`Invalid light name format '${meshName}': invalid type`);
+    a.error(`Invalid light name format '${meshName}': invalid type '${type}'`);
   }
 
   const position = [
@@ -147,6 +147,7 @@ export function doDesmosMultiObjCelShading(obj: ParsedMultiOBJ, a: MacroAPI) {
 
   for (const [meshName, mesh] of obj.objects.entries()) {
     const lowestIndex = mesh.vertexIndices.reduce((prev, curr) => Math.min(prev, curr), Infinity);
+    if (meshName.slice(0, 3) == "ph_") continue;
     if (meshName.slice(0, 5) == "light") {
       lights.push(parseLightNameAndMesh(meshName, mesh, a));
     } else {

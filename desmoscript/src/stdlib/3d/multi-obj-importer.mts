@@ -32,7 +32,7 @@ export async function parseMultiObj(src: string, objdir: string) {
   let currentObject: OBJSingleObject | undefined = undefined;
   let currentMaterial = -1;
 
-  const splitSrc = src.split("\n").map((s) => s.split(" "));
+  const splitSrc = src.replace(/\r/g, "").split("\n").map((s) => s.split(" "));
 
   // read file line by line
   for (let line of splitSrc) {

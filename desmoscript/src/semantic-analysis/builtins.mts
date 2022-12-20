@@ -7,7 +7,7 @@ import {
 } from "../ast/ast.mjs";
 import * as path from "node:path";
 import { ScopeInfo, ScopeContent } from "./analysis-types.mjs";
-import { sub } from "../stdlib/macroutils.mjs";
+import { loop, sub } from "../stdlib/macroutils.mjs";
 import { loadObj } from "../stdlib/3d/obj-to-desmoscript.mjs";
 import {
   lookupMeshBVH,
@@ -20,6 +20,7 @@ import {
 import { makeExprId } from "../ast/parse.mjs";
 import { deswizzle } from "../stdlib/3d/swizzle.mjs";
 import { lookupCelShadingMesh, multiObjCelShadingToDesmoscript } from "../stdlib/3d/mesh-manip/multi-obj-cel-shading-to-desmoscript.mjs";
+import { lookupPhysicsMesh, multiObjPhysicsToDesmoscript } from "../stdlib/3d/mesh-manip/multi-obj-physics-to-desmoscript.mjs";
 
 
 export function getExprContext(expr: RawASTExpr<{}>) {
@@ -96,7 +97,18 @@ export function createDesmosBuiltins(): Map<string, ScopeContent.Content> {
     type: ScopeContent.Type.MACRO,
     fn: multiObjCelShadingToDesmoscript
   });
+  map.set("lookupPhysicsMesh", {
+    id: makeExprId(),
+    type: ScopeContent.Type.MACRO,
+    fn: lookupPhysicsMesh
+  });
+  map.set("multiObjPhysicsToDesmoscript", {
+    id: makeExprId(),
+    type: ScopeContent.Type.MACRO,
+    fn: multiObjPhysicsToDesmoscript
+  });
   map.set("sub", sub);
+  map.set("loop", loop);
   [
     "sin",
     "cos",
@@ -117,6 +129,7 @@ export function createDesmosBuiltins(): Map<string, ScopeContent.Content> {
     "floor",
     "ceil",
     "mod",
+    "sign",
 
     "min",
     "max",

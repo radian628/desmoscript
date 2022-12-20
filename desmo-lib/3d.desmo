@@ -16,6 +16,8 @@ fn dot(
     ax * bx + ay * by + az * bz
 }
 
+sub!(dotstatic, ax, ay, az, bx, by, bz, ax * bx + ay * by + az * bz)
+
 fn rayTriangleIntersection(
     xray, yray, zray,
     xdir, ydir, zdir,
@@ -44,19 +46,35 @@ fn rayTriangleIntersection(
     xdao = yao * zdir - ydir * zao;
     ydao = zao * xdir - zdir * xao;
     zdao = xao * ydir - xdir * yao;
-    u = dot(xe2, ye2, ze2, xdao, ydao, zdao) * invdet;
-    v = -1 * dot(xe1, ye1, ze1, xdao, ydao, zdao) * invdet;
-    t = dot(xao, yao, zao, xnormal, ynormal, znormal) * invdet;
+    u = dotstatic!(xe2, ye2, ze2, xdao, ydao, zdao) * invdet;
+    v = -1 * dotstatic!(xe1, ye1, ze1, xdao, ydao, zdao) * invdet;
+    t = dotstatic!(xao, yao, zao, xnormal, ynormal, znormal) * invdet;
     match {
         (det < 0.00001) => -1;
-        (t < 0) => -1;
-        (u < 0) => -1;
-        (v < 0) => -1;
-        ((u + v) > 1) => -1;
+        (t < -0.0001) => -1;
+        (u < -0.0001) => -1;
+        (v < -0.0001) => -1;
+        ((u + v) > 1.0001) => -1;
         t;
     }
 }
 
+fn rayTriangleIntersectionWithIndex(
+    xray, yray, zray,
+    xdir, ydir, zdir,
+    xtri1, ytri1, ztri1,
+    xtri2, ytri2, ztri2,
+    xtri3, ytri3, ztri3,
+    index
+) {
+    (rayTriangleIntersection(
+        xray, yray, zray,
+        xdir, ydir, zdir,
+        xtri1, ytri1, ztri1,
+        xtri2, ytri2, ztri2,
+        xtri3, ytri3, ztri3
+    ), index)
+}
 
 sub!(mulMat3,
     outVector,
@@ -115,7 +133,7 @@ sub!(mat3,
 
 sub!(mat3identity,
     name,
-    mat3!(
+    t.mat3!(
         name,
         1, 0, 0,
         0, 1, 0,
@@ -139,12 +157,11 @@ sub!(mat3FirstPerson,
 sub!(cross,
     outvec,
     v1, v2,
-    vec3!(
-        outvec,
-        v1.y * v2.z - v1.z * v2.y,
-        v1.z * v2.x - v1.x * v2.z,
-        v1.x * v2.y - v1.y * v2.x
-    )
+    ns outvec {
+        x = v1.y * v2.z - v1.z * v2.y;
+        y = v1.z * v2.x - v1.x * v2.z;
+        z = v1.x * v2.y - v1.y * v2.x;
+    }
 )
 
 
@@ -220,4 +237,14 @@ sub!(projection, outvec, u, v,
 
 sub!(dotns, ns1, ns2,
     ns1.x * ns2.x + ns1.y * ns2.y + ns1.z * ns2.z
+)
+
+
+sub!(reflect, outns, incident, normal,
+    ns outns {
+        idotn = t.dotns!(incident, normal);
+        x = incident.x - 2 * idotn * normal.x;
+        y = incident.y - 2 * idotn * normal.y;
+        z = incident.z - 2 * idotn * normal.z;
+    }
 )

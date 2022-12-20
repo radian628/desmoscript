@@ -68,11 +68,20 @@ function triangulateConvexPolygon(polygon: [number, number, number][]) {
 import { AABB } from "../bvh.mjs";
 import { getNormal, normalize } from "../multi-obj-bvh-to-desmoscript.mjs";
 
+function zTo1(x: number) {
+  return (x == 0) ? 1 : x;
+}
+
 export function makeNormalsConsistent(triangles: Triangle[], correctTriangle: Triangle): Triangle[] {
   const correctNormal = getNormal(...correctTriangle);
   return triangles.map(t => {
     const otherNormal = getNormal(...t);
-    return (otherNormal.every((c, i) => Math.sign(c) == Math.sign(correctNormal[i]))) ? t : flipNormal(t)
+    return (otherNormal.every((c, i) => {
+      const ns1 = Math.sign(c);
+      const ns2 = Math.sign(correctNormal[i]);
+      if (ns1 == 0 || ns2 == 0) return true;
+      return ns1 == ns2;
+    })) ? t : flipNormal(t)
   });
 }
 

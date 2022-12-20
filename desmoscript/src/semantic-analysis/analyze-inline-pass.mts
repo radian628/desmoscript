@@ -135,7 +135,7 @@ export async function enumerateUses(
 
       const identInfo = compileContext.identifierInfo.get(foundIdentifier.result.id);
 
-      if (!identInfo) err(e, `INTERNAL ERROR: Failed to get identifier info.`);
+      if (!identInfo) err(e, `INTERNAL ERROR: Failed to get identifier info during use enumeration pass.`);
 
       identInfo.uses += 1;
     }

@@ -1,45 +1,65 @@
+
+
+ 
+
 import "../../../desmo-lib/3d.desmo" as t;
 import "../../../desmo-lib/binary.desmo" as bin;
-multiObjCelShadingToDesmoscript!(test, "assets/cubesagain2.obj")
+import "project.desmo" as project;
 
-currentFrame = 0;
 
-ticker @{ 
-  handlerLatex: ds( 
-    & 
-    match { (mod(currentFrame, 30) == 0) => controls.updateMeshLookup; },
-    currentFrame -> currentFrame + 1
-  ),
-  playing: true,
-  open: true
+
+
+
+settings @{
+  viewport: {
+    xmin: -2,
+    ymin: -2,
+    xmax: 2,
+    ymax: 2
+  },
+  showGrid: false,
+  showXAxis: false,
+  showYAxis: false
 }
 
-ns controls {
-  t.vec3!(pos, 1, 1, 1)
-  t.vec3!(lookupPos, 0, 0, 0) 
 
-  updateMeshLookup = &
-    lookupPos.x -> pos.x,
-    lookupPos.y -> pos.y,
-    lookupPos.z -> pos.z;
 
-  show rotationView = (0, 0); with @{}
- 
-  rotation = 10 * rotationView;
-}
 
-sdfsdfsdf = 123123;
-
+cuboidSize = 8;
+multiObjPhysicsToDesmoscript!(physicsMeshData, "assets/cubesagain2.obj")
+lookupPhysicsMesh!(physicsMesh, physicsMeshData, 
+  -1*cuboidSize + controls.lookupPos.x, 
+  -1*cuboidSize + controls.lookupPos.y, 
+  -1*cuboidSize + controls.lookupPos.z,
+  cuboidSize + controls.lookupPos.x, 
+  cuboidSize + controls.lookupPos.y, 
+  cuboidSize + controls.lookupPos.z,
+  3
+)
+multiObjCelShadingToDesmoscript!(graphicsMeshData, "assets/cubesagain2.obj")
 lookupCelShadingMesh!( 
-  testLookup, test,
-  -4 + controls.lookupPos.x, -4 + controls.lookupPos.y, -4 + controls.lookupPos.z,
-  4 + controls.lookupPos.x, 4 + controls.lookupPos.y, 4 + controls.lookupPos.z,
+  graphicsMesh, graphicsMeshData,
+  -1*cuboidSize + controls.lookupPos.x, 
+  -1*cuboidSize + controls.lookupPos.y, 
+  -1*cuboidSize + controls.lookupPos.z,
+  cuboidSize + controls.lookupPos.x, 
+  cuboidSize + controls.lookupPos.y, 
+  cuboidSize + controls.lookupPos.z,
   3
 )
 
+
+
+
+currentFrame = 0;
+
+
+
+sub!(proj, p, (p.x / p.z, p.y / p.z))
+
 ns display {
   // calculate view space
-  deswizzle!(translated, testLookup.vertexPosition.xyz - controls.pos.xyz)
+  deswizzle!(translated, graphicsMesh.vertexPosition.xyz - controls.pos.xyz)
   ns rotated1 {
     x = translated.x * cos(controls.rotation\x) - translated.z * sin(controls.rotation\x);
     y = translated.y;
@@ -53,49 +73,101 @@ ns display {
     
   // get average positions in world and view space
   deswizzle!(average, (   
-    testLookup.vertexPosition.xyz[testLookup.index.tri1] 
-    + testLookup.vertexPosition.xyz[testLookup.index.tri2]
-    + testLookup.vertexPosition.xyz[testLookup.index.tri3]
+    graphicsMesh.vertexPosition.xyz[graphicsMesh.index.tri1] 
+    + graphicsMesh.vertexPosition.xyz[graphicsMesh.index.tri2]
+    + graphicsMesh.vertexPosition.xyz[graphicsMesh.index.tri3]
   ) / 3)
   deswizzle!(viewAverage, average.xyz - controls.pos.xyz)
   t.normalize!(normalizedViewAverage, viewAverage)
 
   // depth sorting
   polygonDepths = normalizedViewAverage.mag;
-  depthSortOrder = sort(1 .. length(testLookup.index.tri1), -1 * polygonDepths);
-  polygonFilter = depthSortOrder;
+  depthSortOrder = sort(1 .. length(graphicsMesh.index.tri1), -1 * polygonDepths);
+    
+  deswizzle!(view1, view.xyz[graphicsMesh.index.tri1])
+  deswizzle!(view2, view.xyz[graphicsMesh.index.tri2])
+  deswizzle!(view3, view.xyz[graphicsMesh.index.tri3])
+
+  /*
+  show screenSpace1 = (proj!(view1)); with @{ hidden: true }
+  show screenSpace2 = (proj!(view2)); with @{ hidden: true }
+  show screenSpace3 = (proj!(view3)); with @{ hidden: true }
+
+  sub!(windingOrderContrib, start, end, (end\x - start\x) * (end\y + start\y))
+
+  windingOrders = match {
+    (sign(view1.z - 0.05) + sign(view2.z - 0.05) + sign(view3.z - 0.05)) == 3 =>     
+      windingOrderContrib!(screenSpace1, screenSpace2)
+    + windingOrderContrib!(screenSpace2, screenSpace3)
+    + windingOrderContrib!(screenSpace3, screenSpace1);
+    1;
+  };*/
+
+  deswizzle!(edge1, graphicsMesh.vertexPosition.xyz[graphicsMesh.index.tri2] - graphicsMesh.vertexPosition.xyz[graphicsMesh.index.tri1])
+  deswizzle!(edge2, graphicsMesh.vertexPosition.xyz[graphicsMesh.index.tri3] - graphicsMesh.vertexPosition.xyz[graphicsMesh.index.tri1])
+  t.cross!(notNormalizedNormal, edge1, edge2)
+  backfaceDeterminant = t.dotns!(notNormalizedNormal, normalizedViewAverage);
+  
+  polygonFilter = depthSortOrder[backfaceDeterminant[depthSortOrder] < 0];
 
 
   fn mix(a, b, factor) {
-    clampedFactor = min(max(factor, 0), 1);
+    show clampedFactor = min(max(factor, 0), 1); with @{ hidden: true }
     b * clampedFactor + a * (1 - clampedFactor)
   }
 
+  fn smoothstepMix(a, b, factor) {
+    mix(a, b, factor * factor * (3 - factor * 2))
+  }
 
-  colors = rgb(
-    test.r[testLookup.baseColor] + test.r[testLookup.light1Color] + test.r[testLookup.light2Color],
-    test.g[testLookup.baseColor] + test.g[testLookup.light1Color] + test.g[testLookup.light2Color],
-    test.b[testLookup.baseColor] + test.b[testLookup.light1Color] + test.b[testLookup.light2Color]
+  fn rand(co1, co2) {
+    mod(sin(co1 * 12.9898 + co2 * 78.223) * 43758.5453, 1)
+  }
+
+  flickeringPeriod = 8;
+  glowingPeriod = 60;
+
+  fn randomlyModulateLight(seed, period, brightnessVariation) {
+    smoothstepMix(
+      rand(seed, floor(currentFrame / period)) * brightnessVariation + 1 - brightnessVariation,
+      rand(seed, floor(currentFrame / period) + 1) * brightnessVariation + 1 - brightnessVariation,
+      mod(currentFrame, period) / period 
+    )
+  }
+
+  lightBrightnesses = [
+    1, 
+    randomlyModulateLight(1, flickeringPeriod, 0.3),
+    randomlyModulateLight(2, flickeringPeriod, 0.3), 
+    randomlyModulateLight(3, glowingPeriod, 0.8),
+    randomlyModulateLight(4, glowingPeriod, 0.8)];
+
+  light1Brightnesses = lightBrightnesses[graphicsMesh.light1Type+1];
+  light2Brightnesses = lightBrightnesses[graphicsMesh.light2Type+1];
+  colors = rgb( 
+    graphicsMeshData.r[graphicsMesh.baseColor]
+     + graphicsMeshData.r[graphicsMesh.light1Color] * light1Brightnesses
+     + graphicsMeshData.r[graphicsMesh.light2Color] * light2Brightnesses, 
+    graphicsMeshData.g[graphicsMesh.baseColor]
+     + graphicsMeshData.g[graphicsMesh.light1Color] * light1Brightnesses
+     + graphicsMeshData.g[graphicsMesh.light2Color] * light2Brightnesses,
+    graphicsMeshData.b[graphicsMesh.baseColor]
+     + graphicsMeshData.b[graphicsMesh.light1Color] * light1Brightnesses
+     + graphicsMeshData.b[graphicsMesh.light2Color] * light2Brightnesses
   );  
 
   colors2 = colors;
 
   // display polygons
   show polys = [
-  getClippedPolygon(
+  project.getClippedPolygon(
     0.01,
-    view.x[testLookup.index.tri1[i]],
-    view.y[testLookup.index.tri1[i]],
-    view.z[testLookup.index.tri1[i]],
-    view.x[testLookup.index.tri2[i]],
-    view.y[testLookup.index.tri2[i]],
-    view.z[testLookup.index.tri2[i]],
-    view.x[testLookup.index.tri3[i]],
-    view.y[testLookup.index.tri3[i]],
-    view.z[testLookup.index.tri3[i]]
+    view1.x[i], view1.y[i], view1.z[i],
+    view2.x[i], view2.y[i], view2.z[i],
+    view3.x[i], view3.y[i], view3.z[i]
     )
   for
-  i=1 .. length(testLookup.index.tri1)
+  i=1 .. length(graphicsMesh.index.tri1)
   ][polygonFilter]; with @{
     color: "red",
     lines: false,
@@ -108,115 +180,195 @@ ns display {
 
 
 
+fn isPointInsideAABB(px, py, pz, xmin, ymin, zmin, xmax, ymax, zmax) {
+  match {
+    px < xmin => 0;
+    py < ymin => 0;
+    pz < zmin => 0;
+    px > xmax => 0;
+    py > ymax => 0;
+    pz > zmax => 0;
+    1;
+  } 
+}
 
+fn isOverlapping(amin, amax, bmin, bmax) {
+  min(
+    match { (amax >= bmin) => 1; 0; },
+    match { (bmax >= amin) => 1; 0; }
+  )
+}
 
-
-
-
-
-
-
-
-
-
-
-
-fn pointMag(p) { (p\x * p\x + p\y * p\y) ^ 0.5 }
-
-sub!(dist, nsname, xv, yv, zv, 
-  ((nsname.x-xv)^2+(nsname.x-yv)^2+(nsname.x-zv)^2)^0.5
-)
-sub!(mag, nsname, 
-  ((nsname.x)^2+nsname.y^2 +nsname.z^2)^0.5
-)
-
-polygonShift = 0.01;
-
-fn getClippedPolygon(
-    near,
-    x1, y1, z1,
-    x2, y2, z2,
-    x3, y3, z3
+fn isTriPossiblyInsideAABB(
+  x1, y1, z1,
+  x2, y2, z2,
+  x3, y3, z3,
+  xmin, ymin, zmin,
+  xmax, ymax, zmax
 ) {
-    sortedDepths = sort([z1, z2, z3]);
-    nonClippedCount = length(sortedDepths[sortedDepths > near]);
+  xtrimin = min(x1, x2, x3);
+  ytrimin = min(y1, y2, y3);
+  ztrimin = min(z1, z2, z3);
+  xtrimax = max(x1, x2, x3);
+  ytrimax = max(y1, y2, y3);
+  ztrimax = max(z1, z2, z3);
+  min(
+    isOverlapping(xmin, xmax, xtrimin, xtrimax),
+    isOverlapping(ymin, ymax, ytrimin, ytrimax),
+    isOverlapping(zmin, zmax, ztrimin, ztrimax)
+  )
+}
 
-    ns center {
-      x = (x1 + x2 + x3) / 3;
-      y = (y1 + y2 + y3) / 3;
-      z = (z1 + z2 + z3) / 3;
-    }
 
-    ns offset1 {
-      x = x1 - center.x;
-      y = y1 - center.y;
-      z = z1 - center.z;
-    }
-    offset1mag = mag!(offset1);
-    ns offset2 {
-      x = x2 - center.x;
-      y = y2 - center.y;
-      z = z2 - center.z;
-    }
-    offset2mag = mag!(offset2);
-    ns offset3 {
-      x = x3 - center.x;
-      y = y3 - center.y;
-      z = z3 - center.z;
-    }
-    offset3mag = mag!(offset3);
 
-    deswizzle!(shifted1, offset1.xyz * (1 + center.z * polygonShift / offset1mag) + center.xyz)
-    deswizzle!(shifted2, offset2.xyz * (1 + center.z * polygonShift / offset2mag) + center.xyz)
-    deswizzle!(shifted3, offset3.xyz * (1 + center.z * polygonShift / offset3mag) + center.xyz)
 
-    screenSpace1 = (shifted1.x / shifted1.z, shifted1.y / shifted1.z);
-    screenSpace2 = (shifted2.x / shifted2.z, shifted2.y / shifted2.z);
-    screenSpace3 = (shifted3.x / shifted3.z, shifted3.y / shifted3.z);
+ns physics {
+  deswizzle!(allpos1, physicsMesh.vertexPosition.xyz[physicsMesh.index.tri1])
+  deswizzle!(allpos2, physicsMesh.vertexPosition.xyz[physicsMesh.index.tri2])
+  deswizzle!(allpos3, physicsMesh.vertexPosition.xyz[physicsMesh.index.tri3])
+  filter = (1 .. length(allpos1.x))[
+    isTriPossiblyInsideAABB(
+      allpos1.x, allpos1.y, allpos1.z,
+      allpos2.x, allpos2.y, allpos2.z,
+      allpos3.x, allpos3.y, allpos3.z,
+      controls.physicsPos.x - controls.velMag,
+      controls.physicsPos.y - controls.velMag,
+      controls.physicsPos.z - controls.velMag,
+      controls.physicsPos.x + controls.velMag,
+      controls.physicsPos.y + controls.velMag,
+      controls.physicsPos.z + controls.velMag
+    ) == 1   
+  ];
 
+  deswizzle!(pos1, allpos1.xyz[filter])
+  deswizzle!(pos2, allpos2.xyz[filter])
+  deswizzle!(pos3, allpos3.xyz[filter])
+
+  posIndices = match {
+    length(pos1.x) == 0 => [];
+    (1 .. length(pos1.x));
+  };
+
+  deswizzle!(edge1, allpos2.xyz - allpos1.xyz) 
+  deswizzle!(edge2, allpos3.xyz - allpos1.xyz)
+  t.cross!(notNormalizedNormal, edge1, edge2)
+  t.normalize!(allnormal, notNormalizedNormal)
+
+  deswizzle!(normal, allnormal.xyz[filter])
+
+  fn noUndefined(x, alternative) {
     match {
-        (nonClippedCount == 3) => {polygon(
-            screenSpace1, screenSpace2, screenSpace3
-        )};
-        (nonClippedCount == 2) => {
-            sortedXs = sort([x1, x2, x3], [z1, z2, z3]);
-            sortedYs = sort([y1, y2, y3], [z1, z2, z3]);
-            t1 = (near - sortedDepths[1]) / (sortedDepths[2] - sortedDepths[1]);
-            t2 = (near - sortedDepths[1]) / (sortedDepths[3] - sortedDepths[1]);
-
-            polygon(
-                (sortedXs[2] / sortedDepths[2], sortedYs[2] / sortedDepths[2]),
-                (sortedXs[3] / sortedDepths[3], sortedYs[3] / sortedDepths[3]),
-
-                (
-                    ((sortedXs[1] + t2 * (sortedXs[3] - sortedXs[1])) / near), 
-                    ((sortedYs[1] + t2 * (sortedYs[3] - sortedYs[1])) / near)
-                ),
-                (
-                    ((sortedXs[1] + t1 * (sortedXs[2] - sortedXs[1])) / near), 
-                    ((sortedYs[1] + t1 * (sortedYs[2] - sortedYs[1])) / near)
-                )
-            )
-        };
-        (nonClippedCount == 1) => {
-            sortedXs = sort([x1, x2, x3], [z1, z2, z3]);
-            sortedYs = sort([y1, y2, y3], [z1, z2, z3]);
-            t1 = (near - sortedDepths[3]) / (sortedDepths[1] - sortedDepths[3]);
-            t2 = (near - sortedDepths[3]) / (sortedDepths[2] - sortedDepths[3]);
-
-            polygon(
-                (sortedXs[3] / sortedDepths[3], sortedYs[3] / sortedDepths[3]),
-
-                (
-                    ((sortedXs[3] + t2 * (sortedXs[2] - sortedXs[3])) / near), 
-                    ((sortedYs[3] + t2 * (sortedYs[2] - sortedYs[3])) / near)
-                ),
-                (
-                    ((sortedXs[3] + t1 * (sortedXs[1] - sortedXs[3])) / near), 
-                    ((sortedYs[3] + t1 * (sortedYs[1] - sortedYs[3])) / near)
-                )
-            )
-        };
-        polygon((0/0,0/0));
+      (x == x) => x;
+      alternative;
     }
+  }
+  
+  loop!(physicsLoop, 1, {
+    t.vec3!(rayPos, controls.physicsPos.x, controls.physicsPos.y, controls.physicsPos.z)
+    t.normalize!(rayDir, controls.velocity)
+    distanceRemaining = rayDir.mag;
+    isOnGround = 0;
+  }, {
+    rayTriangleIntersections =
+      t.rayTriangleIntersectionWithIndex( 
+        prev.rayPos.x, prev.rayPos.y, prev.rayPos.z,
+        prev.rayDir.x, prev.rayDir.y, prev.rayDir.z,
+        pos1.x, pos1.y, pos1.z,
+        pos2.x, pos2.y, pos2.z,
+        pos3.x, pos3.y, pos3.z,
+        posIndices
+      );
+
+    aboveZeroRTIs = rayTriangleIntersections[rayTriangleIntersections\x > 0];
+
+    closestIntersect = aboveZeroRTIs[aboveZeroRTIs\x == min(aboveZeroRTIs\x)][1];
+
+    anyIntersects = match { (closestIntersect\x == closestIntersect\x) => 1; 0; };
+
+    distanceToIntersection = match {
+      anyIntersects == 0 => prev.distanceRemaining;
+      min(closestIntersect\x, prev.distanceRemaining);
+    };
+
+    distanceRemaining = prev.distanceRemaining - distanceToIntersection;
+
+    t.vec3!(rayPos,
+      prev.rayPos.x + prev.rayDir.x * (distanceToIntersection - 0.0001),
+      prev.rayPos.y + prev.rayDir.y * (distanceToIntersection - 0.0001),
+      prev.rayPos.z + prev.rayDir.z * (distanceToIntersection - 0.0001)
+    )
+
+    indexOfIntersection = closestIntersect\y;
+
+    t.vec3!(intersectedTriNormal, 
+      normal.x[indexOfIntersection],
+      normal.y[indexOfIntersection],
+      normal.z[indexOfIntersection]
+    )
+
+    idotn = t.dotns!(prev.rayDir, intersectedTriNormal);
+
+    isOnGround = max(
+      prev.isOnGround,
+      match { intersectedTriNormal.y > 0 => 1; 0; }
+    );
+
+    ns rayDir {
+      x = match{(distanceRemaining == 0) => prev.rayDir.x;
+        prev.rayDir.x - 2 * idotn * intersectedTriNormal.x;};
+      y = match{(distanceRemaining == 0) => prev.rayDir.y;
+        prev.rayDir.y - 2 * idotn * intersectedTriNormal.y;};
+      z = match{(distanceRemaining == 0) => prev.rayDir.z;
+        prev.rayDir.z - 2 * idotn * intersectedTriNormal.z;};
+    }
+  })
+}
+
+
+
+
+
+
+
+
+
+ticker @{ 
+  handlerLatex: ds( 
+    & 
+    match { (mod(currentFrame, 30) == 0) => controls.updateMeshLookup; },
+    currentFrame -> currentFrame + 1,
+    controls.doPhysics
+  ),
+  playing: true,
+  open: true
+}
+
+
+ns controls {
+  t.vec3!(physicsPos, 1, 5, 1)
+  t.vec3!(pos, physicsPos.x, physicsPos.y + 0.5, physicsPos.z)
+  t.vec3!(velocity, 0.15, 0.25, 0.15)
+  t.vec3!(lookupPos, 0, 0, 0) 
+
+  updateMeshLookup = &
+    lookupPos.x -> pos.x,
+    lookupPos.y -> pos.y,
+    lookupPos.z -> pos.z;
+
+  velMag = (velocity.x ^ 2 + velocity.y ^ 2 + velocity.z ^ 2) ^ 0.5;
+
+  doPhysics = &
+    physicsPos.x -> physics.physicsLoop.rayPos.x,
+    physicsPos.y -> physics.physicsLoop.rayPos.y,
+    physicsPos.z -> physics.physicsLoop.rayPos.z,
+    velocity.x -> physics.physicsLoop.rayDir.x * velMag * 0.9 - 0 + 0.1 * rotationView\y * sin(rotation\x),
+    velocity.y -> physics.physicsLoop.rayDir.y * velMag * 0.9 - 0.01 + physics.physicsLoop.isOnGround * 0.02,
+    velocity.z -> physics.physicsLoop.rayDir.z * velMag * 0.9 - 0 + 0.1 * rotationView\y * cos(rotation\x),
+    rotation -> (rotation\x + rotationView\x * 0.1, 0)
+    ;
+
+  show rotationView = (0, 0); with @{}
+  show rotationJoystick = polygon((0,0), rotationView); with @{}
+ 
+  rotation = (0, 0);
 }

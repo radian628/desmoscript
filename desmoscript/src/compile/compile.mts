@@ -121,7 +121,7 @@ export function getMacroSubstitution(
 ) {
   const substitution = unit.substitutionLUT.get(expr.id);
   if (!substitution)
-    err(expr, "INTERNAL ERROR: Macro call has no corresponding substitution.");
+    err(expr, `INTERNAL ERROR: Macro call of macro '${(expr.name as ASTIdentifier<{}>).segments.join(".")}' has no corresponding substitution.`);
   return substitution;
 }
 
@@ -234,7 +234,7 @@ async function compileExpression(
 
       const identInfo = ctx.identifierInfo.get(foundIdentifier.result.id);
 
-      if (!identInfo) err(e, `INTERNAL ERROR: Failed to get identifier info.`);
+      if (!identInfo) err(e, `INTERNAL ERROR: Failed to get identifier info during expression compilation.`);
 
       if (identInfo.uses == 2
         && (foundIdentifier.result.type == ScopeContent.Type.VARIABLE) 
@@ -527,6 +527,7 @@ async function compileScope(
           latex,
           id: getGraphExprID(),
           color: "black",
+          hidden: c.decoratorInfo === undefined,
           folderId: currentFolderId,
           ...additionalProperties,
         });
