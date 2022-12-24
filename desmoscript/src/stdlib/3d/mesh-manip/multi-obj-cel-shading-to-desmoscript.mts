@@ -22,7 +22,7 @@ export type DesmosifiedDesmosLightingModelMesh = {
   aabb: AABB
 };
 
-function approxEqual(v1: [number, number, number], v2: [number, number, number], delta: number) {
+export function approxEqual(v1: [number, number, number], v2: [number, number, number], delta: number) {
   return Math.abs(v1[0] - v2[0]) < delta
   && Math.abs(v1[1] - v2[1]) < delta
   && Math.abs(v1[2] - v2[2]) < delta;
@@ -76,7 +76,7 @@ export function desmosifyCelShadingModel(
   // reindex mesh (maybe optimize at some point in the future)
   for (const tri of mesh.triangles) {
     const thisTrianglesIndices = tri.vertices.map(v => {
-      return vertices.findIndex(e => approxEqual(v, e, 0.00001));
+      return vertices.findIndex(e => approxEqual(v, e, 0.0001));
     });
     let i = 0;
     for (const index of thisTrianglesIndices) {

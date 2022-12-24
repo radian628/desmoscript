@@ -15,7 +15,7 @@ settings @{
     xmin: -2,
     ymin: -2,
     xmax: 2,
-    ymax: 2
+    ymax: 2 
   },
   showGrid: false,
   showXAxis: false,
@@ -26,7 +26,7 @@ settings @{
 
 
 cuboidSize = 8;
-multiObjPhysicsToDesmoscript!(physicsMeshData, "assets/cubesagain2.obj")
+multiObjPhysicsToDesmoscript!(physicsMeshData, "assets/world.obj")
 lookupPhysicsMesh!(physicsMesh, physicsMeshData, 
   -1*cuboidSize + controls.lookupPos.x, 
   -1*cuboidSize + controls.lookupPos.y, 
@@ -36,8 +36,8 @@ lookupPhysicsMesh!(physicsMesh, physicsMeshData,
   cuboidSize + controls.lookupPos.z,
   3
 )
-multiObjCelShadingToDesmoscript!(graphicsMeshData, "assets/cubesagain2.obj")
-lookupCelShadingMesh!( 
+multiObjCelShadingToDesmoscript!(graphicsMeshData, "assets/world.obj")
+lookupCelShadingMesh!(  
   graphicsMesh, graphicsMeshData,
   -1*cuboidSize + controls.lookupPos.x, 
   -1*cuboidSize + controls.lookupPos.y, 
@@ -53,6 +53,12 @@ lookupCelShadingMesh!(
 
 currentFrame = 0;
 
+
+
+fn mix(a, b, factor) {
+  show clampedFactor = min(max(factor, 0), 1); with @{ hidden: true }
+  b * clampedFactor + a * (1 - clampedFactor)
+}
 
 
 sub!(proj, p, (p.x / p.z, p.y / p.z))
@@ -110,11 +116,6 @@ ns display {
   
   polygonFilter = depthSortOrder[backfaceDeterminant[depthSortOrder] < 0];
 
-
-  fn mix(a, b, factor) {
-    show clampedFactor = min(max(factor, 0), 1); with @{ hidden: true }
-    b * clampedFactor + a * (1 - clampedFactor)
-  }
 
   fn smoothstepMix(a, b, factor) {
     mix(a, b, factor * factor * (3 - factor * 2))
@@ -263,7 +264,7 @@ ns physics {
     }
   }
   
-  loop!(physicsLoop, 1, {
+  loop!(physicsLoop, 2, {
     t.vec3!(rayPos, controls.physicsPos.x, controls.physicsPos.y, controls.physicsPos.z)
     t.normalize!(rayDir, controls.velocity)
     distanceRemaining = rayDir.mag;
@@ -330,24 +331,36 @@ ns physics {
 
 
 
-
+ 
 
 ticker @{ 
   handlerLatex: ds( 
     & 
     match { (mod(currentFrame, 30) == 0) => controls.updateMeshLookup; },
     currentFrame -> currentFrame + 1,
-    controls.doPhysics
-  ),
-  playing: true,
+    match { mod(currentFrame, controls.physicsInterval) == 0 => controls.doPhysics; } ,
+    controls.doPerFramePhysics
+  ),  
+  playing: true, 
   open: true
-}
+}  
 
+ 
+ns controls { 
+  t.vec3!(physicsPos, 0, 1, 0)
 
-ns controls {
-  t.vec3!(physicsPos, 1, 5, 1)
-  t.vec3!(pos, physicsPos.x, physicsPos.y + 0.5, physicsPos.z)
-  t.vec3!(velocity, 0.15, 0.25, 0.15)
+  physicsInterval = 6;
+  
+  velFactor = mod(currentFrame - 1, physicsInterval) / physicsInterval;
+  
+  t.vec3!(pos, 
+    mix(physicsPos.x, physics.physicsLoop.rayPos.x, velFactor), 
+    mix(physicsPos.y, physics.physicsLoop.rayPos.y, velFactor) 
+    + 1.5 + 0.1 * min(0, 1 - framesSinceOnGround / 8) * sin(accumDist * 0.4), 
+
+    mix(physicsPos.z, physics.physicsLoop.rayPos.z, velFactor)
+  )
+  t.vec3!(velocity, 0.001, 0.0, 0.001) 
   t.vec3!(lookupPos, 0, 0, 0) 
 
   updateMeshLookup = &
@@ -355,20 +368,32 @@ ns controls {
     lookupPos.y -> pos.y,
     lookupPos.z -> pos.z;
 
+  accumDist = 0;
+
   velMag = (velocity.x ^ 2 + velocity.y ^ 2 + velocity.z ^ 2) ^ 0.5;
 
   doPhysics = &
     physicsPos.x -> physics.physicsLoop.rayPos.x,
     physicsPos.y -> physics.physicsLoop.rayPos.y,
     physicsPos.z -> physics.physicsLoop.rayPos.z,
-    velocity.x -> physics.physicsLoop.rayDir.x * velMag * 0.9 - 0 + 0.1 * rotationView\y * sin(rotation\x),
-    velocity.y -> physics.physicsLoop.rayDir.y * velMag * 0.9 - 0.01 + physics.physicsLoop.isOnGround * 0.02,
-    velocity.z -> physics.physicsLoop.rayDir.z * velMag * 0.9 - 0 + 0.1 * rotationView\y * cos(rotation\x),
-    rotation -> (rotation\x + rotationView\x * 0.1, 0)
+    velocity.x -> physics.physicsLoop.rayDir.x * velMag * 0.6 - 0 + 0.3 * rotationController\y * sin(rotation\x),
+    velocity.y -> physics.physicsLoop.rayDir.y * velMag * 0.9 - 0.03 + physics.physicsLoop.isOnGround * 0.031, 
+    velocity.z -> physics.physicsLoop.rayDir.z * velMag * 0.6 - 0 + 0.3 * rotationController\y * cos(rotation\x),
+    framesSinceOnGround -> match { physics.physicsLoop.isOnGround == 0 => framesSinceOnGround + 1; 0; }
     ;
 
-  show rotationView = (0, 0); with @{}
-  show rotationJoystick = polygon((0,0), rotationView); with @{}
+  framesSinceOnGround = 0;
+
+  doPerFramePhysics = &
+    rotation -> (rotation\x + rotationController\x * 0.1, 0),
+    accumDist -> accumDist + (velocity.x ^ 2 + velocity.z ^ 2) ^ 0.5
+    ;
+
+  joystickOffset = (0, -0.5);
+
+  show rotationView = (0, -0.5); with @{}
+  rotationController = rotationView - joystickOffset;
+  show rotationJoystick = polygon(joystickOffset, rotationView); with @{}
  
-  rotation = (0, 0);
+  rotation = (3.14, 0);
 }

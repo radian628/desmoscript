@@ -13,31 +13,31 @@ fn closeTriangleGaps(a, b, c) {
     c + polygonShift * c2
   ) 
 }
-
+ 
 fn closeTriangleGapsWO(a, b, c) {
   windingOrder = windingOrderContrib!(a, b)
     + windingOrderContrib!(b, c)
-    + windingOrderContrib!(c, a);
-
+    + windingOrderContrib!(c, a); 
+   
   factor = match { windingOrder > 0 => 1; -1; }; 
-
+  
   a2 = rotate90(normalizePoint(normalizePoint(a - b) + normalizePoint(a - c))) * factor;
-  b2 = rotate90(normalizePoint(normalizePoint(b - a) + normalizePoint(b - c))) * factor;
+  b2 = rotate90(normalizePoint(normalizePoint(b - a) + normalizePoint(b - c))) * factor; 
   c2 = rotate90(normalizePoint(normalizePoint(c - a) + normalizePoint(c - b))) * factor;
-
+   
   polygon(
     a - polygonShift * a2,
     a + polygonShift * a2,
-    b - polygonShift * b2,
+    b - polygonShift * b2,  
     b + polygonShift * b2,
-    c - polygonShift * c2, 
+    c - polygonShift * c2,   
     c + polygonShift * c2
   )
 }
 
 sub!(windingOrderContrib, start, end, (end\x - start\x) * (end\y + start\y))
 
-sub!(distSq, a, b, (a\x - b\x) ^ 2 + (a\y - b\y) ^ 2)
+sub!(distSq, a, b, (a\x - b\x) ^ 2 + (a\y - b\y) ^ 2) 
 
 fn doLineSegmentsIntersect(aStart, aEnd, bStart, bEnd) {
   a = aStart\x;
