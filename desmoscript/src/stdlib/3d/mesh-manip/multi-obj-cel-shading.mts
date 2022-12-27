@@ -84,7 +84,7 @@ function isAligned(tri: Triangle, normal: [number, number, number]) {
   return dot(getNormal(...tri), normal) > 0;
 }
 
-const radiusMultipliers = [1/3, 1, 3];
+const radiusMultipliers = [0.5, 1, 1.5];
 export function lightMeshWithOneLight(mesh: DesmosLightingModelMesh, light: Light) {
   let newTriangles = mesh.triangles as DesmosLightingModelMesh["triangles"];
   for (let i = 0; i < 3; i++) {
@@ -141,6 +141,11 @@ export function lightMeshWithOneLight(mesh: DesmosLightingModelMesh, light: Ligh
 }
 
 export function doDesmosMultiObjCelShading(obj: ParsedMultiOBJ, a: MacroAPI) {
+  obj.objects = new Map(Array.from(obj.objects.entries()).sort(
+    (a, b) => {
+      return a[1].vertices.length - b[1].vertices.length
+    }
+  ))
   let meshes: Map<string, DesmosLightingModelMesh> = new Map();
   const lights: Light[] = [];
 

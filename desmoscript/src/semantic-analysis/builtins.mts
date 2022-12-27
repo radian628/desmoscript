@@ -136,6 +136,8 @@ export function createDesmosBuiltins(): Map<string, ScopeContent.Content> {
 
     "polygon",
 
+    "index",
+
     "random",
   ].map((name) => map.set(name, {
     type: ScopeContent.Type.FUNCTION,

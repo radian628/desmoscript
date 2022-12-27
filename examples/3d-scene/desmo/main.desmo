@@ -7,25 +7,43 @@ import "../../../desmo-lib/binary.desmo" as bin;
 import "project.desmo" as project;
 
 
+t.vec3!(bgcolor, 160, 170, 185)
 
+fn gammaCorrect(x) {
+  (x/256)^(1/2.2)*256
+}
 
-
+show bg = polygon(
+  (-10, -10),
+  (-10, 10), 
+  (10, 10),  
+  (10, -10)
+); with @{
+  colorLatex: ds(rgb(
+    gammaCorrect(bgcolor.x), 
+    gammaCorrect(bgcolor.y), 
+    gammaCorrect(bgcolor.z)
+  )),
+  fillOpacity: ds(1) 
+} 
+           
 settings @{
   viewport: {
     xmin: -2,
     ymin: -2,
-    xmax: 2,
+    xmax: 2, 
     ymax: 2 
-  },
+  }, 
   showGrid: false,
   showXAxis: false,
-  showYAxis: false
+  showYAxis: false,
+  userLockedViewport: true 
 }
 
 
 
 
-cuboidSize = 8;
+cuboidSize = 16;
 multiObjPhysicsToDesmoscript!(physicsMeshData, "assets/world.obj")
 lookupPhysicsMesh!(physicsMesh, physicsMeshData, 
   -1*cuboidSize + controls.lookupPos.x, 
@@ -34,18 +52,18 @@ lookupPhysicsMesh!(physicsMesh, physicsMeshData,
   cuboidSize + controls.lookupPos.x, 
   cuboidSize + controls.lookupPos.y, 
   cuboidSize + controls.lookupPos.z,
-  3
+  6
 )
 multiObjCelShadingToDesmoscript!(graphicsMeshData, "assets/world.obj")
 lookupCelShadingMesh!(  
   graphicsMesh, graphicsMeshData,
   -1*cuboidSize + controls.lookupPos.x, 
   -1*cuboidSize + controls.lookupPos.y, 
-  -1*cuboidSize + controls.lookupPos.z,
+  -1*cuboidSize + controls.lookupPos.z,  
   cuboidSize + controls.lookupPos.x, 
   cuboidSize + controls.lookupPos.y, 
   cuboidSize + controls.lookupPos.z,
-  3
+  8    
 )
 
 
@@ -94,27 +112,14 @@ ns display {
   deswizzle!(view2, view.xyz[graphicsMesh.index.tri2])
   deswizzle!(view3, view.xyz[graphicsMesh.index.tri3])
 
-  /*
-  show screenSpace1 = (proj!(view1)); with @{ hidden: true }
-  show screenSpace2 = (proj!(view2)); with @{ hidden: true }
-  show screenSpace3 = (proj!(view3)); with @{ hidden: true }
-
-  sub!(windingOrderContrib, start, end, (end\x - start\x) * (end\y + start\y))
-
-  windingOrders = match {
-    (sign(view1.z - 0.05) + sign(view2.z - 0.05) + sign(view3.z - 0.05)) == 3 =>     
-      windingOrderContrib!(screenSpace1, screenSpace2)
-    + windingOrderContrib!(screenSpace2, screenSpace3)
-    + windingOrderContrib!(screenSpace3, screenSpace1);
-    1;
-  };*/
-
   deswizzle!(edge1, graphicsMesh.vertexPosition.xyz[graphicsMesh.index.tri2] - graphicsMesh.vertexPosition.xyz[graphicsMesh.index.tri1])
   deswizzle!(edge2, graphicsMesh.vertexPosition.xyz[graphicsMesh.index.tri3] - graphicsMesh.vertexPosition.xyz[graphicsMesh.index.tri1])
   t.cross!(notNormalizedNormal, edge1, edge2)
   backfaceDeterminant = t.dotns!(notNormalizedNormal, normalizedViewAverage);
   
-  polygonFilter = depthSortOrder[backfaceDeterminant[depthSortOrder] < 0];
+  polygonFilterTemp1 = depthSortOrder[backfaceDeterminant[depthSortOrder] < 0];
+
+  polygonFilter = polygonFilterTemp1[polygonDepths[polygonFilterTemp1] < 16];
 
 
   fn smoothstepMix(a, b, factor) {
@@ -125,10 +130,10 @@ ns display {
     mod(sin(co1 * 12.9898 + co2 * 78.223) * 43758.5453, 1)
   }
 
-  flickeringPeriod = 8;
-  glowingPeriod = 60;
+  flickeringPeriod = 3;
+  glowingPeriod = 20;
 
-  fn randomlyModulateLight(seed, period, brightnessVariation) {
+  fn randomlyModulateLight(seed, period, brightnessVariation) {  
     smoothstepMix(
       rand(seed, floor(currentFrame / period)) * brightnessVariation + 1 - brightnessVariation,
       rand(seed, floor(currentFrame / period) + 1) * brightnessVariation + 1 - brightnessVariation,
@@ -138,23 +143,32 @@ ns display {
 
   lightBrightnesses = [
     1, 
-    randomlyModulateLight(1, flickeringPeriod, 0.3),
-    randomlyModulateLight(2, flickeringPeriod, 0.3), 
+    randomlyModulateLight(1, flickeringPeriod, 0.6),
+    randomlyModulateLight(2, flickeringPeriod, 0.6), 
     randomlyModulateLight(3, glowingPeriod, 0.8),
     randomlyModulateLight(4, glowingPeriod, 0.8)];
 
   light1Brightnesses = lightBrightnesses[graphicsMesh.light1Type+1];
   light2Brightnesses = lightBrightnesses[graphicsMesh.light2Type+1];
-  colors = rgb( 
-    graphicsMeshData.r[graphicsMesh.baseColor]
+
+  ns colorChannels {
+    r = graphicsMeshData.r[graphicsMesh.baseColor]
      + graphicsMeshData.r[graphicsMesh.light1Color] * light1Brightnesses
-     + graphicsMeshData.r[graphicsMesh.light2Color] * light2Brightnesses, 
-    graphicsMeshData.g[graphicsMesh.baseColor]
+     + graphicsMeshData.r[graphicsMesh.light2Color] * light2Brightnesses; 
+    g = graphicsMeshData.g[graphicsMesh.baseColor]
      + graphicsMeshData.g[graphicsMesh.light1Color] * light1Brightnesses
-     + graphicsMeshData.g[graphicsMesh.light2Color] * light2Brightnesses,
-    graphicsMeshData.b[graphicsMesh.baseColor]
+     + graphicsMeshData.g[graphicsMesh.light2Color] * light2Brightnesses;
+    b = graphicsMeshData.b[graphicsMesh.baseColor] 
      + graphicsMeshData.b[graphicsMesh.light1Color] * light1Brightnesses
-     + graphicsMeshData.b[graphicsMesh.light2Color] * light2Brightnesses
+     + graphicsMeshData.b[graphicsMesh.light2Color] * light2Brightnesses;
+  }
+
+  lightFactor = normalizedViewAverage.mag / 16 * 1.5 - 0.5   ;
+
+  colors = rgb( 
+    (mix(colorChannels.r, bgcolor.x, lightFactor)/256)^(1/2.2)*256,
+    (mix(colorChannels.g, bgcolor.y, lightFactor)/256)^(1/2.2)*256,
+    (mix(colorChannels.b, bgcolor.z, lightFactor)/256)^(1/2.2)*256
   );  
 
   colors2 = colors;
@@ -168,8 +182,8 @@ ns display {
     view3.x[i], view3.y[i], view3.z[i]
     )
   for
-  i=1 .. length(graphicsMesh.index.tri1)
-  ][polygonFilter]; with @{
+  i=polygonFilter
+  ]; with @{
     color: "red",
     lines: false,
     fillOpacity: ds(1),
@@ -337,7 +351,7 @@ ticker @{
   handlerLatex: ds( 
     & 
     match { (mod(currentFrame, 30) == 0) => controls.updateMeshLookup; },
-    currentFrame -> currentFrame + 1,
+    currentFrame -> controls.reset(currentFrame + 1, 0),
     match { mod(currentFrame, controls.physicsInterval) == 0 => controls.doPhysics; } ,
     controls.doPerFramePhysics
   ),  
@@ -372,21 +386,41 @@ ns controls {
 
   velMag = (velocity.x ^ 2 + velocity.y ^ 2 + velocity.z ^ 2) ^ 0.5;
 
+  fn reset(normalPos, resetPos) {
+    match {
+      (physicsPos.y < -20) => resetPos;
+      normalPos;
+    }
+  }
+
   doPhysics = &
-    physicsPos.x -> physics.physicsLoop.rayPos.x,
-    physicsPos.y -> physics.physicsLoop.rayPos.y,
-    physicsPos.z -> physics.physicsLoop.rayPos.z,
-    velocity.x -> physics.physicsLoop.rayDir.x * velMag * 0.6 - 0 + 0.3 * rotationController\y * sin(rotation\x),
-    velocity.y -> physics.physicsLoop.rayDir.y * velMag * 0.9 - 0.03 + physics.physicsLoop.isOnGround * 0.031, 
-    velocity.z -> physics.physicsLoop.rayDir.z * velMag * 0.6 - 0 + 0.3 * rotationController\y * cos(rotation\x),
+    physicsPos.x -> reset(physics.physicsLoop.rayPos.x, 0),  
+    physicsPos.y -> reset(physics.physicsLoop.rayPos.y, 3), 
+    physicsPos.z -> reset(physics.physicsLoop.rayPos.z, 0),
+    velocity.x -> reset(
+      physics.physicsLoop.rayDir.x * velMag * 0.6 - 0 + 0.3 * rotationController\y * sin(rotation\x)
+      , 0.001
+    ),
+    velocity.y -> reset(physics.physicsLoop.rayDir.y * velMag 
+     * (0.99 - physics.physicsLoop.isOnGround * 0.8)
+     - 0.09 + physics.physicsLoop.isOnGround * 0.091, 0), 
+    velocity.z -> reset(
+      physics.physicsLoop.rayDir.z * velMag * 0.6 - 0 + 0.3 * rotationController\y * cos(rotation\x),
+      0
+    ),
     framesSinceOnGround -> match { physics.physicsLoop.isOnGround == 0 => framesSinceOnGround + 1; 0; }
     ;
 
-  framesSinceOnGround = 0;
+  framesSinceOnGround = 0;   
+
+  doReset = match { physicsPos.y < -20 => & 
+    rotationView -> joystickOffset
+  ; };
 
   doPerFramePhysics = &
-    rotation -> (rotation\x + rotationController\x * 0.1, 0),
-    accumDist -> accumDist + (velocity.x ^ 2 + velocity.z ^ 2) ^ 0.5
+    rotation -> reset((rotation\x + rotationController\x * 0.1, 0), (3.14, 0)),
+    accumDist -> accumDist + (velocity.x ^ 2 + velocity.z ^ 2) ^ 0.5,     
+    doReset
     ;
 
   joystickOffset = (0, -0.5);
@@ -397,3 +431,14 @@ ns controls {
  
   rotation = (3.14, 0);
 }
+
+
+show resetOverlay = polygon(
+  (-10, -10),
+  (-10, 10), 
+  (10, 10),  
+  (10, -10)
+); with @{
+  colorLatex: ds(rgb(0, 0, 0)),
+  fillOpacity: ds(1 - (currentFrame) / 20) 
+} 

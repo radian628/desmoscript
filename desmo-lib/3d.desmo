@@ -65,7 +65,7 @@ fn rayTriangleIntersectionWithIndex(
     xtri1, ytri1, ztri1,
     xtri2, ytri2, ztri2,
     xtri3, ytri3, ztri3,
-    index
+    i
 ) {
     (rayTriangleIntersection(
         xray, yray, zray,
@@ -73,7 +73,7 @@ fn rayTriangleIntersectionWithIndex(
         xtri1, ytri1, ztri1,
         xtri2, ytri2, ztri2,
         xtri3, ytri3, ztri3
-    ), index)
+    ), i)
 }
 
 sub!(mulMat3,
