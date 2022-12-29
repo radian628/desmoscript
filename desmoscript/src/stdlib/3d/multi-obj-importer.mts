@@ -38,6 +38,10 @@ export async function parseMultiObj(src: string, objdir: string) {
   for (let line of splitSrc) {
     switch (line[0]) {
       case "o":
+        if (output.objects.get(line[1]) !== undefined) {
+          currentObject = output.objects.get(line[1]);
+          break;
+        }
         const newObject: OBJSingleObject = {
           vertices: [],
           normals: [],

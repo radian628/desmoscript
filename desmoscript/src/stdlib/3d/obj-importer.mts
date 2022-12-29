@@ -27,6 +27,7 @@ export type ParsedOBJ = {
 };
 
 export type MTLMaterial = {
+  name: string,
   ambient?: [number, number, number];
   diffuse?: [number, number, number];
   specular?: [number, number, number];
@@ -51,7 +52,9 @@ export function parseMtl(src: string) {
   for (let line of splitSrc) {
     switch (line[0]) {
       case "newmtl":
-        currentMaterial = {};
+        currentMaterial = {
+          name: line[1]
+        };
         output.materials[line[1]] = currentMaterial;
         break;
     }

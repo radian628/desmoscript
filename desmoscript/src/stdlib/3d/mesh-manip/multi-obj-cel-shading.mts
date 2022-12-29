@@ -70,8 +70,8 @@ function parseLightNameAndMesh(meshName: string, mesh: OBJSingleObject, a: Macro
     type,
     radius,
     aabb: {
-      min: position.map(c => c - radius) as [number, number, number],
-      max: position.map(c => c + radius) as [number, number, number]
+      min: position.map(c => c - radius * Math.max(...radiusMultipliers)) as [number, number, number],
+      max: position.map(c => c + radius * Math.max(...radiusMultipliers)) as [number, number, number]
     }
   }
 }
@@ -140,6 +140,12 @@ export function lightMeshWithOneLight(mesh: DesmosLightingModelMesh, light: Ligh
   };
 }
 
+function posterizeColor(x: number) {
+  if (x > 0.05) return 1;
+  if (x < -0.05) return -1;
+  return 0;
+}
+
 export function doDesmosMultiObjCelShading(obj: ParsedMultiOBJ, a: MacroAPI) {
   obj.objects = new Map(Array.from(obj.objects.entries()).sort(
     (a, b) => {
@@ -158,13 +164,19 @@ export function doDesmosMultiObjCelShading(obj: ParsedMultiOBJ, a: MacroAPI) {
     } else {
       meshes.set(meshName, {
         triangles: range(mesh.vertexIndices.length / 3).map(i => {
+          const material = obj.materials[mesh.faceMaterials[i]];
+          const vertices = [
+            mesh.vertices[mesh.vertexIndices[i*3] - lowestIndex],
+            mesh.vertices[mesh.vertexIndices[i*3+1] - lowestIndex],
+            mesh.vertices[mesh.vertexIndices[i*3+2] - lowestIndex],
+          ] as Triangle;
+          const normal = getNormal(...vertices); 
+          const isReflection = material.name.startsWith("reflect_");
           return {
-            vertices: [
-              mesh.vertices[mesh.vertexIndices[i*3] - lowestIndex],
-              mesh.vertices[mesh.vertexIndices[i*3+1] - lowestIndex],
-              mesh.vertices[mesh.vertexIndices[i*3+2] - lowestIndex],
-            ],
-            color: obj.materials[mesh.faceMaterials[i]].diffuse ?? [0,0,0],
+            vertices,
+            color: material.diffuse
+            ?.map(channel => channel * (posterizeColor(normal[1]) * 0.25 * (isReflection ? -1 : 1) + 1)) as [number, number, number] 
+            ?? [0,0,0],
             lighting: []
           }
         }),

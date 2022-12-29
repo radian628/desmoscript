@@ -294,9 +294,7 @@ export function multiObjCelShadingToDesmoscriptInner(
         ${component} = [${colors.colorArray.map(col => 256 * col[i]).join(",")}];
       `)
     );
-  })
-
-
+  });
   
   expressions.push(
     a.binop(
