@@ -182,7 +182,7 @@ async function compileExpression(
       return "";
     },
     note(e, c, v) {
-      return "";
+      return e.text;
     },
     named_json(e, c, v) {
       return "";
@@ -229,6 +229,11 @@ async function compileExpression(
           foundIdentifier.result.type == ScopeContent.Type.FUNCTION) &&
         foundIdentifier.result.isPartOfDesmos
       ) {
+        if (foundIdentifier.result.type == ScopeContent.Type.VARIABLE && 
+          foundIdentifier.result.isPartOfDesmos && 
+          foundIdentifier.result.replacement) {
+          return foundIdentifier.result.replacement;
+        }
         return `\\operatorname{${lastof(e.segments)}}`;
       }
 
@@ -423,10 +428,11 @@ async function compileJSONExpression(
   async function c(e: ASTJSON<{}>): Promise<any> {
     switch (e.data.jsontype) {
       case JSONType.NUMBER:
-      case JSONType.STRING:
       case JSONType.NULL:
       case JSONType.BOOLEAN:
         return e.data.data;
+      case JSONType.STRING:
+        return e.data.data.slice(1, -1);
       case JSONType.OBJECT:
         return Object.fromEntries(
           await Promise.all(
@@ -517,10 +523,11 @@ async function compileScope(
         }
         let additionalProperties: Partial<ExpressionState> = {};
         if (c.decoratorInfo) {
+          let jsonexpr = await compileJSONExpression(props, c.decoratorInfo.json);
           additionalProperties = expressionStateParser
             .strict()
             .partial()
-            .parse(await compileJSONExpression(props, c.decoratorInfo.json));
+            .parse(jsonexpr);
         }
         graphState.expressions.list.push({
           type: "expression",
@@ -557,6 +564,7 @@ async function compileScope(
           latex,
           id: getGraphExprID(),
           color: "black",
+          hidden: true,
           folderId: currentFolderId,
         });
         break;

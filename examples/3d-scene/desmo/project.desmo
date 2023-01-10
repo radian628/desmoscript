@@ -1,5 +1,5 @@
 
-fn closeTriangleGaps(a, b, c) {
+fn closeTriangleGaps(a, b, c, polygonShift) {
   a2 = rotate90(normalizePoint(normalizePoint(a - b) + normalizePoint(a - c)));
   b2 = rotate90(normalizePoint(normalizePoint(b - a) + normalizePoint(b - c)));
   c2 = rotate90(normalizePoint(normalizePoint(c - a) + normalizePoint(c - b)));
@@ -14,7 +14,7 @@ fn closeTriangleGaps(a, b, c) {
   ) 
 }
  
-fn closeTriangleGapsWO(a, b, c) {
+fn closeTriangleGapsWO(a, b, c, polygonShift) {
   windingOrder = windingOrderContrib!(a, b)
     + windingOrderContrib!(b, c)
     + windingOrderContrib!(c, a); 
@@ -62,7 +62,7 @@ fn doLineSegmentsIntersect(aStart, aEnd, bStart, bEnd) {
   }
 }
 
-fn closeClippedQuadGaps(a, b, c, d) {
+fn closeClippedQuadGaps(a, b, c, d, polygonShift) {
   a2 = rotate90(normalizePoint(normalizePoint(a - d) + normalizePoint(a - b)));
   b2 = rotate90(normalizePoint(normalizePoint(b - a) + normalizePoint(b - c)));
   
@@ -101,10 +101,8 @@ sub!(mag, nsname,
   ((nsname.x)^2+nsname.y^2 +nsname.z^2)^0.5
 )
 
-polygonShift = 0.002;
-
 fn getClippedPolygon(
-    near,
+    near, polygonShift,
     x1, y1, z1,
     x2, y2, z2,
     x3, y3, z3
@@ -118,7 +116,7 @@ fn getClippedPolygon(
 
     match {
         (nonClippedCount == 3) => {closeTriangleGaps(
-            screenSpace1, screenSpace2, screenSpace3
+            screenSpace1, screenSpace2, screenSpace3, polygonShift
         )};
         (nonClippedCount == 2) => {
             sortedXs = sort([x1, x2, x3], [z1, z2, z3]);
@@ -137,7 +135,7 @@ fn getClippedPolygon(
                 (
                     ((sortedXs[1] + t1 * (sortedXs[2] - sortedXs[1])) / near), 
                     ((sortedYs[1] + t1 * (sortedYs[2] - sortedYs[1])) / near)
-                )
+                ), polygonShift
             )
         };
         (nonClippedCount == 1) => {
@@ -156,7 +154,7 @@ fn getClippedPolygon(
                 (
                     ((sortedXs[3] + t1 * (sortedXs[1] - sortedXs[3])) / near), 
                     ((sortedYs[3] + t1 * (sortedYs[1] - sortedYs[3])) / near)
-                )
+                ), polygonShift
             )
         };
         polygon((0/0,0/0));

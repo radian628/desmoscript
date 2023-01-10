@@ -52,6 +52,22 @@ export function createDesmosBuiltins(): Map<string, ScopeContent.Content> {
     isPartOfDesmos: true,
     id: makeExprId(),
   });
+  map.set("width", {
+    type: ScopeContent.Type.VARIABLE,
+    isPartOfDesmos: true,
+    id: makeExprId(),
+  });
+  map.set("height", {
+    type: ScopeContent.Type.VARIABLE,
+    isPartOfDesmos: true,
+    id: makeExprId(),
+  });
+  map.set("parametricT", {
+    type: ScopeContent.Type.VARIABLE,
+    isPartOfDesmos: true,
+    id: makeExprId(),
+    replacement: "t "
+  });
     map.set("rgb", {
       id: makeExprId(),
       type: ScopeContent.Type.FUNCTION,
@@ -130,6 +146,7 @@ export function createDesmosBuiltins(): Map<string, ScopeContent.Content> {
     "ceil",
     "mod",
     "sign",
+    "abs",
 
     "min",
     "max",

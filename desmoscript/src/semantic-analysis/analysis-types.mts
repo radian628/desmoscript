@@ -49,9 +49,11 @@ export namespace ScopeContent {
     | {
         isPartOfDesmos?: boolean;
         isBuiltin: true;
+        replacement?: string;
       }
     | {
         isPartOfDesmos: true;
+        replacement?: string;
         isBuiltin?: false;
       }
   );

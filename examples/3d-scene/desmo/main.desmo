@@ -43,17 +43,18 @@ settings @{
 
 gamma = 2.2;         
 
-viewDistance = 32         ;
+viewDistance = uiSettings.distance.value         ;
 
 cuboidSize = viewDistance;
+physicsCuboidSize = 8;
 multiObjPhysicsToDesmoscript!(physicsMeshData, "assets/world.obj")
 lookupPhysicsMesh!(physicsMesh, physicsMeshData, 
-  -1*cuboidSize + controls.lookupPos.x, 
-  -1*cuboidSize + controls.lookupPos.y, 
-  -1*cuboidSize + controls.lookupPos.z,
-  cuboidSize + controls.lookupPos.x,     
-  cuboidSize + controls.lookupPos.y, 
-  cuboidSize + controls.lookupPos.z,
+  -1*physicsCuboidSize + controls.lookupPos.x, 
+  -1*physicsCuboidSize + controls.lookupPos.y, 
+  -1*physicsCuboidSize + controls.lookupPos.z,
+  physicsCuboidSize + controls.lookupPos.x,     
+  physicsCuboidSize + controls.lookupPos.y, 
+  physicsCuboidSize + controls.lookupPos.z,
   6
 )
 multiObjCelShadingToDesmoscript!(graphicsMeshData, "assets/world.obj")
@@ -65,11 +66,11 @@ lookupCelShadingMesh!(
   cuboidSize + controls.lookupPos.x, 
   cuboidSize + controls.lookupPos.y, 
   cuboidSize + controls.lookupPos.z,
-  11  
+  18    
 )
 
 
-
+ 
 
 currentFrame = 0;
 
@@ -83,7 +84,28 @@ fn mix(a, b, factor) {
 
 sub!(proj, p, (p.x / p.z, p.y / p.z))
 
+TAU = 6.28318531;
+goldenAngle = 2.39996322972865332;
+
 ns display {
+
+  
+  ns dof {
+    count = ceil(uiSettings.dofQuality.value);
+    countMinusOne = count - 1;
+    dofCounter = match { countMinusOne == 0 => []; (1 .. (countMinusOne)); };
+    offsetsX = join(cos(dofCounter * goldenAngle) * (dofCounter / countMinusOne)^0.5, 0);
+    offsetsY = join(sin(dofCounter * goldenAngle) * (dofCounter / countMinusOne)^0.5, 0);
+    focusDist = uiSettings.dofDistance.value;
+    radius = uiSettings.dofStrength.value;
+    opacity = min(3 / count, 0.5);
+    fn circleOfConfusion(d) {
+      abs(radius * (focusDist - d) / focusDist)
+    }
+  }
+
+
+
   // calculate view space
   deswizzle!(translated, graphicsMesh.vertexPosition.xyz - controls.pos.xyz)
   ns rotated1 {
@@ -181,34 +203,39 @@ ns display {
     (mix(colorChannels.g, bgcolor.y, lightFactor)/256)^(1/gamma)*256,
     (mix(colorChannels.b, bgcolor.z, lightFactor)/256)^(1/gamma)*256
   );  
-
-  colors2 = colors;
-
-  ns dof {
-    count = 6;
-    t.vec3!(offsets,
-      random(10, count),
-      random(11, count),
-      random(12, count)
-    )
-  }
+  
+  filteredColors = colors[polygonFilter];
 
   // display polygons
   show polys = [
-  project.getClippedPolygon(
-    0.01,
-    view1.x[i], view1.y[i], view1.z[i],
-    view2.x[i], view2.y[i], view2.z[i],
-    view3.x[i], view3.y[i], view3.z[i]
+  {
+    r1 = dof.circleOfConfusion(view1.z[i]);
+    r2 = dof.circleOfConfusion(view2.z[i]);
+    r3 = dof.circleOfConfusion(view3.z[i]);
+    o1 = dof.offsetsX[j];
+    o2 = dof.offsetsY[j];
+    project.getClippedPolygon(
+      0.01,
+      0.002, 
+      view1.x[i]+o1*r1, view1.y[i]+o2*r1, view1.z[i],
+      view2.x[i]+o1*r2, view2.y[i]+o2*r2, view2.z[i],
+      view3.x[i]+o1*r3, view3.y[i]+o2*r3, view3.z[i]
     )
+  }
   for
+  j=1 .. dof.count;
   i=polygonFilter
   ]; with @{
     color: "red",
     lines: false,
-    fillOpacity: ds(1),
+    fillOpacity: ds(
+      match {
+        mod((1 .. (length(polygonFilter) * (dof.count))), dof.count) == 0 => 1;
+        dof.opacity;
+      }
+    ),
     colorLatex: ds(
-        colors[polygonFilter]
+        [col for i=1 .. dof.count; col=filteredColors]
     )
   }
 }
@@ -408,7 +435,7 @@ ns controls {
 
   fn reset(normalPos, resetPos) {
     match {
-      (physicsPos.y < -20) => resetPos;
+      (physicsPos.y < 0) => resetPos;
       normalPos;
     }
   }
@@ -433,7 +460,7 @@ ns controls {
 
   framesSinceOnGround = 0;   
 
-  doReset = match { physicsPos.y < -20 => & 
+  doReset = match { physicsPos.y < 0 => & 
     rotationView -> joystickOffset
   ; };
 
@@ -461,4 +488,122 @@ show resetOverlay = polygon(
 ); with @{
   colorLatex: ds(rgb(0, 0, 0)),
   fillOpacity: ds(1 - (currentFrame) / 20) 
-} 
+}
+
+
+fn gear(center, radius1, radius2, radius3, teeth, t) {
+  match {
+    (t > TAU) => (cos(-1 * t), sin(-1 * t)) * radius3;
+    (cos(t), sin(t)) * (min(1, (abs(mod(t * teeth / TAU * 4, 4) - 2))^10) * (radius2 - radius1) + radius1);
+  } + center
+}
+
+
+aspect = height / width;
+top = 2 * aspect;
+
+fn fixY(yval) {
+  top - 2 + yval
+}
+
+sub!(uiRect, name, x1, y1, x2, y2, onclick, enabled,
+  ns name {
+    y3 = top - 2 + y1;
+    y4 = top - 2 + match { enabled == 1 => y2; y1; };
+    show button = polygon(
+      (x1, y3),
+      (x2, y3),
+      (x2, y4),
+      (x1, y4)
+    ); with @{ colorLatex: ds(rgb(0,0,0)), fillOpacity: ds(0.2), lines: false, clickableInfo: {
+      enabled: true,
+      latex: ds(onclick)
+    } }
+  }
+)
+
+sub!(uiText, name, txt, x, y, size, enabled,
+  ns name {
+    show text = (x, fixY(y)); with @{
+      colorLatex: ds(rgb(255,255,255)), 
+      pointOpacity: ds(enabled),
+      label: ds(txt),
+      labelSize: ds(size / aspect),
+      showLabel: true,
+      suppressTextOutline: true,
+      hidden: true,
+      labelOrientation: "right"
+    }
+  }
+)
+
+sub!(uiDraggable, name, label, x1, y1, x2, y2, min, max, default, enabled,
+  ns name {
+    uiText!(text, label, x1 - 0.6 - uiLengthModifier * 0.4, y1, 1 + uiLengthModifier, enabled)
+    value = value2 + min;
+    value2 = default;
+    fy1 = fixY(y1);
+    fy2 = fixY(y2);
+    show bg = polygon(
+      (x1, fy1), 
+      (x2, fy2)
+    ); with @{
+      colorLatex: ds(rgb(255, 255, 255)),
+      lineOpacity: ds(enabled)
+    }
+    show slider = (
+      value2 / (max - min) * (x2 - x1)
+        + x1,
+      value2 / (max - min) * (fy2 - fy1) + fy1
+      ); with @{
+      colorLatex: ds(rgb(255, 255, 255)),
+      pointOpacity: ds(enabled)
+    }
+  }
+)
+
+uiLengthModifier = match { aspect > 1.5 => 1; 0; };
+ns ui {
+  uiRect!(settingsButton, -1.9, 1.9, -1.7, 1.7, & isSettingsEnabled -> 1 - isSettingsEnabled, 1)
+  isSettingsEnabled = 0;
+  uiRect!(settingsMenu, -1.9, 1.6, -0.6 + uiLengthModifier * 1.5, 0.9 - uiLengthModifier * 0.5, & isSettingsEnabled -> isSettingsEnabled, isSettingsEnabled)
+}
+
+
+ns uiOverlay {
+  show settingsButtonGear = gear((-1.8, fixY(1.8)), 0.07, 0.085, 0.04, 8, parametricT); with @{
+    colorLatex: ds(rgb(255, 255, 255)),
+    parametricDomain: {
+      min: ds(0), max: ds(TAU * 2)
+    },
+    lines: false,
+    fillOpacity: ds(1),
+    fill: true
+  }
+
+  uiText!(settingsTitle, "Settings", -1.85, 1.45, 2, ui.isSettingsEnabled)
+  
+}
+
+ns uiSettings {
+  uiDraggable!(dofQuality, "DoF Quality",
+    -1.2 + uiLengthModifier * 0.4, 1.3, -0.7 + uiLengthModifier * 1.5, 1.3,
+    0, 20, 1, 
+    ui.isSettingsEnabled
+  )
+  uiDraggable!(distance, "View Distance",
+    -1.2 + uiLengthModifier * 0.4, 1.2 - uiLengthModifier * 0.1, -0.7 + uiLengthModifier * 1.5, 1.2 - uiLengthModifier * 0.1,
+    0, 64, 24, 
+    ui.isSettingsEnabled
+  )
+  uiDraggable!(dofDistance, "DoF Distance",
+    -1.2 + uiLengthModifier * 0.4, 1.1 - uiLengthModifier * 0.2, -0.7 + uiLengthModifier * 1.5, 1.1 - uiLengthModifier * 0.2,
+    0, 32, 12, 
+    ui.isSettingsEnabled
+  )
+  uiDraggable!(dofStrength, "DoF Strength",
+    -1.2 + uiLengthModifier * 0.4, 1.0 - uiLengthModifier * 0.3, -0.7 + uiLengthModifier * 1.5, 1.0 - uiLengthModifier * 0.3,
+    0, 2, 0.15, 
+    ui.isSettingsEnabled
+  )
+}
