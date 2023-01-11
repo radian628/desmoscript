@@ -175,7 +175,7 @@ export function doDesmosMultiObjCelShading(obj: ParsedMultiOBJ, a: MacroAPI) {
           return {
             vertices,
             color: material.diffuse
-            ?.map(channel => channel * (posterizeColor(normal[1]) * 0.25 * (isReflection ? -1 : 1) + 1)) as [number, number, number] 
+            ?.map(channel => (isReflection ? 0.2 : 0) + channel * (posterizeColor(normal[1]) * 0.25 * (isReflection ? -1 : 1) + 1)) as [number, number, number] 
             ?? [0,0,0],
             lighting: []
           }

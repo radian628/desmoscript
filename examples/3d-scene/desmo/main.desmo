@@ -17,7 +17,7 @@ show bg = polygon(
   (-10, -10),
   (-10, 10), 
   (10, 10),  
-  (10, -10)
+  (10, -10) 
 ); with @{
   colorLatex: ds(rgb(
     gammaCorrect(bgcolor.x), 
@@ -32,7 +32,7 @@ settings @{
     xmin: -2,
     ymin: -2,
     xmax: 2, 
-    ymax: 2 
+    ymax: 2  
   }, 
   showGrid: false,
   showXAxis: false,
