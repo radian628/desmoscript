@@ -229,6 +229,7 @@ export type DesmosLightingModelMesh = {
   triangles: {
     vertices: Triangle,
     color: [number, number, number],
+    depthOffset: number,
     lighting: {
       color: [number, number, number], // light color
       type: number // determines how the light flickers over time

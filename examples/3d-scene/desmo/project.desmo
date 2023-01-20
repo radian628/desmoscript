@@ -154,9 +154,31 @@ fn getClippedPolygon(
                 (
                     ((sortedXs[3] + t1 * (sortedXs[1] - sortedXs[3])) / near), 
                     ((sortedYs[3] + t1 * (sortedYs[1] - sortedYs[3])) / near)
-                ), polygonShift
+                ), polygonShift 
             )
         };
         polygon((0/0,0/0));
     }
 }  
+
+// bad clipping fn
+/*
+fn getClippedPolygon(
+    near, polygonShift,
+    x1, y1, z1,
+    x2, y2, z2,
+    x3, y3, z3
+) {
+    minZ = min(z1, z2, z3);
+
+    screenSpace1 = (x1 / z1, y1/z1);
+    screenSpace2 = (x2 / z2, y2/z2);
+    screenSpace3 = (x3 / z3, y3/z3);
+
+    match {
+        (minZ > near) => {closeTriangleGaps(
+            screenSpace1, screenSpace2, screenSpace3, polygonShift
+        )};
+        polygon((0/0,0/0));
+    }
+}*/

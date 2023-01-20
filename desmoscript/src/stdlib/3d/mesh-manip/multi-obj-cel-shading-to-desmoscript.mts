@@ -33,29 +33,40 @@ export function colorToNumber(color: [number, number, number]) {
   return color[0] + 256 * color[1] + 65536 * color[2];
 }
 
+export type Material = {
+  color: [number, number, number],
+  depthOffset: number
+};
+
 export function getAllCelShadingModelColors(
   meshes: Map<string, DesmosLightingModelMesh>
 ) {
   let index = 2;
-  const colorMap = new Map<number, number>();
-  colorMap.set(0, 1);
-  const colorArray: [number, number, number][] = [[0,0,0]];
+  const colorMap = new Map<number, Map<number, number>>();
+  colorMap.set(0, new Map([[0, 1]]));
+  const colorArray: Material[] = [{
+    color: [0, 0, 0], depthOffset: 1
+  }];
 
-  function tryAddColor(color: [number, number, number]) {
+  function tryAddColor(color: [number, number, number], depthOffset: number) {
     const colorAsNumber = colorToNumber(color);
-    const colorMapEntry = colorMap.get(colorAsNumber);
+    let colorMapEntry = colorMap.get(colorAsNumber);
     if (colorMapEntry === undefined) {
-      colorMap.set(colorAsNumber, index);
-      colorArray.push(color);
+      colorMapEntry = new Map();
+      colorMap.set(colorAsNumber, colorMapEntry);
+    }
+    if (colorMapEntry.get(depthOffset) === undefined) {
+      colorMapEntry.set(depthOffset, index);
+      colorArray.push({ color, depthOffset });
       index += 1;
     }
   }
 
   for (const mesh of meshes.values()) {
     for (const tri of mesh.triangles) {
-      tryAddColor(tri.color);
+      tryAddColor(tri.color, tri.depthOffset);
       for (const light of tri.lighting) {
-        tryAddColor(light.color);
+        tryAddColor(light.color, 0);
       }
     }
   }
@@ -68,7 +79,7 @@ export function getAllCelShadingModelColors(
 
 export function desmosifyCelShadingModel(
   mesh: DesmosLightingModelMesh,
-  colors: Map<number, number>
+  colors: Map<number, Map<number, number>>
 ): DesmosifiedDesmosLightingModelMesh {
   const vertices: [number, number, number][] = [];
   const triangles: DesmosifiedDesmosLightingModelMesh["triangles"] = [];
@@ -87,12 +98,12 @@ export function desmosifyCelShadingModel(
       i++;
     }
     triangles.push({
-      color: colors.get(colorToNumber(tri.color)) ?? 0,
+      color: colors.get(colorToNumber(tri.color))?.get(tri.depthOffset) ?? 0,
       indices: thisTrianglesIndices as [number, number, number],
       lighting: tri.lighting.map(light => {
         return {
           ...light,
-          color: colors.get(colorToNumber(light.color)) ?? 0
+          color: colors.get(colorToNumber(light.color))?.get(0) ?? 0
         }
       })
     });
@@ -291,11 +302,13 @@ export function multiObjCelShadingToDesmoscriptInner(
   "rgb".split("").forEach((component, i) => {
     expressions.push(
       a.fromstr(`
-        ${component} = [${colors.colorArray.map(col => 256 * col[i]).join(",")}];
+        ${component} = [${colors.colorArray.map(col => 256 * col.color[i]).join(",")}];
       `)
     );
   });
   
+  expressions.push(a.fromstr(` depthOffset = [${colors.colorArray.map(col => col.depthOffset)}];`))
+
   expressions.push(
     a.binop(
       a.ident("xmin"),

@@ -4,6 +4,7 @@ import {
   MacroAPI,
   ScopeContent,
 } from "../../semantic-analysis/analysis-types.mjs";
+import { parseIdentSingleString, parseNoteString } from "../macroutils.mjs";
 import {
   is1long,
   is2long,
@@ -161,4 +162,25 @@ export function parseObjKey(key: string, a: MacroAPI): keyof ParsedOBJ {
     a.error(`'${key}' is not a valid OBJ property.`);
   }
   return key as keyof ParsedOBJ;
+}
+
+export const getMTLColor: ScopeContent.Macro["fn"] = async function (
+  expr, ctx, a 
+) {
+  const filename = parseNoteString(expr.args[0], a, "argument 1");
+  const colorname = parseNoteString(expr.args[1], a, "argument 2");
+  const nsname = parseIdentSingleString(expr.args[2], a, "argument 2");
+
+  const mtl = parseMtl(await (await fs.readFile(filename)).toString());
+  const color = mtl.materials[colorname];
+  if (!color) a.error(`Failed to get MTL color '${colorname}'`);
+  const diffuse2 = color.diffuse;
+  if (!diffuse2) a.error(`Material has no diffuse color.`);
+  const diffuse = diffuse2 as [number, number, number];
+  return a.fromstr(
+    `ns ${nsname} { x = ${diffuse[0] ** (1/2.2) * 256};
+    y = ${diffuse[1] ** (1/2.2) * 256};
+    z = ${diffuse[2] ** (1/2.2) * 256}; }`
+  )
+
 }

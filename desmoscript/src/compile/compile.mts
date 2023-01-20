@@ -480,6 +480,7 @@ async function compileScope(
   let hasFolderChanged = true;
 
   function actuallyAddFolder() {
+    if (folderText == "") return;
     if (!hasFolderChanged) return;
     hasFolderChanged = false;
     currentFolderId = folderState.id;

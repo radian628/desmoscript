@@ -21,6 +21,7 @@ import { makeExprId } from "../ast/parse.mjs";
 import { deswizzle } from "../stdlib/3d/swizzle.mjs";
 import { lookupCelShadingMesh, multiObjCelShadingToDesmoscript } from "../stdlib/3d/mesh-manip/multi-obj-cel-shading-to-desmoscript.mjs";
 import { lookupPhysicsMesh, multiObjPhysicsToDesmoscript } from "../stdlib/3d/mesh-manip/multi-obj-physics-to-desmoscript.mjs";
+import { getMTLColor } from "../stdlib/3d/obj-importer.mjs";
 
 
 export function getExprContext(expr: RawASTExpr<{}>) {
@@ -122,6 +123,11 @@ export function createDesmosBuiltins(): Map<string, ScopeContent.Content> {
     id: makeExprId(),
     type: ScopeContent.Type.MACRO,
     fn: multiObjPhysicsToDesmoscript
+  });
+  map.set("getMTLColor", {
+    id: makeExprId(),
+    type: ScopeContent.Type.MACRO,
+    fn: getMTLColor
   });
   map.set("sub", sub);
   map.set("loop", loop);

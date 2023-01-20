@@ -102,7 +102,8 @@ export function lightMeshWithOneLight(mesh: DesmosLightingModelMesh, light: Ligh
           return {
             color: triangle.color.concat() as [number, number, number],
             vertices: tri as Triangle,
-            lighting: triangle.lighting.concat()
+            lighting: triangle.lighting.concat(),
+            depthOffset: triangle.depthOffset
           }
         })
       );
@@ -146,6 +147,14 @@ function posterizeColor(x: number) {
   return 0;
 }
 
+export function getMaterialDepthOffset(str: string, a: MacroAPI) {
+  const matches = str.match(/do[-0-9.]+/g);
+  if (matches == null) return 0;
+  const offset = Number(matches[0].slice(2));
+  if (isNaN(offset)) a.error("Material depth offset is NaN!");
+  return offset;
+} 
+
 export function doDesmosMultiObjCelShading(obj: ParsedMultiOBJ, a: MacroAPI) {
   obj.objects = new Map(Array.from(obj.objects.entries()).sort(
     (a, b) => {
@@ -172,11 +181,16 @@ export function doDesmosMultiObjCelShading(obj: ParsedMultiOBJ, a: MacroAPI) {
           ] as Triangle;
           const normal = getNormal(...vertices); 
           const isReflection = material.name.startsWith("reflect_");
+          const isNoShade = material.name.match(/noshade/g) !== null;
           return {
             vertices,
             color: material.diffuse
-            ?.map(channel => (isReflection ? 0.2 : 0) + channel * (posterizeColor(normal[1]) * 0.25 * (isReflection ? -1 : 1) + 1)) as [number, number, number] 
+            ?.map(channel => {
+              if (isNoShade) return channel;
+              return (isReflection ? 0.2 : 0) + channel * (posterizeColor(normal[1]) * 0.25 * (isReflection ? -1 : 1) + 1)
+            }) as [number, number, number] 
             ?? [0,0,0],
+            depthOffset: isReflection ? 0.001 : getMaterialDepthOffset(material.name, a),
             lighting: []
           }
         }),

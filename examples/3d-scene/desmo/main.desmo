@@ -1,6 +1,4 @@
-
-
- 
+"Welcome to MONUMENT OF BERNARD, a graph celebrating everyone's favorite quadtree rendering artifact! This is my entry into the 2023 Desmos Art Contest. Follow the path to find the MONUMENT OF BERNARD. If you'd like to know how I did some of this stuff, feel free to look at some of the notes below or expand the folders." 
 
 import "../../../desmo-lib/3d.desmo" as t;
 import "../../../desmo-lib/binary.desmo" as bin;
@@ -8,11 +6,14 @@ import "project.desmo" as project;
 
 
 t.vec3!(bgcolor, 180, 190, 200 )
+getMTLColor!("assets/world.mtl", "sky_do100_noshade", reflectbgcolor)
 
+"Gamma correction function."
 fn gammaCorrect(x) {
   (x/256)^(1/gamma)*256
 }
 
+"Background of the world using the sky color."
 show bg = polygon(
   (-10, -10),
   (-10, 10), 
@@ -22,7 +23,7 @@ show bg = polygon(
   colorLatex: ds(rgb(
     gammaCorrect(bgcolor.x), 
     gammaCorrect(bgcolor.y), 
-    gammaCorrect(bgcolor.z)
+    gammaCorrect(bgcolor.z)  
   )),
   fillOpacity: ds(1) 
 } 
@@ -32,7 +33,7 @@ settings @{
     xmin: -2,
     ymin: -2,
     xmax: 2, 
-    ymax: 2  
+    ymax: 2    
   }, 
   showGrid: false,
   showXAxis: false,
@@ -47,7 +48,9 @@ viewDistance = uiSettings.distance.value         ;
 
 cuboidSize = viewDistance;
 physicsCuboidSize = 8;
+"All the data for the mesh used to determine collisions."
 multiObjPhysicsToDesmoscript!(physicsMeshData, "assets/world.obj")
+
 lookupPhysicsMesh!(physicsMesh, physicsMeshData, 
   -1*physicsCuboidSize + controls.lookupPos.x, 
   -1*physicsCuboidSize + controls.lookupPos.y, 
@@ -75,7 +78,7 @@ lookupCelShadingMesh!(
 currentFrame = 0;
 
 
-
+"Function for lineraly interpolating between two values."
 fn mix(a, b, factor) {
   show clampedFactor = min(max(factor, 0), 1); with @{ hidden: true }
   b * clampedFactor + a * (1 - clampedFactor)
@@ -87,10 +90,11 @@ sub!(proj, p, (p.x / p.z, p.y / p.z))
 TAU = 6.28318531;
 goldenAngle = 2.39996322972865332;
 
+"Most of what's directly related to 3D rendering goes here."
 ns display {
-
   
   ns dof {
+    "A lot of the statistics and calculations for depth of field go here. 'Depth of field' (DoF) in this context describes a visual effect where--- if you focus your eyes at one distance--- objects at other distances look blurry. Desmos of course doesn't have this by default, but I've added it into MONUMENT OF BERNARD. To simulate DoF, I make multiple, low-opacity copies of the scene from slightly different angles, and overlay them on top of one another. These copies are arranged in a golden spiral pattern to give as even an appearance as possible."
     count = ceil(uiSettings.dofQuality.value);
     countMinusOne = count - 1;
     dofCounter = match { countMinusOne == 0 => []; (1 .. (countMinusOne)); };
@@ -106,7 +110,7 @@ ns display {
 
 
 
-  // calculate view space
+  "Conversion of the 3D world from model space to view space."
   deswizzle!(translated, graphicsMesh.vertexPosition.xyz - controls.pos.xyz)
   ns rotated1 {
     x = translated.x * cos(controls.rotation\x) - translated.z * sin(controls.rotation\x);
@@ -119,7 +123,7 @@ ns display {
     z = rotated1.y * sin(controls.rotation\y) + rotated1.z * cos(controls.rotation\y);
   }
     
-  // get average positions in world and view space
+  "Finding the average positions of the triangles, in various ways."
   deswizzle!(average, (   
     graphicsMesh.vertexPosition.xyz[graphicsMesh.index.tri1] 
     + graphicsMesh.vertexPosition.xyz[graphicsMesh.index.tri2]
@@ -128,42 +132,45 @@ ns display {
   deswizzle!(viewAverage, average.xyz - controls.pos.xyz)
   t.normalize!(normalizedViewAverage, viewAverage)
 
-  // depth sorting
+  "Depth sorting calculations. Polygons need to be sorted by depth, with the farthest polygons drawn first and the nearest polygons drawn last. This is so nearby objects are drawn in front of faraway ones."
   polygonDepths = normalizedViewAverage.mag;
-  depthSortOrder = sort(1 .. length(graphicsMesh.index.tri1), -1 * polygonDepths);
-    
+  depthOffsets = graphicsMeshData.depthOffset[graphicsMesh.baseColor];
+  polygonDepthsForOrdering = polygonDepths + depthOffsets;
+  depthSortOrder = sort(1 .. length(graphicsMesh.index.tri1), -1 * polygonDepthsForOrdering);
   deswizzle!(view1, view.xyz[graphicsMesh.index.tri1])
   deswizzle!(view2, view.xyz[graphicsMesh.index.tri2])
   deswizzle!(view3, view.xyz[graphicsMesh.index.tri3])
-
   maxDepths = max(view1.z, view2.z, view3.z);
 
+  "Normals and backface culling. Backface culling is the process of removing polygons that are facing away from the camera. This can speed up renders tremendously."
   deswizzle!(edge1, graphicsMesh.vertexPosition.xyz[graphicsMesh.index.tri2] - graphicsMesh.vertexPosition.xyz[graphicsMesh.index.tri1])
   deswizzle!(edge2, graphicsMesh.vertexPosition.xyz[graphicsMesh.index.tri3] - graphicsMesh.vertexPosition.xyz[graphicsMesh.index.tri1])
   t.cross!(notNormalizedNormal, edge1, edge2)
   backfaceDeterminant = t.dotns!(notNormalizedNormal, normalizedViewAverage);
   t.normalize!(normal, notNormalizedNormal)
   
+  "Filter out polygons facing the wrong way or ones that won't be rendered anyway."
   polygonFilter = depthSortOrder[
     max(
       sign(backfaceDeterminant),
-      sign(polygonDepths - viewDistance),
+      sign(polygonDepths - viewDistance), 
       -1 *      sign(maxDepths)
     )[depthSortOrder] == -1
   ];
-  //polygonFilter = polygonFilterTemp2[maxDepths[polygonFilterTemp2] > 0];
 
+  "Smoothly interpolate between two values."
   fn smoothstepMix(a, b, factor) {
     mix(a, b, factor * factor * (3 - factor * 2))
   }
 
+  "Pseudorandom number generator."
   fn rand(co1, co2) {
     mod(sin(co1 * 12.9898 + co2 * 78.223) * 43758.5453, 1)
   }
 
+  "Calculate light flickering. Lights smoothly interpolate between random brightness values."
   flickeringPeriod = 3;
   glowingPeriod = 10;
-
   fn randomlyModulateLight(seed, period, brightnessVariation) {  
     smoothstepMix(
       rand(seed, floor(currentFrame / period)) * brightnessVariation + 1 - brightnessVariation,
@@ -171,19 +178,17 @@ ns display {
       mod(currentFrame, period) / period 
     )
   }
-
   lightBrightnesses = [
     1, 
     randomlyModulateLight(1, flickeringPeriod, 0.6),
     randomlyModulateLight(2, flickeringPeriod, 0.6), 
     randomlyModulateLight(3, glowingPeriod, 0.97),
     randomlyModulateLight(4, glowingPeriod, 0.97)];
-
   light1Brightnesses = lightBrightnesses[graphicsMesh.light1Type+1];
   light2Brightnesses = lightBrightnesses[graphicsMesh.light2Type+1];
-
   brightnessFactor = normal.y * 0.2 + 1.0;
 
+  "Calculate the colors for each triangle. Every triangle has a base color, along with up to two light colors. These colors are stored separately to allow the light color to be modulated." 
   ns colorChannels {
     r = graphicsMeshData.r[graphicsMesh.baseColor] * brightnessFactor
      + graphicsMeshData.r[graphicsMesh.light1Color] * light1Brightnesses
@@ -196,17 +201,16 @@ ns display {
      + graphicsMeshData.b[graphicsMesh.light2Color] * light2Brightnesses;
   }
 
+  "Calculate final colors, taking into account gamma correction and distance fading."
   lightFactor = normalizedViewAverage.mag / viewDistance * 2.5 - 1.5   ;   
-
   colors = rgb( 
-    (mix(colorChannels.r, bgcolor.x, lightFactor)/256)^(1/gamma)*256,
-    (mix(colorChannels.g, bgcolor.y, lightFactor)/256)^(1/gamma)*256,
-    (mix(colorChannels.b, bgcolor.z, lightFactor)/256)^(1/gamma)*256
+    (mix(colorChannels.r, match { depthOffsets == 0.001 => reflectbgcolor.x + 15; bgcolor.x; }, lightFactor)/256)^(1/gamma)*256,
+    (mix(colorChannels.g, match { depthOffsets == 0.001 => reflectbgcolor.y + 15; bgcolor.y; }, lightFactor)/256)^(1/gamma)*256,
+    (mix(colorChannels.b, match { depthOffsets == 0.001 => reflectbgcolor.z + 15; bgcolor.z; }, lightFactor)/256)^(1/gamma)*256
   );  
-  
   filteredColors = colors[polygonFilter];
 
-  // display polygons
+  "Draw the actual polygons."
   show polys = [
   {
     r1 = dof.circleOfConfusion(view1.z[i]);
@@ -241,7 +245,7 @@ ns display {
 }
 
 
-
+"Is a 3D point within a given axis-aligned box?"
 fn isPointInsideAABB(px, py, pz, xmin, ymin, zmin, xmax, ymax, zmax) {
   match {
     px < xmin => 0;
@@ -254,6 +258,7 @@ fn isPointInsideAABB(px, py, pz, xmin, ymin, zmin, xmax, ymax, zmax) {
   } 
 }
 
+"Are two ranges of numbers overlapping?"
 fn isOverlapping(amin, amax, bmin, bmax) {
   min(
     match { (amax >= bmin) => 1; 0; },
@@ -261,6 +266,7 @@ fn isOverlapping(amin, amax, bmin, bmax) {
   )
 }
 
+"Is it possible for some triangle to be inside an axis-aligned box? This is used to narrow down what triangles may physically interact with the player."
 fn isTriPossiblyInsideAABB(
   x1, y1, z1,
   x2, y2, z2,
@@ -283,8 +289,10 @@ fn isTriPossiblyInsideAABB(
 
 
 
-
+"Anything related to physics goes here."
 ns physics {
+
+  "Filter out triangles that can't possibly interact with the player this frame."
   deswizzle!(allpos1, physicsMesh.vertexPosition.xyz[physicsMesh.index.tri1])
   deswizzle!(allpos2, physicsMesh.vertexPosition.xyz[physicsMesh.index.tri2])
   deswizzle!(allpos3, physicsMesh.vertexPosition.xyz[physicsMesh.index.tri3])
@@ -325,6 +333,7 @@ ns physics {
     }
   }
   
+  "Do the physics in a loop. This loop uses a neat feature of Desmoscript which can create and unroll almost arbitrary-length loops. However, the size of these loops must be a compile-time constant."
   loop!(physicsLoop, 2, {
     t.vec3!(rayPos, controls.physicsPos.x, controls.physicsPos.y, controls.physicsPos.z)
     t.normalize!(rayDir, controls.velocity)
@@ -400,13 +409,14 @@ ticker @{
     match { (mod(currentFrame, 30) == 0) => controls.updateMeshLookup; },
     currentFrame -> controls.reset(currentFrame + 1, 0),
     match { mod(currentFrame, controls.physicsInterval) == 0 => controls.doPhysics; } ,
-    controls.doPerFramePhysics
+    controls.doPerFramePhysics,
+    controls.handleAspectChange
   ),  
   playing: true, 
   open: true
 }  
 
- 
+"Player controls and some of the physics."
 ns controls { 
   t.vec3!(physicsPos, 0, 7, 0)
 
@@ -424,6 +434,7 @@ ns controls {
   t.vec3!(velocity, 0.001, 0.0, 0.001) 
   t.vec3!(lookupPos, 0, 0, 0) 
 
+  "Change the position that's used to determine from where in the world to load in new terrain data."
   updateMeshLookup = &
     lookupPos.x -> pos.x,
     lookupPos.y -> pos.y,
@@ -440,6 +451,7 @@ ns controls {
     }
   }
 
+  "Kinematics equations for the player."
   doPhysics = &
     physicsPos.x -> reset(physics.physicsLoop.rayPos.x, 0),  
     physicsPos.y -> reset(physics.physicsLoop.rayPos.y, 7 ), 
@@ -464,22 +476,55 @@ ns controls {
     rotationView -> joystickOffset
   ; };
 
+  noMoveRadius = 0.07;
+
+
   doPerFramePhysics = &
     rotation -> reset((rotation\x + rotationController\x * 0.1, 0), (3.14, 0)),
     accumDist -> accumDist + (velocity.x ^ 2 + velocity.z ^ 2) ^ 0.5,     
     doReset
     ;
 
-  joystickOffset = (0, -0.5);
+  "UI For the player's joystick"
+  show noMoveRadiusUI = joystickOffset + (cos(parametricT), sin(parametricT)) * noMoveRadius; with @{
+    parametricDomain: {
+      min: ds(0),
+      max: ds(TAU)
+    },
+    lines: false,
+    fill: true,
+    fillOpacity: ds(0.1),
+    colorLatex: ds(rgb(0,0,0))
+  }
 
-  show rotationView = (0, -0.5); with @{}
-  rotationController = rotationView - joystickOffset;
-  show rotationJoystick = polygon(joystickOffset, rotationView); with @{}
+  prevAspect = aspect;
+
+  handleAspectChange = & 
+    prevAspect -> aspect,
+    handleJoystickReposition
+  ;
+
+  handleJoystickReposition = match {
+    (abs(prevAspect - aspect) > 0) => & 
+      joystickOffset -> (0, -1.7 * aspect),
+      rotationView -> (0, -1.7 * aspect)
+    ;
+  };
+
+  joystickOffset = (0, -1);
+
+  show rotationView = (0, -1); with @{}
+  rotationControllerTemp = rotationView - joystickOffset;
+  rotationController = rotationControllerTemp * 
+    match {(rotationControllerTemp\x ^ 2 + rotationControllerTemp\y ^ 2) ^ 0.5 > noMoveRadius => 1; 0; };
+  show rotationJoystick = polygon(joystickOffset, rotationView); with @{
+    pointOpacity: ds(1)
+  }
  
   rotation = (3.14, 0);
 }
 
-
+"Polygon that's shown when the player falls into the water."
 show resetOverlay = polygon(
   (-10, -10),
   (-10, 10), 
@@ -491,6 +536,7 @@ show resetOverlay = polygon(
 }
 
 
+"Parametric gear function."
 fn gear(center, radius1, radius2, radius3, teeth, t) {
   match {
     (t > TAU) => (cos(-1 * t), sin(-1 * t)) * radius3;
@@ -562,6 +608,7 @@ sub!(uiDraggable, name, label, x1, y1, x2, y2, min, max, default, enabled,
   }
 )
 
+"User interface background rectangles."
 uiLengthModifier = match { aspect > 1.5 => 1; 0; };
 ns ui {
   uiRect!(settingsButton, -1.9, 1.9, -1.7, 1.7, & isSettingsEnabled -> 1 - isSettingsEnabled, 1)
@@ -570,6 +617,7 @@ ns ui {
 }
 
 
+"User interface foreground gear and text."
 ns uiOverlay {
   show settingsButtonGear = gear((-1.8, fixY(1.8)), 0.07, 0.085, 0.04, 8, parametricT); with @{
     colorLatex: ds(rgb(255, 255, 255)),
@@ -585,6 +633,7 @@ ns uiOverlay {
   
 }
 
+"User interface interactable elements. Specifically, the draggable sliders."
 ns uiSettings {
   uiDraggable!(dofQuality, "DoF Quality",
     -1.2 + uiLengthModifier * 0.4, 1.3, -0.7 + uiLengthModifier * 1.5, 1.3,
@@ -605,5 +654,9 @@ ns uiSettings {
     -1.2 + uiLengthModifier * 0.4, 1.0 - uiLengthModifier * 0.3, -0.7 + uiLengthModifier * 1.5, 1.0 - uiLengthModifier * 0.3,
     0, 2, 0.15, 
     ui.isSettingsEnabled
-  )
-}
+  ) 
+} 
+  
+
+
+"Physics and graphics mesh data, as well as the functions that enable them to be efficiently queried. Also a few other things I generated using Desmoscript macros."
