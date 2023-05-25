@@ -12,15 +12,13 @@ djson
     | 'null'            # NullDJson
     ;
 
+djsonExpression : '@' jsonval=djson ;
 
 expression 
-    : call=functionCall                                             # FunctionCallExpr
-    | qualifier=IDENTIFIER_SEGMENT expr=expression 'with' jsonval=expression          # DecoratedExpr
-    | str=STRING                        # StringExpr
-    | '@' jsonval=djson               # JSONExpr
+    : call=functionCall                                          # FunctionCallExpr
     | call=macroCall                                             # MacroCallExpr
-    | 'import' filename=STRING 'as' alias=IDENTIFIER_SEGMENT ';'   # ImportExpr
-    | namedjsontype=('settings' | 'ticker') jsonval=expression                         # NamedJsonExpr
+    | '-' expr=expression                                                    # UnaryMinusExpr
+    | '!' expr=expression                                                    # LogicalNotExpr
     | ident=identifier                                               # IdentifierExpr
     | '[' body=expression 
         'for' (variables+=IDENTIFIER_SEGMENT '=' lists+=expression ';')* 
@@ -33,7 +31,8 @@ expression
     | left=expression op='^' right=expression                  # MultOrDivExpr
     | left=expression op=('*' | '/' | '%') right=expression                  # MultOrDivExpr
     | left=expression op=('+' | '-') right=expression                        # AddOrSubExpr
-    | left=expression op=('==' | '>' | '<' | '>=' | '<=') right=expression   # LogicalExpr
+    | left=expression op=('==' | '>' | '<' | '>=' | '<=') right=expression   # ComparisonExpr
+    | left=expression op=('&&' | '||') right=expression   # LogicalExpr
     | left=expression op='..' right=expression                               # RangeExpr
     | left=expression ',' step=expression op='..' right=expression           # StepRangeExpr
     | NUMBER                                                    # NumberExpr
@@ -41,18 +40,25 @@ expression
     | op=('sum' | 'product' | 'integral') 
         '(' var=IDENTIFIER_SEGMENT '=' lo=expression 'to' hi=expression ')' body=expression # SumProdIntegralExpr
     | 'derivative' '(' var=IDENTIFIER_SEGMENT ')' body=expression                   # DerivativeExpr
-    | 'macro' macroname=IDENTIFIER_SEGMENT '(' macroargs=functionDefArgList ')' '{' exprs+=expression+ '}' # MacroDefinitionExpr 
-    | 'fn' fnname=IDENTIFIER_SEGMENT '(' fnargs=functionDefArgList ')' '{' exprs+=expression+ '}' # FunctionDefinitionExpr
-    | 'ns' nsname=IDENTIFIER_SEGMENT '{' exprs+=expression+ '}' # NamespaceDefinitionExpr
-    | '{' exprs+=expression+ '}' # BlockExpr
-    | 'match' '{' (predicate+=expression '=>' result+=expression ';')* (fallback+=expression ';')? '}' # MatchExpr
+    | '{' statements+=statement+ expr=expression '}' # BlockExpr
+    | 'case' '{' 
+        (predicate+=expression ':' result+=expression ',')* 
+        (fallback=expression)? 
+    '}' # MatchExpr
+    // make actions less dumb
     | '&' (((lefts+=expression op='->' rights+=expression) | singles+=expression) ',')* ((lefts+=expression op='->' rights+=expression) | singles+=expression)           # ActionExpr
-    | left=expression op='=' right=expression         ';'                     # AssignmentExpr
     ;
 
+statement 
+    : 'fn' fnname=IDENTIFIER_SEGMENT '(' fnargs=functionDefArgList ')' expr=expression  # FunctionDefinitionStatement
+    | left=expression op='=' right=expression ('@' annotation=djsonExpression)? ';' # AssignmentStatement
+    | 'ns' nsname=IDENTIFIER_SEGMENT '{' statements+=statement+ '}'                # NamespaceDefinitionStatement
+    | 'import' filename=STRING 'as' alias=IDENTIFIER_SEGMENT                       # ImportStatement
+    | str=STRING                                                                   # StringStatement
+    | namedjsontype=IDENTIFIER_SEGMENT jsonval=djsonExpression                     # NamedJsonStatement
+    ;
 
-
-expressionList : expression+ EOF ;
+statementList : statement+ EOF ;
 
 functionDefArgList 
     : (args+=IDENTIFIER_SEGMENT ',')* args+=IDENTIFIER_SEGMENT ;
@@ -74,12 +80,9 @@ macroCall
 
 identifier : (segments+=IDENTIFIER_SEGMENT '.')* segments+=IDENTIFIER_SEGMENT ;
 
-
-
 STRING
    : '"' (ESC | SAFECODEPOINT)* '"'
    ;
-
 
 fragment ESC
    : '\\' (["\\/bfnrt] | UNICODE)
@@ -103,8 +106,6 @@ NUMBER
 fragment INT
    : '0' | [1-9] [0-9]*
    ;
-
-// no leading zeros
 
 fragment EXP
    : [Ee] [+\-]? INT

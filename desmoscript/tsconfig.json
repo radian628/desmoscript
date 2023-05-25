@@ -7,11 +7,5 @@
     "module": "ESNext",
     "declaration": true
   },
-  "include": [
-    "src/*",
-    "src/semantic-analysis/macro-api-impl.mts",
-    "src/semantic-analysis/builtins.mts",
-    "src/ast/parse.mts",
-    "src/ast/ast.mts"
-  ]
+  "include": ["src/*", "src/compile/compile-expression.mts"]
 }

@@ -1,0 +1,10 @@
+{
+  "scripts": {
+    "start": "npm uninstall desmoscript && npm install ../../desmoscript && node --trace-warnings ./dist/index.mjs",
+    "dev": "npx tsc --watch"
+  },
+  "dependencies": {
+    "desmoscript": "file:../../desmoscript",
+    "typescript": "^4.8.4"
+  }
+}

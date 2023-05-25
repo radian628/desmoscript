@@ -1,19 +1,58 @@
-import { CharStreams, CommonTokenStream } from "antlr4ts";
-import { DesmoscriptLexer } from "./grammar/DesmoscriptLexer";
-import { DesmoscriptParser } from "./grammar/DesmoscriptParser";
-import { DesmoscriptASTBuilder } from "./ast/parse.mjs";
-import * as ds from "./ast/ast.mjs";
-import * as fs from "fs/promises";
+import { scopeTree } from "./compiler-state.mjs";
+import { compileDesmoscript } from "./complete-compiler.mjs";
+
 import * as chokidar from "chokidar";
 import * as http from "node:http";
-export {
-  compileDesmoscript,
-  createDesmoscriptWatchServer,
-} from "./all-steps/combined-compiler.mjs";
+import { GraphState } from "./graphstate.mjs";
 
-export { getExprContext } from "./semantic-analysis/builtins.mjs";
+export async function createCompilerWatcherServer(
+  entryPoint: string,
+  port: number,
+  makeDefaultScopeTree: () => Map<string, scopeTree.ScopeContent>
+) {
+  let compileResult: {
+    graphState: GraphState;
+    usedFiles: Set<string>;
+  };
 
-process.on("unhandledRejection", (reason, p) => {
-  //@ts-ignore
-  console.log("Unhandled rejection: ", reason);
-});
+  let filesToWatch = new Set<string>();
+
+  const compile = async () => {
+    try {
+      compileResult = await compileDesmoscript({
+        entryPoint,
+        makeDefaultScopeTree,
+      });
+    } catch (err) {
+      console.log(err);
+    }
+    for (const file of compileResult.usedFiles) filesToWatch.add(file);
+  };
+
+  await compile();
+
+  const compileLoop = async function () {
+    const watcher = chokidar.watch(Array.from(compileResult.usedFiles), {
+      ignoreInitial: true,
+      awaitWriteFinish: {
+        stabilityThreshold: 500,
+      },
+    });
+
+    watcher.on("all", async () => {
+      watcher.close();
+      await compile();
+      compileLoop();
+    });
+  };
+
+  compileLoop();
+
+  const server = http.createServer((req, res) => {
+    res.setHeader("Access-Control-Allow-Origin", "*");
+    res.end(JSON.stringify(compileResult.graphState));
+  });
+
+  server.listen(port);
+  console.log(`Server is listening on port ${port}!`);
+}

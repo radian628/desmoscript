@@ -1,0 +1,8 @@
+
+testVar = 3 + 4 + 5;
+testVar2 = 666;
+testVar3 = 392402938 + 123;
+
+fn double(x) 2 * x
+
+testvar4 = testVar3 * 2;
