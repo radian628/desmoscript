@@ -1,0 +1,99 @@
+import "./index2.desmo" as importTest
+
+
+69696966;
+x = 2;
+y = 3;
+z = 4;
+
+testvar = 3 + 4 * 96.3; 
+testvar2 = 45 - -123 + 5; 
+exptest = 2 ^ 2 ^ 2 ^ 2;
+multest = 2 * 2 * 2 * 2;
+
+"This is a comment. It will appear as a note in the desmos graph."
+matchtest = { x > 2: 1, x > 6: 9,x > 6: 9,x > 6: 9,x > 6: 9,x > 6: 9,x > 6: 9,x > 6: 9,x > 6: 9,x > 6: 9, x > 6: 9,x > 6: 9,4};
+
+
+listtest = [3, 4, 5, 6, 8, 2 + 3, 2 + 3, 2 + 3, 1 + 2 + 3 + 4 + 5, 1 + 2 + 3 + 4 + 5, 1 + 2 + 3 + 4 + 5, 1 + 2 + 3 + 4 + 5, 1 + 2 + 3 + 4 + 5, 
+  2 + 3, 2 + 3, 2 + 3, 2 + 3, 2 + 3, 2 + 3, 2 + 3, 2 + 3, 2 + 3, 2 + 3 + 3 + 3 + 3 + 3 + 3 + 3 + 3 + 3 + 3 *4 * 5+ 3 + 3 + 3 + 3 + 3 + 3 + 3 + 3 + 3 + 3 + 3 + 3 + 3 + 3 + 3 + 3 + 3];
+
+
+  listcomptest = [(a,b) for a=[1,2,3], b=[4,5,6], c=123123];
+
+  fmttest = 2 * 2 * 2* (1+2+3) * 2 * 2 * 2 * 2 * 2 * 2 * 2 * 2 * 2 * 2 * 2 * 2 * 2 * 2 * 2 * 2 * 2 * 2 * 2 * 2 * 2;
+
+
+  rangeTest = [1..4];
+rangeTest2 = [1,2..14];
+
+1 + 2 + 3 + 4 + 5;
+
+list1 = [3];
+list2 = [3, 5];
+
+whyisthisnotworking = x^2 + y^2 + z^2;
+
+fn FUNCDEFTEST(x) { 
+  fn nestedFn(x, y, z) {
+    asdf = x ^ 2 + y ^ 2 + z ^ 2;
+    asdf + 1
+  }
+
+  234 * x
+}
+
+emptylist = [] as number[];
+
+[(1, 22)] + 333;
+
+ns namespaceTest @{ test: 123123, test: ds(1 + 2 + 3), test: 123123, test: 123123, test: 123123, test: 123123, test: 123123, test: 123123 } {
+  a = 2;
+  b = 3;
+  c = 4;
+}
+
+lookupTest = namespaceTest.a * 3;
+
+pointSubscriptTest = (69, 420);
+
+pointSubscriptTest2 = pointSubscriptTest.x;
+pointSubscriptTest3 = pointSubscriptTest.y;
+
+builtinTest = sin(696969);
+
+polygonTest = polygon((1,2),(3,4),(5,6));
+polygonTest2 = polygon([(1,2), (7,8)],(3,4),(5,6));
+polygonTest3 = polygon([(1,2), (7,8)]);
+
+myFnTest = FUNCDEFTEST(696969);
+myFnTest2 = FUNCDEFTEST((3, 6));
+
+fn f2(asdf) {
+  FUNCDEFTEST(asdf) + 4
+}
+
+myFnTest3 = f2(polygon((0,0)));
+
+c1 = {c2>=4: 1 };
+c2 = c1;
+c3 = c2 + c1 + c4;
+c4 = c2 + c3 + c1;
+
+badpolygon = polygon([1,2,3], [4,5,6], 69);
+
+fn recursive(x) {
+  recursive(x)
+}
+
+recursive(234);
+
+tooManyOverloads = random(69, 420, 666, 1337);
+
+listSubscript = [1,2,3][2];
+
+show list3 = [(3, 3), (5, 5), (7, 7)] @{ colorLatex: ds(rgb(128, 128, 128)) };
+
+qazwsx = importTest.asdfghjkl * 23;
+
+macroTest = five!();

@@ -1,6 +1,0 @@
-desmoscript.md
-.VSCodeCounter
-dist/*
-node_modules
-src/grammar/*
-grammar/.antlr

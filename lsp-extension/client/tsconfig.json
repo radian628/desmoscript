@@ -1,0 +1,14 @@
+{
+  "compilerOptions": {
+    "module": "CommonJS",
+    "target": "es2020",
+    "lib": ["es2020", "WebWorker"],
+    "outDir": "out",
+    "rootDir": "src",
+    "sourceMap": true,
+    "moduleResolution": "node",
+    "esModuleInterop": true
+  },
+  "include": ["src", "src/extension-browser.ts"],
+  "exclude": ["node_modules", ".vscode-test"]
+}

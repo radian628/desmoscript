@@ -1,0 +1,12 @@
+anotherTypeError = (6, 7) + 8;
+
+import "index.desmo"
+
+3 ^ 6;
+
+asdfghjkl = 234234324;
+6 + namespaceTest.a;
+
+typeError = (3,4) + 5;
+
+normaldist(4, 7);

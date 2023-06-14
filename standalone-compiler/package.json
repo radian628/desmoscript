@@ -1,0 +1,15 @@
+{
+  "devDependencies": {
+    "esbuild": "^0.18.0"
+  },
+  "scripts": {
+    "esbuild-base": "esbuild ./src/index.ts --bundle --outfile=dst/index.js --format=cjs --platform=node",
+    "dev": "npm run esbuild-base -- --sourcemap --watch",
+    "build": "npm run esbuild-base -- --minify && pkg dst/index.js --output=executable/desmoc"
+  },
+  "dependencies": {
+    "chokidar": "^3.5.3",
+    "desmoscript": "file:../desmoscript"
+  },
+  "name": "desmoc"
+}
