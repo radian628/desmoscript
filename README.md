@@ -27,7 +27,10 @@ Because of Desmoscript's... unorthodox... compile target, you can't just get it 
 y = x ^ 2;
 ```
 
-5. Run the web server by right clicking the file and selecting "Run Desmoscript Web Server." Upon doing this, a new window should pop up containing some compiler output as well as a URL. If you open the URL, it should be full of Desmos graph state JSON.
+5. Run the web server by right clicking the file and selecting "Run Desmoscript Web Server." Upon doing this, a new VSCode window should pop up containing some compiler output as well as a URL. If you open the URL in a browser, it should be full of Desmos graph state JSON.
+
+![A vscode window titled "DEsmoscript Server: sample.desmo". On separate lines, it contains the text "Annotate expressions with equivalent desmoscript" (with a text box), "Server is running at http://127.0.0.1:3000", "Close this window to shut down the server.", and "Status: Compilation was successful! (took 14ms)"](./docs/desmoscript-server.png)
+
 6. Paste the URL into the URL box in the Desmos Loader.
 7. Hit "recompile" if it doesn't compile automatically!
 8. Try loading [./sample.desmo](sample.desmo) if you want to see more features in action.
@@ -49,9 +52,9 @@ https://github.com/radian628/desmoscript/blob/fae6b541793c8e13f38313327a551d944e
 Want to see your project here? Send me a message or open an issue!
 | Creator | Description | Source | Graph |
 | ------- | ----------- | ------ | ----- |
-| radian628 | MONUMENT OF BERNARD (2022-2023 Art Contest Winner) | [Link](https://github.com/radian628/desmoscript/tree/main/examples/3d-scene) | [Link](https://www.desmos.com/calculator/efcdkbpkcu) |
-| Lenny-the-burger | 3-space Engine | [Link](https://gist.github.com/Lenny-the-burger/64e0157dd17902ca71e27a05e15bda7a) | [Link](https://www.desmos.com/calculator/rwtgjjwktb) |
-| radian628 | 3D Parametric Editor | [Link](https://github.com/radian628/desmoscript/blob/main/examples/parametric-renderer/main.desmo) | [Link](https://www.desmos.com/calculator/puxqfklrpa) |
+| radian628 | MONUMENT OF BERNARD (2022-2023 Art Contest Winner) (Note: uses old version) | [Link](https://github.com/radian628/desmoscript/tree/main/examples/3d-scene) | [Link](https://www.desmos.com/calculator/efcdkbpkcu) |
+| Lenny-the-burger | 3-space Engine (Note: uses old version) | [Link](https://gist.github.com/Lenny-the-burger/64e0157dd17902ca71e27a05e15bda7a) | [Link](https://www.desmos.com/calculator/rwtgjjwktb) |
+| radian628 | 3D Parametric Editor (Note: uses old version) | [Link](https://github.com/radian628/desmoscript/blob/main/examples/parametric-renderer/main.desmo) | [Link](https://www.desmos.com/calculator/puxqfklrpa) |
 
 ## Features (non-exhaustive)
 
