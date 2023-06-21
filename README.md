@@ -27,47 +27,11 @@ y = x ^ 2;
 5. Run the web server by right clicking the file and selecting "Run Desmoscript Web Server." Upon doing this, a new window should pop up containing some compiler output as well as a URL. If you open the URL, it should be full of Desmos graph state JSON.
 6. Paste the URL into the URL box in the Desmos Loader.
 7. Hit "recompile" if it doesn't compile automatically!
+8. Try loading [./sample.desmo](sample.desmo) if you want to see more features in action.
 
 ## Features
 
-```desmo
-"variables"
-var = 3;
-
-"points"
-pt = (3, 4);
-
-"list comprehensions"
-listComp = [(a, b) for a=[1..10], b=[1..10]];
-
-"anonymous block expressions"
-blk = {
-  temp = 3;
-  temp + temp
-};
-
-"functions"
-fn double(x) { "
-  x * 2;
-}
-
-"piecewises"
-fn abs(x) {
-  {
-    x >= 0: x,
-    x < 0: -x
-  }
-}
-
-"namespacing (maps to desmos folders)"
-ns namespace {
-  innerExpr = 123;
-}
-namespace.innerExpr * 2;
-
-"displayed expressions"
-show y = x @{ colorLatex: ds(rgb(255, 0, 255)) };
-```
+[./sample.desmo](See here)
 
 ## Goals of Desmoscript
 

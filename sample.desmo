@@ -1,0 +1,33 @@
+"variables"
+var = 3;
+
+"points"
+pt = (3, 4);
+
+"list comprehensions"
+listComp = [(a, b) for a=[1..10], b=[1..10]];
+
+"anonymous block expressions"
+blk = {
+    temp = 3;
+    temp + temp
+  };
+
+"functions"
+fn double(x) {
+  x * 2
+}
+
+"piecewises"
+fn abs(x) {
+  { x >= 0: x, x < 0: -x, x < 0 }
+}
+
+"namespacing (maps to desmos folders)"
+ns namespace {
+  innerExpr = 123;
+}
+namespace.innerExpr * 2;
+
+"displayed expressions"
+show y = x @{ colorLatex: ds(rgb(255, 0, 255)) }
