@@ -16,7 +16,7 @@ Because of Desmoscript's... unorthodox... compile target, you can't just get it 
 **Warning: This extension is still in development and will likely have some bugs**
 
 1. Install [the VSCode extension](https://marketplace.visualstudio.com/items?itemName=radian628.desmoscript-language-support) (linked above)
-2. Install [TamperMonkey](https://www.tampermonkey.net/) or another similar browser extension. This extension easily lets you inject scripts into whatever pages you want. Think of it like an extension within an extension. I'd make my own extension but I'm lazy.
+2. Install [TamperMonkey](https://www.tampermonkey.net/) or another similar browser extension. This extension easily lets you inject scripts into whatever pages you want. It's like an extension for letting you make your own extensions.
 3. Install [the Desmoscript Loader](https://gist.github.com/radian628/a9e1a39d3487153c532bdc410727c30d/raw/bda88081b28f9102311128dceeb7487a0ccd4596/extension.user.js) userscript. Open or refresh [Desmos](https://desmos.com/calculator). If you see a little box in the bottom right corner that wasn't there before, it's been properly loaded.
 4. Type some desmoscript code into a file. This will do as a proof of concept:
 
