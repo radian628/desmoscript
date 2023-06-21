@@ -3,7 +3,7 @@
   "description": "Desmoscript language support",
   "author": "radian628",
   "license": "MIT",
-  "version": "0.1.24",
+  "version": "0.1.25",
   "publisher": "radian628",
   "categories": [],
   "keywords": [
@@ -20,6 +20,34 @@
   "contributes": {
     "menus": {
       "explorer/context": [
+        {
+          "command": "desmoscript.run",
+          "when": "resourceLangId == desmo"
+        },
+        {
+          "command": "desmoscript.outputToJson",
+          "when": "resourceLangId == desmo"
+        },
+        {
+          "command": "desmoscript.watch",
+          "when": "resourceLangId == desmo"
+        }
+      ],
+      "editor/title/context": [
+        {
+          "command": "desmoscript.run",
+          "when": "resourceLangId == desmo"
+        },
+        {
+          "command": "desmoscript.outputToJson",
+          "when": "resourceLangId == desmo"
+        },
+        {
+          "command": "desmoscript.watch",
+          "when": "resourceLangId == desmo"
+        }
+      ],
+      "view/item/context": [
         {
           "command": "desmoscript.run",
           "when": "resourceLangId == desmo"
