@@ -21,7 +21,7 @@ Because of Desmoscript's... unorthodox... compile target, you can't just get it 
 
 ![A light gray box with a text input containing the text "http://localhost:3000", followed by a button containing the text "Recompile", followed by a filled checkbox labeled "Auto-recompile."](./docs/desmoscript-loader.png)
 
-4. Type some desmoscript code into a file. This will do as a proof of concept:
+4. Type some desmoscript code into a file. This will do as a proof of concept. Make sure the file has the `.desmo` extension:
 
 ```desmo
 y = x ^ 2;
