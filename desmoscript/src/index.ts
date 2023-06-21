@@ -67,6 +67,7 @@ export { compileDesmoscript } from "./combined-functionality/full-compiler.js";
 export { compileDesmoscriptForLanguageSupport } from "./combined-functionality/language-support-compiler.js";
 export { enableDebug } from "./debug/debug.js";
 export { formatError } from "./scope-tree/typecheck/type-errors.js";
+export { IOInterface } from "./io/io.js";
 
 export type DesmoCallback = (ctx: { scope: Scope }) => void;
 export declare function desmo(callback: DesmoCallback): void;

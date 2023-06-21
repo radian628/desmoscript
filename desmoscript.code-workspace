@@ -1,0 +1,17 @@
+{
+  "folders": [
+    {
+      "path": "desmoscript"
+    },
+    {
+      "path": "lsp-extension"
+    },
+    {
+      "path": "standalone-compiler"
+    },
+    {
+      "path": "extension-testing-zone"
+    },
+    { "path": "./" }
+  ]
+}

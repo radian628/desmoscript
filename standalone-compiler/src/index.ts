@@ -1,15 +1,14 @@
-import { compileDesmoscript, formatError } from "desmoscript";
+import { compileDesmoscript, formatError } from "../../desmoscript";
 import * as fs from "node:fs/promises";
-import * as http from "node:http";
-import * as chokidar from "chokidar";
-import * as path from "node:path";
-import { IOInterface } from "desmoscript/dist/io/io";
+import { runWatchServer } from "./watch-server";
 
 type CompilerArgs = {
   port: number;
   host: string;
   entryPoint: string;
   errorContext: number;
+  allInOneFolderID?: string;
+  annotateExpressionsWithEquivalentDesmoscript: boolean;
 };
 
 async function parseArgv(argv: string[]): Promise<CompilerArgs> {
@@ -27,16 +26,22 @@ async function parseArgv(argv: string[]): Promise<CompilerArgs> {
     host: "127.0.0.1",
     entryPoint: argv[2],
     errorContext: 2,
+    annotateExpressionsWithEquivalentDesmoscript: false,
   };
+
+  console.log("argv", argv);
 
   for (let i = 3; i < argv.length; i++) {
     if (!argvKey) {
       if (
         argv[i] == "-port" ||
         argv[i] == "-host" ||
-        argv[i] == "-errorContext"
+        argv[i] == "-errorContext" ||
+        argv[i] == "-allInOneFolderID"
       ) {
         argvKey = argv[i].slice(1) as "port" | "host" | "errorContext";
+      } else if (argv[i] == "-annotateExpressionsWithEquivalentDesmoscript") {
+        args.annotateExpressionsWithEquivalentDesmoscript = true;
       } else {
         console.log(`Error: Invalid command line argument '${argv[i]}'.`);
         process.exit(-1);
@@ -61,7 +66,11 @@ async function parseArgv(argv: string[]): Promise<CompilerArgs> {
             console.log("Error: Error context must be nonnegative.");
             process.exit(-1);
           }
+          break;
+        case "allInOneFolderID":
+          args.allInOneFolderID = argv[i];
       }
+      argvKey = undefined;
     }
   }
 
@@ -71,104 +80,61 @@ async function parseArgv(argv: string[]): Promise<CompilerArgs> {
 (async () => {
   const params = await parseArgv(process.argv);
 
-  const io: IOInterface = {
-    readFile: async (str) => {
-      const fileBuffer = await fs.readFile(str);
-      const arr = new Uint8Array(fileBuffer.buffer.slice(0, fileBuffer.length));
-      console.log("READ FILE: ", arr);
-      return arr;
+  runWatchServer({
+    ...params,
+    options: {
+      annotateExpressionsWithEquivalentDesmoscript:
+        params.annotateExpressionsWithEquivalentDesmoscript,
+      allInOneFolderID: params.allInOneFolderID,
     },
-    resolvePath: path.resolve,
-    dirname: path.dirname,
-    relativePath: path.relative,
-  };
-
-  const watchFiles = new Set<string>();
-
-  const doCompile = async (watchFiles: Set<string>) => {
-    const output = await compileDesmoscript(params.entryPoint, {
-      unsavedFiles: new Map(),
-      io,
-      watchFiles,
-    });
-
-    const errors = output.errors
-      .map((e) => {
-        return formatError(
-          {
-            io,
-            sourceCodeErrorContext: params.errorContext,
-            entry: "./",
-            sourceCode: output.sourceCode,
-            maxWidth: process.stdout.columns,
-            format: (str, opts) => {
-              if (opts.type == "error") {
-                return str
-                  .split("\n")
-                  .map((substr) => `\x1b[1;31m${substr}\x1b[0m`)
-                  .join("\n");
-              }
-              if (opts.type == "gutter") {
-                return `\x1b[38;5;236m${str}\x1b[0m`;
-              }
-              if (opts.type == "deemphasize") {
-                return `\x1b[38;5;236m${str}\x1b[0m`;
-              }
-              if (opts.type == "message") {
-                return `\x1b[38;5;220m${str}\x1b[0m`;
-              }
-              return str;
+    onLoad() {},
+    onCompile(output, io) {
+      const errors = output.errors
+        .map((e) => {
+          return formatError(
+            {
+              io,
+              sourceCodeErrorContext: params.errorContext,
+              entry: "./",
+              sourceCode: output.sourceCode,
+              maxWidth: process.stdout.columns,
+              format: (str, opts) => {
+                if (opts.type == "error") {
+                  return str
+                    .split("\n")
+                    .map((substr) => `\x1b[1;31m${substr}\x1b[0m`)
+                    .join("\n");
+                }
+                if (opts.type == "gutter") {
+                  return `\x1b[38;5;236m${str}\x1b[0m`;
+                }
+                if (opts.type == "deemphasize") {
+                  return `\x1b[38;5;236m${str}\x1b[0m`;
+                }
+                if (opts.type == "message") {
+                  return `\x1b[38;5;220m${str}\x1b[0m`;
+                }
+                return str;
+              },
             },
-          },
-          e
+            e
+          );
+        })
+        .join(
+          `\n\x1b[38;5;195m${"".padStart(
+            process.stdout.columns,
+            "_"
+          )}\x1b[0m\n\n`
         );
-      })
-      .join(
-        `\n\x1b[38;5;195m${"".padStart(process.stdout.columns, "_")}\x1b[0m\n\n`
-      );
 
-    process.stdout.write("\x1bc");
-    console.log(errors);
+      process.stdout.write("\x1bc");
+      console.log(errors);
 
-    if (output.errors.length == 0 && output.type == "success") {
-      console.log(
-        `Compilation succeeded. View graph state at http://${params.host}:${params.port}`
-      );
-    }
-
-    const watcher = chokidar.watch(Array.from(watchFiles.values()), {
-      awaitWriteFinish: {
-        pollInterval: 50,
-        stabilityThreshold: 1000,
-      },
-    });
-    const recompile = (evtType: string) => (evt: any) => {
-      watcher.close();
-      compilerOutput = doCompile(watchFiles);
-    };
-
-    watcher.on("change", recompile("change"));
-    watcher.on("unlink", recompile("unlink"));
-
-    return { output, errors, watchFiles };
-  };
-
-  let compilerOutput = doCompile(watchFiles);
-
-  const server = http.createServer(async (req, res) => {
-    const { output, errors } = await compilerOutput;
-
-    if (errors.length == 0 && output.type == "success") {
-      res
-        .setHeader("Access-Control-Allow-Origin", "*")
-        .end(JSON.stringify(output.state));
-    } else {
-      res.statusCode = 500;
-      res.setHeader("Access-Control-Allow-Origin", "*").end(errors);
-    }
-  });
-
-  server.listen(params.port, params.host, undefined, () => {
-    console.log(`Running HTTP server on http://${params.host}:${params.port}`);
+      if (output.errors.length == 0 && output.type == "success") {
+        console.log(
+          `Compilation succeeded. View graph state at http://${params.host}:${params.port}`
+        );
+      }
+    },
   });
 })();

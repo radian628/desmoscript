@@ -4,43 +4,14 @@
  * ------------------------------------------------------------------------------------------ */
 import {
   createConnection,
-  TextDocuments,
-  Diagnostic,
-  DiagnosticSeverity,
   ProposedFeatures,
-  InitializeParams,
-  DidChangeConfigurationNotification,
-  CompletionItem,
-  CompletionItemKind,
-  TextDocumentPositionParams,
-  TextDocumentSyncKind,
-  InitializeResult,
-  HandlerResult,
-  Position,
-  WorkDoneProgress,
-  LocationLink,
-  ColorInformation,
 } from "vscode-languageserver/node.js";
 
-import { TextDocument, TextEdit } from "vscode-languageserver-textdocument";
-
-import {
-  compileDesmoscript,
-  compileDesmoscriptForLanguageSupport,
-  getLinesAndCols,
-  lex,
-  parse,
-} from "desmoscript";
-import { CompilerError } from "desmoscript/dist/compiler-errors.mjs";
-import { getErrors } from "desmoscript/dist/ast/ast.mjs";
-import { CodegenError } from "desmoscript/dist/codegen/codegen.mjs";
-import { TypeError } from "desmoscript/dist/scope-tree/typecheck/type-errors.mjs";
-import { formatAST } from "desmoscript/dist/ast/fmt.mjs";
-import { compareAST } from "desmoscript/dist/ast/compare-ast.mjs";
 import { fileURLToPath, pathToFileURL } from "url";
 import { runDesmoscriptLanguageServer } from "./server";
 import * as fs from "node:fs/promises";
 import * as path from "node:path";
+import * as chokidar from "chokidar";
 
 // Create a connection for the server, using Node's IPC as a transport.
 // Also include all preview / proposed LSP features.
@@ -52,6 +23,20 @@ runDesmoscriptLanguageServer(
     resolvePath: path.resolve,
     dirname: path.dirname,
     relativePath: path.relative,
+    writeFile: async (str, data) => fs.writeFile(str, data),
+    watchFile: (str, onchange) => {
+      const watcher = chokidar.watch(str, {
+        awaitWriteFinish: {
+          pollInterval: 50,
+          stabilityThreshold: 1000,
+        },
+      });
+
+      watcher.on("change", onchange);
+      watcher.on("unlink", onchange);
+
+      return () => watcher.close();
+    },
   },
   fileURLToPath,
   (str) => pathToFileURL(str).toString()

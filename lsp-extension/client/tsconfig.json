@@ -4,10 +4,12 @@
     "target": "es2020",
     "lib": ["es2020", "WebWorker"],
     "outDir": "out",
-    "rootDir": "src",
     "sourceMap": true,
     "moduleResolution": "node",
-    "esModuleInterop": true
+    "esModuleInterop": true,
+    "paths": {
+      "desmo-server": ["../../../standalone-compiler/src"]
+    }
   },
   "include": ["src", "src/extension-browser.ts"],
   "exclude": ["node_modules", ".vscode-test"]

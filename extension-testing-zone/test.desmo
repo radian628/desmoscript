@@ -1,4 +1,3 @@
-
 import "./test2.desmo"
 
 trtrdttrdtdrtr = 3;
@@ -161,7 +160,6 @@ ns namespaceTest @{
 
 show list3 = [(3, 3), (5, 5), (7, 7)] @{ colorLatex: ds(rgb(173, 67, 67)) }
 
-
 asdfasdf = list2;
 
 macroTest = five!();
@@ -206,6 +204,7 @@ test222 = test3333;
 badpolygon = polygon([1, 2, 3], [4, 5, 6], 69);
 
 fn recursive(x) {
+  
   recursive(x)
 }
 
@@ -223,5 +222,4 @@ fn hypot(x, y, z) {
   x ^ 2 + y ^ 2 + z ^ 2
 }
 
-hypottest = hypot(3, 4, (5, 6));
-
+hypottest = hypot(3, 4, 5);

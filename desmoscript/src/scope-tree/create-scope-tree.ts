@@ -436,12 +436,26 @@ export function addScopesToAST(
       }
   }
 
-  if (asExpr(node).success && node.type != "note") {
+  if (
+    // add expression to scope if it's a non-note expression...
+    asExpr(node).success &&
+    node.type != "note" &&
+    // make sure the expression isn't a macro call
+    // if it is, make sure its result is actually an expression
+    (node.type != "macrocall" ||
+      (node.result &&
+        !(node.result instanceof Promise) &&
+        asExpr(node.result).success))
+  ) {
     if (
+      // only add expressions to scope if they're within
+      // non-value blocks
       (state.parentNode?.type == "block" &&
+        // or if they're not at the last position in a value block
         (node != state.parentNode.body[state.parentNode.body.length - 1] ||
           !state.isValueBlock ||
           state.parentNode?.isRoot)) ||
+      // or if they're inside a "show" statement
       state.parentNode?.type == "show"
     ) {
       addToScope(

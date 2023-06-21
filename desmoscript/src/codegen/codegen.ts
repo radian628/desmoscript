@@ -59,6 +59,11 @@ export type CodegenContext = {
 
   alreadyGeneratedBlockFinalExpressionIDs: Set<number>;
   errors: CodegenError[];
+
+  options: {
+    annotateExpressionsWithEquivalentDesmoscript: boolean;
+    allInOneFolderID?: string;
+  };
 };
 
 export function desmosifyName(str: string) {
@@ -331,7 +336,12 @@ export function getJsonNode(
 }
 
 export function generateCodeForScopeTree(ctx: CodegenContext, scope: Scope) {
+  if (ctx.options.allInOneFolderID !== undefined) {
+    ctx.folderState = { id: ctx.options.allInOneFolderID, name: "" };
+  }
+
   const addFolder = () => {
+    if (ctx.options.allInOneFolderID !== undefined) return;
     if (!ctx.folderState) return;
     ctx.state.expressions.list.push({
       id: ctx.folderState.id,
@@ -368,6 +378,7 @@ export function generateCodeForScopeTree(ctx: CodegenContext, scope: Scope) {
   };
 
   const addDesmoscriptEquivalent = (node: Scoped<ASTNode>) => {
+    if (!ctx.options.annotateExpressionsWithEquivalentDesmoscript) return;
     ctx.state.expressions.list.push({
       id: newid().toString(),
       type: "text",
@@ -535,5 +546,13 @@ export function generateCodeForCompilationUnit(ctx: CodegenContext) {
 }
 
 export function generateCode(ctx: CodegenContext) {
-  return generateCodeForCompilationUnit(ctx);
+  generateCodeForCompilationUnit(ctx);
+
+  if (ctx.options.allInOneFolderID) {
+    ctx.state.expressions.list.splice(0, 0, {
+      type: "folder",
+      id: ctx.options.allInOneFolderID,
+      title: "Desmoscript Compiler Output",
+    });
+  }
 }

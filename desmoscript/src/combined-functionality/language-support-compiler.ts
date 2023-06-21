@@ -103,6 +103,8 @@ export type LanguageSupportFeatures = {
 
   formatFile(filename: string): Promise<string | undefined>;
 
+  onHover: (filename: string, position: number) => Promise<string | undefined>;
+
   // for files being updated by vscode but haven't been saved
   updateFile: (filename: string, src: string) => void;
 };
@@ -115,47 +117,20 @@ type RecompileResult = {
   compilationUnits?: Map<string, CompilationUnit>;
 };
 
-// type RecompileResult =
-//   | {
-//       type: "error-at-import";
-//       errors: DesmoscriptError[];
-//       sourceCode: Map<
-//         string,
-//         { src: string; linesAndCols: [number, number][] }
-//       >;
-//       highlightsMap: Map<string, Highlights>;
-//     }
-//   | {
-//       type: "error-at-scopes";
-//       errors: DesmoscriptError[];
-//       compilationUnits: Map<string, CompilationUnit>;
-//       sourceCode: Map<
-//         string,
-//         { src: string; linesAndCols: [number, number][] }
-//       >;
-//       highlightsMap: Map<string, Highlights>;
-//     }
-//   | {
-//       type: "error-at-types";
-//       compilationUnits: Map<string, CompilationUnit>;
-//       errors: DesmoscriptError[];
-//       sourceCode: Map<
-//         string,
-//         { src: string; linesAndCols: [number, number][] }
-//       >;
-//       highlightsMap: Map<string, Highlights>;
-//     }
-//   | {
-//       type: "success";
-//       compilationUnits: Map<string, CompilationUnit>;
-//       sourceCode: Map<
-//         string,
-//         { src: string; linesAndCols: [number, number][] }
-//       >;
-//       highlightsMap: Map<string, Highlights>;
-//     };
-
 export type ImportScriptsMap = Map<string, { run: DesmoCallback }>;
+
+function findSmallestEnclosingScope(scope: Scope, position: number): Scope {
+  for (const [itemName, item] of scope.elements) {
+    if (
+      item.type == "scope" &&
+      position >= item.start &&
+      position <= item.end
+    ) {
+      return findSmallestEnclosingScope(item.scope, position);
+    }
+  }
+  return scope;
+}
 
 // i'll probably have chokidar support later so that changes from
 // other sources can be properly picked up
@@ -166,7 +141,11 @@ export function compileDesmoscriptForLanguageSupport(
 
   const watchFiles = new Set<string>();
 
+  let activeWatchers: (() => void)[] = [];
+
   async function recompile(entryPoint: string): Promise<RecompileResult> {
+    if (cachedRecompilation) return cachedRecompilation;
+
     const imports = new Map<
       string,
       {
@@ -235,6 +214,20 @@ export function compileDesmoscriptForLanguageSupport(
       getAbsolutePath
     );
 
+    for (const closeWatcher of activeWatchers) {
+      closeWatcher();
+    }
+
+    activeWatchers = [];
+
+    watchFiles.forEach((filename) => {
+      activeWatchers.push(
+        io.watchFile(filename, () => {
+          cachedRecompilation = undefined;
+        })
+      );
+    });
+
     const astNodes =
       createASTLookupTableMultipleCompilationUnits(compilationUnits);
 
@@ -265,11 +258,21 @@ export function compileDesmoscriptForLanguageSupport(
       })?.why ?? [])
     );
 
-    return { errors, compilationUnits, sourceCode, highlightsMap };
+    cachedRecompilation = {
+      errors,
+      compilationUnits,
+      sourceCode,
+      highlightsMap,
+    };
+
+    return cachedRecompilation;
   }
+
+  let cachedRecompilation: RecompileResult | undefined;
 
   return {
     updateFile(filename, src) {
+      cachedRecompilation = undefined;
       unsavedFiles.set(filename, src);
     },
 
@@ -508,20 +511,7 @@ export function compileDesmoscriptForLanguageSupport(
       const unit = ctx.compilationUnits.get(filename);
       if (!unit) return undefined;
 
-      function findSmallestEnclosingScope(scope: Scope): Scope {
-        for (const [itemName, item] of scope.elements) {
-          if (
-            item.type == "scope" &&
-            position >= item.start &&
-            position <= item.end
-          ) {
-            return findSmallestEnclosingScope(item.scope);
-          }
-        }
-        return scope;
-      }
-
-      const searchScope = findSmallestEnclosingScope(unit.scopeTree);
+      const searchScope = findSmallestEnclosingScope(unit.scopeTree, position);
 
       let searchString = "";
       let pos = position - 1;
@@ -575,6 +565,33 @@ export function compileDesmoscriptForLanguageSupport(
 
           handler(suggestion, completionType);
         }
+      }
+    },
+
+    async onHover(filename, position) {
+      const ctx = await recompile(filename);
+      if (!ctx.compilationUnits) return;
+      const unit = ctx.compilationUnits.get(filename);
+      if (!unit) return undefined;
+
+      let hoverASTNode: Scoped<ASTNode> | undefined;
+
+      forEachAST(unit.ast, undefined, (node) => {
+        if (position >= node.start && position <= node.end) {
+          if (node.type == "macrocall") {
+            hoverASTNode = node as Scoped<ASTNode>;
+          }
+        }
+      });
+
+      if (!hoverASTNode) return;
+
+      if (
+        hoverASTNode.type == "macrocall" &&
+        hoverASTNode.result &&
+        !(hoverASTNode.result instanceof Promise)
+      ) {
+        return `Evaluates to:\n${formatAST(hoverASTNode.result)}`;
       }
     },
   };

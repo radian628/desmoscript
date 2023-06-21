@@ -18,10 +18,15 @@ import {
 import * as vscode from "vscode";
 import * as languageClient from "vscode-languageclient/node";
 
-import * as desmoscript from "desmoscript";
-import { setupDesmosPreview, setupSyntaxHighlighting } from "./extension";
-import { IOInterface } from "desmoscript/dist/io/io";
+import * as desmoscript from "../../../desmoscript";
+import {
+  setupDesmosOutputToJson,
+  setupDesmosPreview,
+  setupSyntaxHighlighting,
+} from "./extension";
 import { URI } from "vscode-uri";
+import { ioNode } from "./io-node";
+import { setupDesmosWatchServer } from "./watch-server";
 
 desmoscript.enableDebug();
 
@@ -63,16 +68,13 @@ export function activate(context: ExtensionContext) {
   // Start the client. This will also launch the server
   client.start();
 
-  const io: IOInterface = {
-    readFile: async (str) => new Uint8Array((await fs.readFile(str)).buffer),
-    resolvePath: path.resolve,
-    dirname: path.dirname,
-    relativePath: path.relative,
-  };
+  setupSyntaxHighlighting(context, ioNode, (str) => URI.parse(str).fsPath);
 
-  setupSyntaxHighlighting(context, io, (str) => URI.parse(str).fsPath);
+  setupDesmosPreview(context, ioNode, (str) => URI.parse(str).fsPath);
 
-  setupDesmosPreview(context, io, (str) => URI.parse(str).fsPath);
+  setupDesmosOutputToJson(context, ioNode, (str) => URI.parse(str).fsPath);
+
+  setupDesmosWatchServer(context, ioNode, (str) => URI.parse(str).fsPath);
 }
 
 export function deactivate(): Thenable<void> | undefined {

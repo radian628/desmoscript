@@ -18,9 +18,13 @@ import {
 import * as vscode from "vscode";
 import * as languageClient from "vscode-languageclient/browser";
 
-import * as desmoscript from "desmoscript";
-import { setupDesmosPreview, setupSyntaxHighlighting } from "./extension";
-import { IOInterface } from "desmoscript/dist/io/io";
+import * as desmoscript from "../../../desmoscript";
+import {
+  setupDesmosOutputToJson,
+  setupDesmosPreview,
+  setupSyntaxHighlighting,
+} from "./extension";
+import { ioBrowser } from "./io-browser";
 
 desmoscript.enableDebug();
 
@@ -41,13 +45,18 @@ export function activate(context: ExtensionContext) {
 
   worker.addEventListener("message", async (ev) => {
     console.log("WORKER MSG", ev);
-    if (ev.data && ev.data.type == "file") {
-      worker.postMessage({
-        type: "file",
-        data: (
-          await vscode.workspace.fs.readFile(URI.parse(ev.data.url))
-        ).toString(),
-      });
+    if (ev.data) {
+      if (ev.data.type == "read-file") {
+        worker.postMessage({
+          type: "read-file",
+          data: (
+            await vscode.workspace.fs.readFile(URI.parse(ev.data.url))
+          ).toString(),
+          index: ev.data.index,
+        });
+      } else if (ev.data.type == "write-file") {
+        vscode.workspace.fs.writeFile(URI.parse(ev.data.url), ev.data.data);
+      }
     }
   });
 
@@ -79,38 +88,10 @@ export function activate(context: ExtensionContext) {
 
   console.log("does console.log show up here?");
 
-  const io: IOInterface = {
-    readFile: async (str) => {
-      console.log("readfile", str);
-      console.trace();
-      return await vscode.workspace.fs.readFile(URI.parse(str));
-    },
-    resolvePath: (uri, ...args) => {
-      console.log("resolvePath", uri, ...args);
-      const resolvedPath = uriUtils
-        .resolvePath(URI.parse(uri), ...args)
-        .toString();
-      console.trace();
-      if (args[0]?.match(/^[^:|/]*:\/\//g)) {
-        console.log("resolved path", args[0]);
-        return args[0];
-      }
-      console.log("resolved path", resolvedPath);
-      return resolvedPath;
-    },
-    dirname: (str) => {
-      console.log("dirnamecalled", str);
-      const directoryName = uriUtils.dirname(URI.parse(str)).toString();
-      console.log("directory name", directoryName);
-      console.trace();
-      return directoryName;
-    },
-    relativePath: (from, to) => to,
-  };
+  setupSyntaxHighlighting(context, ioBrowser, (str) => str);
 
-  setupSyntaxHighlighting(context, io, (str) => str);
-
-  setupDesmosPreview(context, io, (str) => str);
+  setupDesmosPreview(context, ioBrowser, (str) => str);
+  setupDesmosOutputToJson(context, ioBrowser, (str) => str);
 }
 
 export function deactivate(): Thenable<void> | undefined {

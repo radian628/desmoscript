@@ -1,4 +1,3 @@
-
 asdf = 123123;
 
 import script "./importScriptTest.js"
@@ -12,4 +11,14 @@ numIsSix = six!();
 dotTest = dot!(1, 2, 3, 4, 5, 6);
 
 csvtest = loadcsv!("test.csv");
-;
+
+kgjflkg = 161616;
+
+loop!(looptest, 3,     {
+      v = 1;
+    },     {
+      v = prev.v + 1;
+    });
+
+out = looptest.v;
+

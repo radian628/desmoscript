@@ -2,5 +2,8 @@
   "dependencies": {
     "@types/node": "^18.11.9",
     "immutable": "^4.1.0"
+  },
+  "scripts": {
+    "watch-all": "npm run dev --prefix desmoscript"
   }
 }

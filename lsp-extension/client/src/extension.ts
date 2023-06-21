@@ -7,14 +7,13 @@ import {
   workspace,
 } from "vscode";
 
-import * as desmoscript from "desmoscript";
+import * as desmoscript from "../../../desmoscript/src/index";
 
 import * as vscode from "vscode";
-import { IOInterface } from "desmoscript/dist/io/io";
 
 export function setupSyntaxHighlighting(
   context: ExtensionContext,
-  io: IOInterface,
+  io: desmoscript.IOInterface,
   formatPath: (path: string) => string
 ) {
   const tokenTypes = [
@@ -93,26 +92,86 @@ export function setupSyntaxHighlighting(
   })();
 }
 
-export function setupDesmosPreview(
+export function setupDesmosOutputToJson(
   context: ExtensionContext,
-  io: IOInterface,
+  io: desmoscript.IOInterface,
   formatPath: (str: string) => string
 ) {
   context.subscriptions.push(
-    vscode.commands.registerCommand("desmoscript.run", async () => {
-      try {
+    vscode.commands.registerCommand(
+      "desmoscript.outputToJson",
+      async (providedFilename) => {
         const filename = formatPath(
-          vscode.window.activeTextEditor.document.uri.toString()
-        );
-        console.log("using filename", filename);
-        const panel = vscode.window.createWebviewPanel(
-          "desmoscript",
-          "Desmos: " + filename.split(/\/|\\/g).slice(-1)[0],
-          vscode.ViewColumn.One,
-          { enableScripts: true, retainContextWhenHidden: true }
+          providedFilename ??
+            vscode.window.activeTextEditor.document.uri.toString()
         );
 
-        panel.webview.html = `<!DOCTYPE html>
+        const start = Date.now();
+        const compilerOutput = await desmoscript.compileDesmoscript(filename, {
+          unsavedFiles: new Map(),
+          io,
+          watchFiles: new Set(),
+          options: {
+            annotateExpressionsWithEquivalentDesmoscript: false,
+          },
+        });
+        const end = Date.now();
+        if (compilerOutput.type == "success") {
+          vscode.window.showInformationMessage(
+            `Desmos graphstate JSON copied to clipboard! (took ${
+              end - start
+            }ms)`
+          );
+          vscode.env.clipboard.writeText(JSON.stringify(compilerOutput.state));
+        }
+        if (compilerOutput.errors.length > 0) {
+          vscode.window.showErrorMessage(
+            `Desmoscript compiled with ${
+              compilerOutput.errors.length
+            } errors:\n${compilerOutput.errors
+              .map((err) =>
+                desmoscript.formatError(
+                  {
+                    sourceCode: compilerOutput.sourceCode,
+                    entry: filename,
+                    maxWidth: 60,
+                    format: (str) => str,
+                    io,
+                  },
+                  err
+                )
+              )
+              .join("\n")}`
+          );
+        }
+      }
+    )
+  );
+}
+
+export function setupDesmosPreview(
+  context: ExtensionContext,
+  io: desmoscript.IOInterface,
+  formatPath: (str: string) => string
+) {
+  context.subscriptions.push(
+    vscode.commands.registerCommand(
+      "desmoscript.run",
+      async (providedFilename) => {
+        try {
+          const filename = formatPath(
+            providedFilename ??
+              vscode.window.activeTextEditor.document.uri.toString()
+          );
+          console.log("using filename", filename);
+          const panel = vscode.window.createWebviewPanel(
+            "desmoscript",
+            "Desmos: " + filename.split(/\/|\\/g).slice(-1)[0],
+            vscode.ViewColumn.One,
+            { enableScripts: true, retainContextWhenHidden: true }
+          );
+
+          panel.webview.html = `<!DOCTYPE html>
       <html><head>
       
     <meta http-equiv="Content-Security-Policy" content="default-src 'unsafe-inline' 'unsafe-eval' https://www.desmos.com/ blob:; frame-src 'unsafe-inline' https://www.desmos.com/ blob:; font-src data:">
@@ -123,7 +182,6 @@ export function setupDesmosPreview(
       <script>
         let elt = document.getElementById("calculator");
         let calc = Desmos.GraphingCalculator(elt);
-        //calc.setExpression({ id: "696969", latex: "y=x" })
 
         window.addEventListener("message", event => {
           calc.setState(event.data);
@@ -137,52 +195,52 @@ export function setupDesmosPreview(
       </script>
       </body></html>`;
 
-        const compile = async () => {
-          const start = Date.now();
-          const compilerOutput = await desmoscript.compileDesmoscript(
-            filename,
-            {
-              unsavedFiles: new Map(),
-              io,
-              watchFiles: new Set(),
-            }
-          );
-          const end = Date.now();
-          console.log(`Compilation took ${end - start} milliseconds!`);
-          if (compilerOutput.errors.length > 0) {
-            vscode.window.showErrorMessage(
-              JSON.stringify(compilerOutput.errors)
+          const compile = async () => {
+            const start = Date.now();
+            const compilerOutput = await desmoscript.compileDesmoscript(
+              filename,
+              {
+                unsavedFiles: new Map(),
+                io,
+                watchFiles: new Set(),
+                options: {
+                  annotateExpressionsWithEquivalentDesmoscript: false,
+                },
+              }
             );
-          }
-          console.log("complier output: ", compilerOutput);
-          console.log(
-            "sourcecode files: ",
-            Array.from(compilerOutput.sourceCode.keys())
+            const end = Date.now();
+            console.log(`Compilation took ${end - start} milliseconds!`);
+            if (compilerOutput.errors.length > 0) {
+              vscode.window.showErrorMessage(
+                JSON.stringify(compilerOutput.errors)
+              );
+            }
+            console.log("complier output: ", compilerOutput);
+            return compilerOutput;
+          };
+
+          let result = await compile();
+
+          const sendToDesmos = async () => {
+            result = await compile();
+            if (result.type == "success") {
+              panel.webview.postMessage(result.state);
+            }
+          };
+
+          panel.webview.onDidReceiveMessage((e) => {
+            if (e == "recompile") {
+              sendToDesmos();
+            }
+          });
+
+          sendToDesmos();
+        } catch (err) {
+          vscode.window.showErrorMessage(
+            "ERROR CAUGHT: " + err.toString() + " stacktrace: " + err.stack
           );
-          return compilerOutput;
-        };
-
-        let result = await compile();
-
-        const sendToDesmos = async () => {
-          result = await compile();
-          if (result.type == "success") {
-            panel.webview.postMessage(result.state);
-          }
-        };
-
-        panel.webview.onDidReceiveMessage((e) => {
-          if (e == "recompile") {
-            sendToDesmos();
-          }
-        });
-
-        sendToDesmos();
-      } catch (err) {
-        vscode.window.showErrorMessage(
-          "ERROR CAUGHT: " + err.toString() + " stacktrace: " + err.stack
-        );
+        }
       }
-    })
+    )
   );
 }

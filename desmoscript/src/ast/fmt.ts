@@ -102,7 +102,7 @@ export function formatAST(n: ASTNode, c?: FmtCtx): string {
 
     case "block":
       let rootOffset = n.isRoot ? 0 : ctx.tabSize;
-      return `${ctx.dontIndentFirst ? "" : indent(ctx.indent)}${
+      return `${ctx.dontIndentFirst ? "" : /*indent(ctx.indent)*/ ""}${
         n.isRoot ? "" : "{"
       }${n.isRoot ? "" : "\n"}${n.body
         .map(

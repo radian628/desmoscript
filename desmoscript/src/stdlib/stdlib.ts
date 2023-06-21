@@ -1,6 +1,8 @@
 import {
   ASTNode,
+  BlockNode,
   IdentifierNode,
+  NamespaceNode,
   NoteNode,
   NumberNode,
   Scope,
@@ -438,6 +440,100 @@ export function addStdlibToScope(scope: Scope, ctx: ASTScopingContext) {
     },
     ctx.errors
   );
+
+  addToScope(
+    scope,
+    "loop",
+    {
+      type: "macro",
+      id: newid(),
+      unitName: "",
+      macroOperation: async (node, a) => {
+        if (node.params.length != 4)
+          a.fatalError("Expected exactly 3 parameters.");
+
+        const nsnameNode = node.params[0];
+        const iterationsNode = node.params[1];
+
+        if (nsnameNode.type != "identifier" || nsnameNode.segments.length != 1)
+          a.fatalError(
+            "Expected parameter 1 to be an identifier with 1 segment."
+          );
+
+        if (
+          iterationsNode.type != "number" ||
+          iterationsNode.number != Math.round(iterationsNode.number)
+        )
+          a.fatalError("Expected parameter 3 to be an integer.");
+
+        const nsname = (nsnameNode as IdentifierNode).segments[0];
+        const iterations = (iterationsNode as NumberNode).number;
+
+        if (node.params[2].type != "block")
+          a.fatalError("expected parameter 3 to be a block");
+
+        if (node.params[3].type != "block")
+          a.fatalError("expected parameter 4 to be a block");
+
+        function processLoopBody(node: ASTNode, itername: string) {
+          const cb = (n: ASTNode): ASTNode => processLoopBody(n, itername);
+          if (node.type == "identifier") {
+            return mapASTChildren(
+              {
+                ...node,
+                segments: [
+                  node.segments[0] == "prev" ? itername : node.segments[0],
+                  ...node.segments.slice(1),
+                ],
+              },
+              cb
+            );
+          }
+          return mapASTChildren(node, cb);
+        }
+
+        function copyNode(node: ASTNode): ASTNode {
+          return mapASTChildren(node, copyNode);
+        }
+
+        const getIterName = (i: number) => (i == -1 ? "init" : `iter${i}`);
+
+        return a.node<NamespaceNode>({
+          type: "namespace",
+          name: nsname,
+          body: a.node<BlockNode>({
+            type: "block",
+            body: [
+              a.node<NamespaceNode>({
+                type: "namespace",
+                name: "init",
+                body: copyNode(node.params[2]) as BlockNode,
+              }),
+              ...new Array(Math.max(iterations - 1, 0)).fill(0).map((e, i) => {
+                return a.node<NamespaceNode>({
+                  type: "namespace",
+                  name: `iter${i}`,
+                  body: processLoopBody(
+                    node.params[3],
+                    getIterName(i - 1)
+                  ) as BlockNode,
+                });
+              }),
+              ...(
+                processLoopBody(
+                  node.params[3],
+                  getIterName(iterations - 2)
+                ) as BlockNode
+              ).body,
+            ],
+          }),
+        });
+      },
+    },
+    ctx.errors
+  );
+
+  //loop!(nsname, last, init, body)
 
   addToScope(
     scope,

@@ -66,6 +66,8 @@ export type CompileDesmoscriptSettings = {
   unsavedFiles: Map<string, string>;
   io: IOInterface;
   watchFiles: Set<string>;
+
+  options: CodegenContext["options"];
 };
 
 export function lexAndParse(
@@ -363,6 +365,7 @@ export async function compileDesmoscript(
     alreadyCompiledUnits: new Set(),
     alreadyGeneratedBlockFinalExpressionIDs: new Set(),
     errors: codegenErrors,
+    options: settings.options,
   });
 
   return {

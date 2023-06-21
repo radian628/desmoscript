@@ -18,10 +18,36 @@
   "main": "./client/out/extension-node.js",
   "browser": "./client/out/extension-browser.js",
   "contributes": {
+    "menus": {
+      "explorer/context": [
+        {
+          "command": "desmoscript.run",
+          "when": "resourceLangId == desmo"
+        },
+        {
+          "command": "desmoscript.outputToJson",
+          "when": "resourceLangId == desmo"
+        },
+        {
+          "command": "desmoscript.watch",
+          "when": "resourceLangId == desmo"
+        }
+      ]
+    },
     "commands": [
       {
         "command": "desmoscript.run",
-        "title": "Run current desmoscript file",
+        "title": "Run Desmoscript",
+        "category": "Desmoscript"
+      },
+      {
+        "command": "desmoscript.outputToJson",
+        "title": "Compile Desmoscript to Clipboard",
+        "category": "Desmoscript"
+      },
+      {
+        "command": "desmoscript.watch",
+        "title": "Start Desmoscript HTTP Server",
         "category": "Desmoscript"
       }
     ],
@@ -90,7 +116,7 @@
     "esbuild-base-server-node": "esbuild ./server/src/server-node.ts --bundle --outfile=server/out/server-node.js --external:vscode --format=cjs --platform=node",
     "esbuild-base-client-web": "esbuild ./client/src/extension-browser.ts --bundle --outfile=client/out/extension-browser.js --external:vscode --format=cjs --platform=browser",
     "esbuild-base-server-web": "esbuild ./server/src/server-browser.ts --bundle --outfile=server/out/server-browser.js --external:vscode --platform=browser",
-    "watch": "npm run esbuild-base-client-node -- --sourcemap && npm run esbuild-base-server-node -- --sourcemap && npm run esbuild-base-client-web -- --sourcemap && npm run esbuild-base-server-web -- --sourcemap",
+    "watch": "concurrently \"npm run esbuild-base-client-node -- --sourcemap --watch\" \"npm run esbuild-base-server-node -- --sourcemap --watch\" \"npm run esbuild-base-client-web -- --sourcemap --watch\" \"npm run esbuild-base-server-web -- --sourcemap --watch\"",
     "lint": "eslint ./client/src ./server/src --ext .ts,.tsx",
     "postinstall": "cd client && npm install && cd ../server && npm install && cd ..",
     "test": "sh ./scripts/e2e.sh",
@@ -102,6 +128,7 @@
     "@typescript-eslint/eslint-plugin": "^5.54.0",
     "@typescript-eslint/parser": "^5.54.0",
     "@vscode/test-web": "^0.0.44",
+    "concurrently": "^8.2.0",
     "esbuild": "^0.18.0",
     "eslint": "^8.35.0",
     "mocha": "^9.2.1",

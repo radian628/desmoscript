@@ -1,8 +1,8 @@
 import {
   compileDesmoscriptForLanguageSupport,
   getLinesAndCols,
-} from "desmoscript";
-import { IOInterface } from "desmoscript/dist/io/io";
+} from "../../../desmoscript";
+import { IOInterface } from "../../../desmoscript/dist/io/io";
 import {
   ColorInformation,
   CompletionItem,
@@ -33,12 +33,11 @@ export function runDesmoscriptLanguageServer(
   connection: Connection,
   io: IOInterface,
   vscodePathToDesmoscriptPath: (str: string) => string,
-  desmoscriptPathToVscodePath: (str: string) => string
+  desmoscriptPathToVscodePath: (str: string) => string,
+  documents2?: TextDocuments<TextDocument>
 ) {
   // Create a simple text document manager.
-  const documents: TextDocuments<TextDocument> = new TextDocuments(
-    TextDocument
-  );
+  const documents = documents2 ?? new TextDocuments(TextDocument);
 
   let hasConfigurationCapability = false;
   let hasWorkspaceFolderCapability = false;
@@ -285,12 +284,32 @@ export function runDesmoscriptLanguageServer(
   );
 
   connection.onHover(async (params) => {
-    return {
-      contents: {
-        language: "desmo",
-        value: `desmoscript is pretty cool lol`,
-      },
-    };
+    try {
+      const doc = params.textDocument;
+      const filepath = vscodePathToDesmoscriptPath(doc.uri);
+      const document = documents.get(doc.uri);
+      if (!document) return;
+
+      const hoverResult = await desmoscriptCompiler.onHover(
+        filepath,
+        document.offsetAt(params.position)
+      );
+
+      if (!hoverResult) return;
+      return {
+        contents: {
+          language: "desmo",
+          value: hoverResult,
+        },
+      };
+    } catch (err) {
+      return {
+        contents: {
+          language: "desmo",
+          value: `${err?.toString()} ${(err as any)?.stack}`,
+        },
+      };
+    }
   });
 
   connection.onDocumentFormatting(
@@ -304,8 +323,7 @@ export function runDesmoscriptLanguageServer(
       const linesAndCols = getLinesAndCols(text);
 
       const start: Position = { line: 0, character: 0 };
-      const end: Position = document?.positionAt(text.length - 1);
-      //connection.sendNotification("attempting formatonsave");
+      const end: Position = document?.positionAt(text.length);
 
       const fmtted = await desmoscriptCompiler.formatFile(filepath);
 
