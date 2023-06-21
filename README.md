@@ -30,9 +30,7 @@ y = x ^ 2;
 8. Try loading [./sample.desmo](sample.desmo) if you want to see more features in action.
 
 ## Features
-
-https://github.com/radian628/desmoscript/blob/fae6b541793c8e13f38313327a551d944e7529e7/sample.desmo#L1
-
+https://github.com/radian628/desmoscript/blob/fae6b541793c8e13f38313327a551d944e7529e7/sample.desmo#L1-L33
 ## Goals of Desmoscript
 
 - **Highly performant**&mdash; doing things the idiomatic way should incur little-to-no performance overhead. If the idiomatic way is not performant, a performant alternative should be available.
