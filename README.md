@@ -31,7 +31,7 @@ y = x ^ 2;
 
 ## Features
 
-[./sample.desmo](See here)
+https://github.com/radian628/desmoscript/blob/fae6b541793c8e13f38313327a551d944e7529e7/sample.desmo
 
 ## Goals of Desmoscript
 
