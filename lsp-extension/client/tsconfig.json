@@ -1,0 +1,16 @@
+{
+  "compilerOptions": {
+    "module": "CommonJS",
+    "target": "es2020",
+    "lib": ["es2020", "WebWorker"],
+    "outDir": "out",
+    "sourceMap": true,
+    "moduleResolution": "node",
+    "esModuleInterop": true,
+    "paths": {
+      "desmo-server": ["../../../standalone-compiler/src"]
+    }
+  },
+  "include": ["src", "src/extension-browser.ts"],
+  "exclude": ["node_modules", ".vscode-test"]
+}

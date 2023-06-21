@@ -1,31 +1,26 @@
 {
   "name": "desmoscript",
   "version": "0.1.12",
-  "description": "A programming language that compiles to Desmos expression.",
-  "main": "dist/index.mjs",
+  "description": "A programming language that compiles to Desmos expressions.",
+  "main": "dist/index.js",
   "files": [
     "dist",
     "dist/grammar"
   ],
-  "types": "dist/index.d.mts",
-  "type": "module",
+  "types": "dist/index.d.ts",
   "devDependencies": {
-    "antlr4ts": "^0.5.0-alpha.4",
-    "antlr4ts-cli": "^0.5.0-alpha.4",
     "prettier": "^2.8.3",
     "typescript": "^4.9.4"
   },
   "scripts": {
-    "antlr": "npx antlr4ts -visitor grammar/Desmoscript.g4 -o ./src/grammar && node utils/add-extensions.mjs",
     "dev": "npx tsc --watch",
     "build": "npx tsc",
-    "prepare": "npm run antlr && npm run build",
+    "prepare": "npm run build",
     "prettier": "npx prettier --write ."
   },
   "dependencies": {
     "chokidar": "^3.5.3",
-    "zod": "^3.20.2",
-    "zod-validation-error": "^0.3.0",
-    "antlr4ts": "^0.5.0-alpha.4"
+    "zod": "3.20.2",
+    "zod-validation-error": "^0.3.2"
   }
 }

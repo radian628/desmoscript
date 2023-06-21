@@ -1,222 +1,284 @@
-import { scopeTree } from "../compiler-state.mjs";
-export declare namespace ast {
-    export type Context<B extends URIS = "", A = ""> = {
-        line: number;
-        col: number;
-        file: string;
-        _isnode: true;
-        id: number;
-    } & URIToKind<A>[B];
-    type URIToKind<A> = {
-        withscope: WithScope<A>;
-        macrosub: WithMacroSub<A> & WithScope<A>;
-        macrosubsync: WithMacroSubSync<A> & WithScope<A>;
-        "": {};
-    };
-    export type URIS = keyof URIToKind<unknown>;
-    export type WithMacroSub<Type> = Type extends "macrocall" ? {
-        substitution?: Promise<Node<"macrosub">>;
-    } : {};
-    export type WithMacroSubSync<Type> = Type extends "macrocall" ? {
-        substitution?: Node<"macrosubsync">;
-    } : {};
-    type WithInnerScope = {
-        innerScope: scopeTree.Scope;
-    };
-    export type WithScope<Type> = {
-        enclosingScope: scopeTree.Scope;
-    } & (Type extends "fndef" | "listcomp" | "block" | "sumprodint" | "derivative" | "namespace" | "root" ? WithInnerScope : {});
-    export type Expr<A extends URIS = "", B extends URIS = A> = Number<A, B> | Binop<A, B> | Unop<A, B> | Ident<A> | FnCall<A, B> | MacroCall<A, B> | Block<A, B> | Listcomp<A, B> | Point<A, B> | StepRange<A, B> | List<A, B> | SumProdInt<A, B> | Derivative<A, B> | Case<A, B> | Actions<A, B> | MemberAccess<A, B>;
-    export type Number<A extends URIS = "", B extends URIS = A> = {
-        type: "number";
-        num: number;
-    } & Context<A, "number">;
-    export type Binop<A extends URIS = "", B extends URIS = A> = {
-        type: "binop";
-        lhs: Expr<B>;
-        rhs: Expr<B>;
-        op: "+" | "-" | "*" | "/" | "%" | "==" | ">" | "<" | ">=" | "<=" | ".." | "->" | "[" | "^" | "\\" | "&&" | "||";
-    } & Context<A, "binop">;
-    export type Unop<A extends URIS = "", B extends URIS = A> = {
-        type: "unop";
-        expr: Expr<B>;
-        op: "!" | "-";
-    } & Context<A, "unop">;
-    export type Ident<A extends URIS = ""> = {
-        type: "ident";
-        segments: string[];
-    } & Context<A, "ident">;
-    export type FnCall<A extends URIS = "", B extends URIS = A> = {
-        type: "fncall";
-        name: Ident<B>;
-        args: Expr<B>[];
-        isMacro: boolean;
-    } & Context<A, "fncall">;
-    export type MacroCall<A extends URIS = "", B extends URIS = A> = {
-        type: "macrocall";
-        name: Ident;
-        args: Node<B>[];
-    } & Context<A, "macrocall">;
-    export type Block<A extends URIS = "", B extends URIS = A> = {
-        type: "block";
-        expr: Expr<B>;
-        statements: Statement<B>[];
-    } & Context<A, "block">;
-    export type Listcomp<A extends URIS = "", B extends URIS = A> = {
-        type: "listcomp";
-        body: Expr<B>;
-        variables: [string, Expr<B>][];
-    } & Context<A, "listcomp">;
-    export type Point<A extends URIS = "", B extends URIS = A> = {
-        type: "point";
-        x: Expr<B>;
-        y: Expr<B>;
-    } & Context<A, "point">;
-    export type StepRange<A extends URIS = "", B extends URIS = A> = {
-        type: "steprange";
-        lhs: Expr<B>;
-        step: Expr<B>;
-        rhs: Expr<B>;
-    } & Context<A, "steprange">;
-    export type List<A extends URIS = "", B extends URIS = A> = {
-        type: "list";
-        elements: Expr<B>[];
-    } & Context<A, "list">;
-    export type SumProdInt<A extends URIS = "", B extends URIS = A> = {
-        type: "sumprodint";
-        op: "sum" | "product" | "integral";
-        var: string;
-        lo: Expr<B>;
-        hi: Expr<B>;
-        body: Expr<B>;
-    } & Context<A, "sumprodint">;
-    export type Derivative<A extends URIS = "", B extends URIS = A> = {
-        type: "derivative";
-        var: string;
-        body: Expr<B>;
-    } & Context<A, "derivative">;
-    export type Case<A extends URIS = "", B extends URIS = A> = {
-        type: "case";
-        branches: [Expr<B>, Expr<B>][];
-        fallback?: Expr<B>;
-    } & Context<A, "case">;
-    export type Actions<A extends URIS = "", B extends URIS = A> = {
-        type: "actions";
-        actions: [Ident<B>, Expr<B>][];
-        others: Expr<B>[];
-    } & Context<A, "actions">;
-    export type MemberAccess<A extends URIS = "", B extends URIS = A> = {
-        type: "memberaccess";
-        lhs: Expr<B>;
-        rhs: string;
-    } & Context<A, "memberaccess">;
-    type DesmoscriptExpr<A extends URIS = "", B extends URIS = A> = Expr<A, B>;
-    export namespace djson {
-        type Expr<A extends URIS = "", B extends URIS = A> = Number<A> | String<A> | Boolean<A> | Null<A> | Array<A, B> | Object<A, B> | Desmoscript<A, B>;
-        type Number<A extends URIS = ""> = {
-            type: "dnumber";
-            data: number;
-        } & Context<A, "dnumber">;
-        type String<A extends URIS = ""> = {
-            type: "dstring";
-            data: string;
-        } & Context<A, "dstring">;
-        type Boolean<A extends URIS = ""> = {
-            type: "dboolean";
-            data: boolean;
-        } & Context<A, "dboolean">;
-        type Null<A extends URIS = ""> = {
-            type: "dnull";
-            data: null;
-        } & Context<A, "dnull">;
-        type Array<A extends URIS = "", B extends URIS = A> = {
-            type: "darray";
-            data: Expr<B>[];
-        } & Context<A, "darray">;
-        type Object<A extends URIS = "", B extends URIS = A> = {
-            type: "dobject";
-            data: {
-                [key: string]: Expr<B>;
-            };
-        } & Context<A, "dobject">;
-        type Desmoscript<A extends URIS = "", B extends URIS = A> = {
-            type: "ddesmoscript";
-            data: DesmoscriptExpr<B>;
-        } & Context<A, "ddesmoscript">;
-    }
-    export type Statement<A extends URIS = "", B extends URIS = A> = Assignment<A, B> | Namespace<A, B> | NamedJSON<A, B> | FunctionDefinition<A, B> | Import<A> | Note<A> | Root<A, B>;
-    export type Assignment<A extends URIS = "", B extends URIS = A> = {
-        type: "assignment";
-        name: string;
-        value: Expr<B>;
-        annotation?: djson.Expr<B>;
-    } & Context<A, "assignment">;
-    export type Namespace<A extends URIS = "", B extends URIS = A> = {
-        type: "namespace";
-        name: string;
-        statements: Statement<B>[];
-    } & Context<A, "namespace">;
-    export type NamedJSON<A extends URIS = "", B extends URIS = A> = {
-        type: "namedjson";
-        name: string;
-        json: djson.Expr<B>;
-    } & Context<A, "namedjson">;
-    export type FunctionDefinition<A extends URIS = "", B extends URIS = A> = {
-        type: "fndef";
-        name: string;
-        args: string[];
-        body: Expr<B>;
-    } & Context<A, "fndef">;
-    export type Import<A extends URIS = "", B extends URIS = A> = {
-        type: "import";
-        filename: string;
-        alias: string;
-    } & Context<A, "import">;
-    export type Note<A extends URIS = "", B extends URIS = A> = {
-        type: "note";
-        text: string;
-    } & Context<A, "note">;
-    export type Root<A extends URIS = "", B extends URIS = A> = {
-        type: "root";
-        statements: Statement<B>[];
-    } & Context<A, "root">;
-    export type Node<A extends URIS = "", B extends URIS = A> = Expr<A, B> | djson.Expr<A, B> | Statement<A, B>;
-    export type NodeTypes<A extends URIS = "", B extends URIS = A> = {
-        number: Number<A, B>;
-        binop: Binop<A, B>;
-        unop: Unop<A, B>;
-        ident: Ident<A>;
-        fncall: FnCall<A, B>;
-        macrocall: MacroCall<A, B>;
-        block: Block<A, B>;
-        listcomp: Listcomp<A, B>;
-        point: Point<A, B>;
-        steprange: StepRange<A, B>;
-        list: List<A, B>;
-        sumprodint: SumProdInt<A, B>;
-        derivative: Derivative<A, B>;
-        case: Case<A, B>;
-        actions: Actions<A, B>;
-        memberaccess: MemberAccess<A, B>;
-        dnumber: djson.Number<A>;
-        dstring: djson.String<A>;
-        dnull: djson.Null<A>;
-        dboolean: djson.Boolean<A>;
-        dobject: djson.Object<A, B>;
-        darray: djson.Array<A, B>;
-        ddesmoscript: djson.Desmoscript<A, B>;
-        assignment: Assignment<A, B>;
-        namespace: Namespace<A, B>;
-        namedjson: NamedJSON<A, B>;
-        fndef: FunctionDefinition<A, B>;
-        import: Import<A, B>;
-        note: Note<A, B>;
-        root: Root<A, B>;
-    };
-    export {};
-}
-export declare function parseExpr<T extends ast.URIS>(node: ast.Node<T>, notInternal?: boolean): ast.Expr<T>;
-export declare function parseDJson(node: ast.Node): ast.djson.Expr;
-export declare function parseStatement(node: ast.Node): ast.Statement;
-export declare function parseNodeType<T extends ast.Node>(node: ast.Node, type: T["type"]): T;
-export declare function parseIdent(node: ast.Node): ast.Ident<"">;
+import { Result } from "../compiler-errors.js";
+import { MacroAPI } from "../macro/macro-api.js";
+import { DSType } from "../scope-tree/typecheck/typecheck.js";
+import { BuiltinTypeSignature } from "../stdlib/stdlib.js";
+export type CompilationUnit = {
+    scopeTree: Scope;
+    name: string;
+    src: string;
+    linesAndCols: [number, number][];
+    ast: Scoped<ASTNode>;
+};
+export type ScopeContentVariable = {
+    type: "variable";
+    node: number;
+    unitName: string;
+    id: number;
+    display?: number;
+} & LexingInfo;
+export type ScopeContentBuiltinVariable = {
+    type: "builtin-variable";
+    start?: undefined;
+    end?: undefined;
+    unitName: string;
+    id: number;
+    definedByDesmos?: boolean;
+    typeSignature?: DSType;
+};
+export type ScopeContentBuiltinFunction = {
+    type: "builtin-function";
+    start?: undefined;
+    end?: undefined;
+    unitName: string;
+    id: number;
+    definedByDesmos?: boolean;
+    typeSignature: BuiltinTypeSignature;
+};
+export type ScopeContentFunction = {
+    type: "function";
+    node: number;
+    unitName: string;
+    id: number;
+    display?: number;
+} & LexingInfo;
+export type ScopeContentImport = {
+    type: "import";
+    compilationUnitPath: string;
+    unitName: string;
+    id: number;
+} & LexingInfo;
+export type ScopeContentNote = {
+    type: "note";
+    text: string;
+    unitName: string;
+    id: number;
+} & LexingInfo;
+export type ScopeContentScope = {
+    type: "scope";
+    scope: Scope;
+    unitName: string;
+    id: number;
+    isWithinFunction?: boolean;
+} & LexingInfo;
+export type ScopeContentSettings = {
+    type: "settings";
+    settings: number;
+    settingsType: "settings" | "ticker";
+    id: number;
+    unitName: string;
+} & LexingInfo;
+export type ScopeContentExpression = {
+    type: "expression";
+    expr: number;
+    id: number;
+    unitName: string;
+    display?: number;
+} & LexingInfo;
+export type ScopeContentMacro = {
+    type: "macro";
+    id: number;
+    unitName: string;
+    start?: undefined;
+    end?: undefined;
+    macroOperation: (node: Scoped<MacroCallNode>, a: MacroAPI) => Promise<ASTNode>;
+};
+export type ScopeContent = ScopeContentVariable | ScopeContentFunction | ScopeContentBuiltinFunction | ScopeContentBuiltinVariable | ScopeContentImport | ScopeContentNote | ScopeContentScope | ScopeContentSettings | ScopeContentExpression | ScopeContentMacro;
+export type NotBuiltinScopeContent = ScopeContentVariable | ScopeContentFunction | ScopeContentImport | ScopeContentNote | ScopeContentScope | ScopeContentSettings | ScopeContentExpression;
+export type Scope = {
+    name: string;
+    parent: Scope | undefined;
+    elements: Map<string, ScopeContent>;
+    imports: ({
+        compilationUnitPath: string;
+    } & LexingInfo)[];
+};
+export type InnerScoped = {
+    enclosingScope: Scope;
+    innerScope: Scope;
+};
+export type EnclosingScoped = {
+    enclosingScope: Scope;
+};
+type ScopeChildren<T> = T extends ASTNode ? {
+    [K in keyof T]: 1 extends (K extends "params" ? 1 : 0) & // don't add scopes to macro params
+    (T["type"] extends "macrocall" ? 1 : 0) ? T[K] : T[K] extends ASTNode ? Scoped<T[K]> : T[K] extends ASTNode | undefined ? Scoped<T[K] & ASTNode> | undefined : T[K] extends Promise<ASTNode> | ASTNode ? Promise<Scoped<T[K] & ASTNode>> | Scoped<T[K] & ASTNode> : ScopeChildren<T[K]>;
+} : T extends [infer U, infer V][] ? [U extends ASTNode ? Scoped<U> : U, V extends ASTNode ? Scoped<V> : V][] : T extends (infer U)[] ? (U extends ASTNode ? Scoped<U> : U)[] : T;
+export type Scoped<T extends ASTNode> = T extends any ? T["type"] extends "block" | "listcomp" | "fndef" | "namespace" ? ScopeChildren<T> & InnerScoped : ScopeChildren<T> & EnclosingScoped : never;
+export type ChildlessScoped<T extends ASTNode> = T["type"] extends "block" | "listcomp" | "fndef" | "namespace" ? T & InnerScoped : T & EnclosingScoped;
+export type ASTNode = ASTExpr | ASTStatement | ASTJson;
+export type ASTExpr = NumberNode | PointNode | ListNode | BlockNode | IdentifierNode | FunctionCallNode | BinaryOpNode | UnaryOpNode | RangeNode | ListcompNode | MatchNode | NoteNode | ErrorNode | MacroCallNode;
+export type ASTStatement = AssignmentNode | FunctionDefNode | NoteNode | ImportNode | LineBreakNode | ErrorNode | NamespaceNode | ShowNode | SettingsNode | MacroCallNode;
+export type ASTJson = JsonObjectNode | NumberNode | NoteNode | JsonBooleanNode | JsonNullNode | JsonInnerExprNode | JsonArrayNode | ErrorNode | MacroCallNode;
+export type LexingInfo = {
+    start: number;
+    end: number;
+};
+export type ImportNode = {
+    type: "import";
+    id: number;
+    src: string;
+    alias?: string;
+} & LexingInfo;
+export type AssignmentNode = {
+    type: "assignment";
+    id: number;
+    lhs: string;
+    rhs: ASTExpr;
+} & LexingInfo;
+export type IdentifierNode = {
+    type: "identifier";
+    id: number;
+    segments: string[];
+} & LexingInfo;
+export type NumberNode = {
+    type: "number";
+    id: number;
+    number: number;
+} & LexingInfo;
+export type PointNode = {
+    type: "point";
+    id: number;
+    x: ASTExpr;
+    y: ASTExpr;
+} & LexingInfo;
+export type ListNode = {
+    type: "list";
+    id: number;
+    elements: ASTExpr[];
+    typeAnnotation?: "number" | "color" | "polygon" | "point" | "boolean";
+} & LexingInfo;
+export type BlockNode = {
+    type: "block";
+    id: number;
+    body: ASTNode[];
+    isRoot?: boolean;
+} & LexingInfo;
+export type FunctionDefNode = {
+    type: "fndef";
+    id: number;
+    name: string;
+    params: string[];
+    body: BlockNode;
+} & LexingInfo;
+export type FunctionCallNode = {
+    type: "fncall";
+    id: number;
+    name: IdentifierNode;
+    params: ASTExpr[];
+} & LexingInfo;
+export type BinaryOpNode = {
+    type: "binop";
+    id: number;
+    op: "+" | "-" | "*" | "/" | "%" | "==" | ">" | "<" | ">=" | "<=" | "->" | "[" | "^" | "&&" | "||";
+    lhs: ASTExpr;
+    rhs: ASTExpr;
+} & LexingInfo;
+export type UnaryOpNode = {
+    type: "unop";
+    id: number;
+    op: "-" | "!" | ".x" | ".y";
+    operand: ASTExpr;
+} & LexingInfo;
+export type RangeNode = {
+    type: "range";
+    id: number;
+    lhs: ASTExpr;
+    step?: ASTExpr;
+    rhs: ASTExpr;
+} & LexingInfo;
+export type ListcompNode = {
+    type: "listcomp";
+    id: number;
+    body: ASTExpr;
+    params: [string, ASTExpr][];
+} & LexingInfo;
+export type MatchNode = {
+    type: "match";
+    id: number;
+    branches: [ASTExpr, ASTExpr][];
+    fallback?: ASTExpr;
+} & LexingInfo;
+export type ActionsNode = {
+    type: "actions";
+    id: number;
+    actions: ([IdentifierNode, ASTExpr] | ASTExpr)[];
+} & LexingInfo;
+export type SettingsNode = {
+    type: "settings";
+    id: number;
+    settingsType: "settings" | "ticker";
+    content: ASTJson;
+} & LexingInfo;
+export type NoteNode = {
+    type: "note";
+    id: number;
+    content: string;
+} & LexingInfo;
+export type ErrorNode = {
+    type: "error";
+    id: number;
+    reason: string;
+    unitName: string;
+} & LexingInfo;
+export type LineBreakNode = {
+    type: "linebreak";
+    id: number;
+} & LexingInfo;
+export type NamespaceNode = {
+    type: "namespace";
+    id: number;
+    body: BlockNode;
+    name: string;
+    settings?: ASTJson;
+} & LexingInfo;
+export type ShowNode = {
+    type: "show";
+    id: number;
+    body: ASTNode;
+    settings: JsonObjectNode;
+} & LexingInfo;
+export type JsonObjectNode = {
+    type: "json-object";
+    id: number;
+    data: [string, ASTJson][];
+} & LexingInfo;
+export type JsonBooleanNode = {
+    type: "json-boolean";
+    id: number;
+    data: boolean;
+} & LexingInfo;
+export type JsonNullNode = {
+    type: "json-null";
+    id: number;
+} & LexingInfo;
+export type JsonInnerExprNode = {
+    type: "json-inner-expr";
+    id: number;
+    expr: ASTExpr;
+} & LexingInfo;
+export type JsonArrayNode = {
+    type: "json-array";
+    id: number;
+    elements: ASTJson[];
+} & LexingInfo;
+export type MacroCallNode = {
+    type: "macrocall";
+    id: number;
+    params: ASTNode[];
+    result?: Promise<ASTNode> | ASTNode;
+    name: IdentifierNode;
+} & LexingInfo;
+export declare function errnode(reason: string, start?: number, end?: number): {
+    type: "error";
+    reason: string;
+    start: number | undefined;
+    end: number | undefined;
+};
+export declare function newid(): number;
+export declare function asExpr(node: ASTNode): Result<ASTExpr, undefined>;
+export declare function writeASTDebug(n: any, indent?: number): string;
+export declare function getErrors(ast: any): ErrorNode[];
+export declare function deduplicateErrors(errors: ErrorNode[]): ErrorNode[];
+export declare function forEachAST<Ctx>(node: ASTNode, ctx: Ctx, mapper: (node: ASTNode, ctx: Ctx) => Ctx): void;
+export declare function forEachASTAsync<Ctx>(node: ASTNode, ctx: Ctx, mapper: (node: ASTNode, ctx: Ctx) => Promise<Ctx>): Promise<void>;
+export {};

@@ -1,5 +1,7 @@
 {
   "editor.tabSize": 2,
   "editor.formatOnSave": true,
-  "cSpell.enabled": false
+  "cSpell.enabled": false,
+  "terminal.integrated.scrollback": 5000,
+  "editor.semanticHighlighting.enabled": true
 }

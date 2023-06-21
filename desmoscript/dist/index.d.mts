@@ -1,2 +1,7 @@
-import { scopeTree } from "./compiler-state.mjs";
-export declare function createCompilerWatcherServer(entryPoint: string, port: number, makeDefaultScopeTree: () => Map<string, scopeTree.ScopeContent>): Promise<void>;
+export declare let placeholder: number;
+export declare function getLinesAndCols(str: string): [number, number][];
+export { lex } from "./parse/lex.mjs";
+export { parse } from "./parse/parse.mjs";
+export { typecheckScopeTree } from "./scope-tree/typecheck/typecheck.mjs";
+export { compileDesmoscript } from "./combined-functionality/full-compiler.mjs";
+export { compileDesmoscriptForLanguageSupport } from "./combined-functionality/language-support-compiler.mjs";
