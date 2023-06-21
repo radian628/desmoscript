@@ -2,10 +2,10 @@ import * as fs from "node:fs/promises";
 import * as http from "node:http";
 import * as chokidar from "chokidar";
 import * as path from "node:path";
-import { IOInterface } from "../../desmoscript/dist/io/io";
-import { compileDesmoscript, formatError } from "../../desmoscript";
-import { CompilerOutput } from "../../desmoscript/dist/combined-functionality/full-compiler";
-import { CodegenContext } from "../../desmoscript/dist/codegen/codegen";
+import { IOInterface } from "../../desmoscript/src/io/io";
+import { compileDesmoscript, formatError } from "../../desmoscript/src";
+import { CompilerOutput } from "../../desmoscript/src/combined-functionality/full-compiler";
+import { CodegenContext } from "../../desmoscript/src/codegen/codegen";
 
 // runs a desmoscript server that watches for file changes
 // and exposes an http endpoint for sending graph state into

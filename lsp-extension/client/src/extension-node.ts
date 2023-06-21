@@ -18,7 +18,7 @@ import {
 import * as vscode from "vscode";
 import * as languageClient from "vscode-languageclient/node";
 
-import * as desmoscript from "../../../desmoscript";
+import * as desmoscript from "../../../desmoscript/src/";
 import {
   setupDesmosOutputToJson,
   setupDesmosPreview,

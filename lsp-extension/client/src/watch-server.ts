@@ -1,7 +1,7 @@
-import { IOInterface } from "../../../desmoscript/dist/io/io";
+import { IOInterface } from "../../../desmoscript/src/io/io";
 import { ExtensionContext } from "vscode";
 import * as vscode from "vscode";
-import * as desmoscript from "../../../desmoscript";
+import * as desmoscript from "../../../desmoscript/src/";
 import { runWatchServer } from "../../../standalone-compiler/src/watch-server";
 
 import getPort, { portNumbers } from "get-port";

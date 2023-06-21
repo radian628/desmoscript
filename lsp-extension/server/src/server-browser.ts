@@ -13,7 +13,7 @@ import { TextDocument, TextEdit } from "vscode-languageserver-textdocument";
 import { runDesmoscriptLanguageServer } from "./server";
 
 import { URI, Utils as uriUtils } from "vscode-uri";
-import * as desmoscript from "../../../desmoscript";
+import * as desmoscript from "../../../desmoscript/src";
 
 console.log("THIS IS THE WORKER THIS SHOULD RUN!!!");
 

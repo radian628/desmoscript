@@ -1,8 +1,8 @@
 import {
   compileDesmoscriptForLanguageSupport,
   getLinesAndCols,
-} from "../../../desmoscript";
-import { IOInterface } from "../../../desmoscript/dist/io/io";
+} from "../../../desmoscript/src";
+import { IOInterface } from "../../../desmoscript/src/io/io";
 import {
   ColorInformation,
   CompletionItem,
