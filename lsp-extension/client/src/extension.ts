@@ -65,7 +65,7 @@ export function setupSyntaxHighlighting(
               " err.toString() " +
               err.toString() +
               " TRACE: " +
-              err.trace
+              err.stack
           );
           //console.log("lemme guess this thing cant handle newlines", err);
         }

@@ -1,4 +1,4 @@
-import { IOInterface } from "../../../desmoscript/dist/io/io";
+import { IOInterface } from "../../../desmoscript/src/io/io";
 import * as fs from "node:fs/promises";
 import * as path from "node:path";
 import * as chokidar from "chokidar";
