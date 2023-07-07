@@ -662,6 +662,8 @@ export function typecheckExpr(
   ctx: TypecheckContext
 ): DSType {
   switch (expr.type) {
+    case "actions":
+      return { type: "action" };
     case "binop":
       return typecheckBinop(expr, ctx);
     case "block":

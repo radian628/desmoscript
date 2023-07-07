@@ -27,6 +27,7 @@ import {
   SettingsNode,
   MacroCallNode,
   ImportScriptNode,
+  ActionsNode,
 } from "../ast/ast.js";
 import { SyntaxHighlightingType } from "../combined-functionality/language-support-compiler.js";
 import {
@@ -748,6 +749,9 @@ export function parseInitExpr(
       let node2 = parseMacroCall(ctx);
       if (getErrors(node2).length == 0) return node2;
       a.setpos(pos);
+      let node3 = parseActions(ctx);
+      if (getErrors(node3).length == 0) return node3;
+      a.setpos(pos);
       return parseIdentifier(ctx);
     default:
       switch (initToken.str) {
@@ -1048,6 +1052,10 @@ export function parseStatement(ctx: ParseContext) {
       default:
         switch (nextToken.type) {
           case "ident":
+            const pos = a.getpos();
+            let node3 = parseActions(ctx);
+            if (getErrors(node3).length == 0) return node3;
+            a.setpos(pos);
             return parseAssignment(ctx);
           case "note":
             return parseNote(ctx);
@@ -1056,6 +1064,34 @@ export function parseStatement(ctx: ParseContext) {
             return err;
         }
     }
+  });
+}
+
+export function parseActions(ctx: ParseContext) {
+  return ctx.node<ActionsNode>((a) => {
+    const actions: ActionsNode["actions"] = [];
+
+    while (true) {
+      const name = parseIdentifier(ctx);
+      if (a.isNextToken(",")) {
+        actions.push(name);
+      } else {
+        a.expectToken("->");
+        const value = parseExpr(ctx, 0);
+        actions.push([name, value]);
+      }
+
+      if (a.isNextToken(",")) {
+        a.maybeNext();
+      } else {
+        break;
+      }
+    }
+
+    return {
+      actions,
+      type: "actions",
+    };
   });
 }
 

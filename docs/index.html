@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <style>
+      .dark {
+        background-color: #121212;
+        color: white;
+      }
+
+      main {
+        width: calc(min(50em, 90%));
+        margin: auto;
+        font-family: sans-serif;
+      }
+
+      .dark a {
+        color: #6a65cc;
+      }
+      .dark a:visited {
+        color: #c265cc;
+      }
+    </style>
+  </head>
+  <body>
+    <main>
+      <h1>Desmoscript Docs</h1>
+      <h2>Installation</h2>
+      <a href="https://github.com/radian628/desmoscript"
+        >Visit the README for installation instructions.</a
+      >
+      <h2>Syntax</h2>
+    </main>
+    <script>
+      if (matchMedia("(prefers-color-scheme: dark)"))
+        document.body.classList.add("dark");
+    </script>
+  </body>
+</html>

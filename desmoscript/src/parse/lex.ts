@@ -136,6 +136,7 @@ export function lex(
 
     // match operators
     const op = stream.match([
+      "->",
       "+",
       "-",
       "*",
@@ -147,7 +148,6 @@ export function lex(
       "==",
       "!",
       "^",
-      "->",
       ".x",
       ".y",
       ".",

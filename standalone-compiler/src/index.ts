@@ -1,4 +1,4 @@
-import { compileDesmoscript, formatError } from "../../desmoscript";
+import { compileDesmoscript, formatError } from "../../desmoscript/src";
 import * as fs from "node:fs/promises";
 import { runWatchServer } from "./watch-server";
 

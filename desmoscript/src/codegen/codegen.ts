@@ -183,6 +183,14 @@ export function generateExprCode(
   const c = (e: Scoped<ASTExpr>) => generateExprCode(e, ctx);
 
   switch (e.type) {
+    case "actions":
+      return e.actions
+        .map((a) =>
+          Array.isArray(a)
+            ? `${c(a[0] as Scoped<ASTExpr>)}\\to ${c(a[1] as Scoped<ASTExpr>)}`
+            : c(a)
+        )
+        .join(",");
     case "binop":
       const l = c(e.lhs);
       const r = c(e.rhs);

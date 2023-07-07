@@ -1,2 +1,4 @@
 testVar = 696968;
-testVar2 = 6969613123 + 1 + (2, 3);
+testVar2 = 6969613123 + 1 + 69;
+
+act = testVar -> testVar + 1;
