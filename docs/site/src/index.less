@@ -1,6 +1,6 @@
 body {
-  --link-color-normal: #623367;
-  --link-color-visited: #46446d;
+  --link-color-normal: #44476d;
+  --link-color-visited: #623367;
   --onscreen: #7d1919;
   --background-1: #ffffff;
   --background-2: #eeeeee;
@@ -8,29 +8,28 @@ body {
   --foreground-2: #999999;
 
   background-color: var(--background-1);
+  color: var(--foreground);
+  caret-color: var(--foreground);
+}
+
+a:visited {
+  color: var(--link-color-visited);
+}
+a {
+  color: var(--link-color-normal);
+}
+a.onscreen.onscreen {
+  color: var(--onscreen);
 }
 
 .dark {
-  color: var(--foreground);
-  caret-color: var(--foreground);
-
-  --link-color-normal: #c265cc;
-  --link-color-visited: #938ee9;
+  --link-color-normal: #8eaee9;
+  --link-color-visited: #c265cc;
   --onscreen: #de7373;
   --background-1: #121212;
   --background-2: #333333;
   --foreground: white;
   --foreground-2: #666666;
-
-  a:visited {
-    color: var(--link-color-visited);
-  }
-  a {
-    color: var(--link-color-normal);
-  }
-  a.onscreen.onscreen {
-    color: var(--onscreen);
-  }
 }
 
 #root {
