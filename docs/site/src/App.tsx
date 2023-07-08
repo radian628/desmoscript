@@ -5,7 +5,7 @@ import { DesmosGraph } from "./DesmosGraph";
 import { DesmoscriptExample, ExampleFromFile } from "./Example";
 import { AutoHierarchicalNav } from "./AutoHierarchicalNav";
 
-const ExampleFromAssets = ExampleFromFile("assets/examples/");
+const ExampleFromAssets = ExampleFromFile("../assets/examples/");
 
 const App: Component = () => {
   return (
