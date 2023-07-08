@@ -1,0 +1,4 @@
+show y = x @{
+  lineWidth: ds(25),
+  color: "#c74440"
+};

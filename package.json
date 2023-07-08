@@ -1,9 +1,15 @@
 {
   "dependencies": {
+    "@codemirror/theme-one-dark": "^6.1.2",
     "@types/node": "^18.11.9",
-    "immutable": "^4.1.0"
+    "codemirror": "^6.0.1",
+    "immutable": "^4.1.0",
+    "type-fest": "^3.12.0"
   },
   "scripts": {
     "watch-all": "npm run dev --prefix desmoscript"
+  },
+  "devDependencies": {
+    "less": "^4.1.3"
   }
 }

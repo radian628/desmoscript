@@ -3,6 +3,7 @@
   "version": "0.1.12",
   "description": "A programming language that compiles to Desmos expressions.",
   "main": "dist/index.js",
+  "exports": "./src/index.ts",
   "files": [
     "dist",
     "dist/grammar"

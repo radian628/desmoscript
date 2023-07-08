@@ -1,0 +1,10 @@
+fn smoothstep(k) {
+  3 * k ^ 2 - 2 * k ^ 3;
+}
+
+fn clamp(lo, hi, x) {
+  clampedAtTop = min(x, hi);
+  max(clampedAtTop, lo)
+}
+
+clamp(-2, 2, x);

@@ -1,0 +1,5 @@
+orange = rgb(255, 127, 0);
+
+show (x ^ 2 + y ^ 2) < 25 @{
+  colorLatex: ds(orange)
+};
