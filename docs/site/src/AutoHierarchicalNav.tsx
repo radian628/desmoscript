@@ -9,6 +9,7 @@ export function AutoHierarchicalNavItem(props: {
   position: () => number;
   headers: () => HTMLElement[];
   onscreen: () => Set<number>;
+  scrollNav: (amount: number) => void;
 }) {
   const myElem = () => props.headers()[props.position()];
   const myLevel = () => getNavLevel(myElem());
@@ -36,7 +37,20 @@ export function AutoHierarchicalNavItem(props: {
 
   return (
     <Show when={myElem() !== undefined}>
-      <li>
+      <li
+        ref={(el) => {
+          createEffect(() => {
+            if (
+              amIOnscreen() &&
+              props.position() === Math.min(...props.onscreen().values())
+            ) {
+              //const scrollTop = document.body.scrollTop;
+              //document.body.scrollTop = scrollTop;
+              props.scrollNav(el.offsetTop);
+            }
+          });
+        }}
+      >
         <a class={amIOnscreen() ? "onscreen" : ""} href={"#" + myElem().id}>
           {myElem().innerHTML}
         </a>
@@ -48,6 +62,7 @@ export function AutoHierarchicalNavItem(props: {
                   position={() => c}
                   headers={props.headers}
                   onscreen={props.onscreen}
+                  scrollNav={props.scrollNav}
                 ></AutoHierarchicalNavItem>
               )}
             </For>
@@ -58,7 +73,10 @@ export function AutoHierarchicalNavItem(props: {
   );
 }
 
-export function AutoHierarchicalNav(props: { scope: HTMLElement }) {
+export function AutoHierarchicalNav(props: {
+  scope: HTMLElement;
+  scrollNav: (n: number) => void;
+}) {
   const [headers, setHeaders] = createSignal<HTMLElement[]>([]);
 
   const [intObserver, setIntObserver] = createSignal<
@@ -112,6 +130,7 @@ export function AutoHierarchicalNav(props: { scope: HTMLElement }) {
         position={() => 0}
         headers={headers}
         onscreen={onscreenElements}
+        scrollNav={props.scrollNav}
       ></AutoHierarchicalNavItem>
     </ol>
   );

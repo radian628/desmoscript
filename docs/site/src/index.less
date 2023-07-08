@@ -42,12 +42,17 @@ nav {
   font-size: 22px;
 }
 
+.nav-inner {
+  position: sticky;
+  top: 10px;
+  overflow-y: auto;
+  max-height: 100vh;
+}
+
 nav ol {
   list-style: none;
   padding-inline-start: 10px;
   border-left: 1px solid var(--foreground-2);
-  position: sticky;
-  top: 10px;
 }
 
 nav li {

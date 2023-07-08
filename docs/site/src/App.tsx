@@ -8,10 +8,24 @@ import { AutoHierarchicalNav } from "./AutoHierarchicalNav";
 const ExampleFromAssets = ExampleFromFile("../assets/examples/");
 
 const App: Component = () => {
+  let navInner: HTMLDivElement;
+
   return (
     <>
       <nav>
-        <AutoHierarchicalNav scope={document.body}></AutoHierarchicalNav>
+        <div
+          class="nav-inner"
+          ref={(el) => {
+            navInner = el;
+          }}
+        >
+          <AutoHierarchicalNav
+            scope={document.body}
+            scrollNav={(amount) => {
+              navInner.scrollTop = amount - navInner.clientHeight / 2;
+            }}
+          ></AutoHierarchicalNav>
+        </div>
       </nav>
       <main>
         <h1 id="desmoscript-docs">Desmoscript Docs</h1>
