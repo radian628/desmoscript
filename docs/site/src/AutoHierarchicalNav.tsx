@@ -86,14 +86,11 @@ export function AutoHierarchicalNav(props: { scope: HTMLElement }) {
           if (!(item.target instanceof HTMLElement)) continue;
           if (item.isIntersecting) {
             onscreenElementsCopy.add(positionMap.get(item.target) ?? -1);
-            console.log("ADD", item.target);
           } else {
-            console.log("REMOVE", item.target);
             onscreenElementsCopy.delete(positionMap.get(item.target) ?? -1);
           }
         }
         setOnscreenElements(onscreenElementsCopy);
-        console.log("onscreen elements", onscreenElements());
       },
       { threshold: 1, rootMargin: "0px" }
     );

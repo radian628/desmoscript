@@ -1,6 +1,6 @@
 import { DesmosGraph } from "./DesmosGraph";
 import { compileDesmoscript } from "../../../desmoscript/src";
-import { Show, createSignal } from "solid-js";
+import { Show, createEffect, createSignal } from "solid-js";
 import { GraphState } from "../../../desmoscript/src/codegen/graphstate";
 import { DesmoscriptCodemirror } from "./DesmoscriptCodemirror";
 
@@ -16,35 +16,47 @@ export function DesmoscriptExample(props: {
 
   const [code, setCode] = createSignal<string>(props.children);
 
-  (async () => {
-    const compilerOutput = await compileDesmoscript(props.children, {
-      unsavedFiles: new Map([["index.desmo", props.children]]),
-      watchFiles: new Set(),
-      options: {
-        annotateExpressionsWithEquivalentDesmoscript: false,
-      },
-      io: {
-        readFile: () =>
-          Promise.resolve(new TextEncoder().encode(props.children)),
-        resolvePath: (p) => p,
-        dirname: (p) => p,
-        relativePath: (p) => p,
-        writeFile: (p) => Promise.resolve(),
-        watchFile: (p) => undefined,
-      },
-    });
+  const [lastUpdateTime, setLastUpdateTime] = createSignal(Date.now());
 
-    if (compilerOutput.type === "success") {
-      setGraphstate(compilerOutput.state);
+  const [graphNeedsToBeUpdated, setGraphNeedsToBeUpdated] = createSignal(true);
+
+  const interval = setInterval(async () => {
+    if (Date.now() - lastUpdateTime() > 500 && graphNeedsToBeUpdated()) {
+      setGraphNeedsToBeUpdated(false);
+      const compilerOutput = await compileDesmoscript(code(), {
+        unsavedFiles: new Map([["index.desmo", code()]]),
+        watchFiles: new Set(),
+        options: {
+          annotateExpressionsWithEquivalentDesmoscript: false,
+        },
+        io: {
+          readFile: () => Promise.resolve(new TextEncoder().encode(code())),
+          resolvePath: (p) => p,
+          dirname: (p) => p,
+          relativePath: (p) => p,
+          writeFile: (p) => Promise.resolve(),
+          watchFile: (p) => undefined,
+        },
+      });
+
+      console.log("updating erroneously!");
+      if (compilerOutput.type === "success") {
+        setGraphstate(compilerOutput.state);
+      }
     }
-  })();
+  }, 100);
 
   return (
     <div class="desmoscript-example">
       <DesmoscriptCodemirror
         class="codemirror-container"
         code={code}
-        setCode={setCode}
+        setCode={(newCode) => {
+          if (code() === newCode) return;
+          setCode(newCode);
+          setLastUpdateTime(Date.now());
+          setGraphNeedsToBeUpdated(true);
+        }}
       ></DesmoscriptCodemirror>
       <DesmosGraph
         state={() => graphstate()}
