@@ -35,7 +35,6 @@ export function DesmosGraph(
           createEffect(() => {
             if (props.state()) {
               Calc.setState(props.state());
-              console.log("set state!");
             }
           });
         });

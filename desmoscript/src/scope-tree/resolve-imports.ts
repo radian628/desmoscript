@@ -74,7 +74,6 @@ export async function resolveFileImports(
           );
           const iscriptSrc = await ctx.getFile(iscriptFullPath);
           ctx.watchFiles.add(iscriptSrc);
-          console.log("import script source", iscriptSrc);
           try {
             const importScript = new Function("desmo", iscriptSrc);
             importScript((run: () => { scope: Scope }) => {

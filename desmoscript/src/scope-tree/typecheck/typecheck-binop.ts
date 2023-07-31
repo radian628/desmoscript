@@ -96,7 +96,6 @@ export function typecheckListSubscript(
 }
 
 export function consolidateTypeErrors(input: DSType[]): ErrorType | undefined {
-  console.log("consolidate typeerror input", input);
   const errors: ErrorType[] = input.filter(
     (e) => e.type == "error"
   ) as ErrorType[];

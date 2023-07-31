@@ -588,7 +588,6 @@ export function addStdlibToScope(scope: Scope, ctx: ASTScopingContext) {
               }
 
               const out = process(params[params.length - 1]);
-              console.log("macro output", out);
 
               return out;
             },

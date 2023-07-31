@@ -8,8 +8,6 @@ export function DesmoscriptExample(props: {
   children: string;
   graphpaper?: boolean;
 }) {
-  console.log("thing passed into desmoscriptexample", props.children);
-
   const [graphstate, setGraphstate] = createSignal<GraphState | undefined>(
     undefined
   );
@@ -39,7 +37,6 @@ export function DesmoscriptExample(props: {
         },
       });
 
-      console.log("updating erroneously!");
       if (compilerOutput.type === "success") {
         setGraphstate(compilerOutput.state);
       }

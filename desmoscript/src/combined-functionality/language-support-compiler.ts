@@ -240,13 +240,6 @@ export function compileDesmoscriptForLanguageSupport(
       )}) (sourcecode: ${JSON.stringify(Array.from(sourceCode.keys()))})`
     );
 
-    console.log(
-      "COMPILATIONUNITS",
-      compilationUnits,
-      Array.from(compilationUnits.keys()),
-      Array.from(sourceCode.keys())
-    );
-
     errors.push(
       ...(typecheckScopeTree(entryCompilationUnit.scopeTree, {
         units: compilationUnits,

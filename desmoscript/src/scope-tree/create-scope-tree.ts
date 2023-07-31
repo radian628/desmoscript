@@ -395,7 +395,6 @@ export function addScopesToAST(
       }
 
       iscript?.run({ scope: state.scope });
-      console.log("RUNNING ISCRIPT");
       break;
     case "settings":
       addToScope(
