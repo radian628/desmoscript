@@ -474,10 +474,12 @@ export function parseBlock(ctx: ParseContext, isRoot?: boolean) {
 
 export function parseNumber(ctx: ParseContext) {
   return ctx.node<NumberNode>((a) => {
+    const sign = a.consumeTokenIfExists("-") ? -1 : 1;
+
     const token = a.expectTokenType("number");
     a.highlightLastToken("number");
 
-    return { number: Number(token.str), type: "number" };
+    return { number: Number(token.str) * sign, type: "number" };
   });
 }
 
@@ -756,16 +758,20 @@ export function parseInitExpr(
     default:
       switch (initToken.str) {
         case "-":
+          let pos2 = a.getpos();
+          const num = parseNumber(ctx);
+          if (getErrors(num).length === 0) return num;
+          a.setpos(pos2);
           return parseUnaryOp(ctx);
         case "[":
           return parseListOrListcomp(ctx);
         case "(":
           return parseParenthesizedOrPoint(ctx);
         case "{":
-          let pos2 = a.getpos();
+          let pos3 = a.getpos();
           let node2: ASTExpr = parseBlock(ctx);
           if (getErrors(node2).length == 0) return node2;
-          a.setpos(pos2);
+          a.setpos(pos3);
           return parseMatch(ctx);
       }
       throw a.tokenError(`unexpected token '${initToken.str}'`);
@@ -1177,6 +1183,8 @@ export function parseJson(ctx: ParseContext, topLevel?: boolean) {
 
           return { type: "json-array", elements };
         }
+
+        if (nextToken.str == "-") return parseNumber(ctx);
 
         return a.error("expected a desmoscript json expression");
     }

@@ -352,5 +352,8 @@ export function formatAST(n: ASTNode, c?: FmtCtx): string {
       const nextIndent = ctxwith({ indent: ctx.indent + ctx.tabSize });
       return `${n.settingsType} ${formatAST(n.content, nextIndent)}`;
     }
+
+    default:
+      return "UNIMPLEMENTED!";
   }
 }

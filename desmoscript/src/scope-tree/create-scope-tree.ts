@@ -141,6 +141,7 @@ export function addToScope(
     errors.push(namespaceCollision);
   }
 
+  scope.elements.delete(name);
   scope.elements.set(name, content);
 }
 
@@ -164,6 +165,7 @@ export function addScopesToAST(
   },
   ctx: ASTScopingContext
 ): Scoped<ASTNode> {
+  console.log("node", node);
   const child = <T extends ASTNode>(
     n: T,
     innerScope?: Scope,
@@ -322,6 +324,11 @@ export function addScopesToAST(
       );
       break;
     case "note":
+      if (
+        state.parentNode?.type === "json-object" ||
+        state.parentNode?.type === "json-array"
+      )
+        break;
       addToScope(
         state.scope,
         newid().toString(),
@@ -397,6 +404,7 @@ export function addScopesToAST(
       iscript?.run({ scope: state.scope });
       break;
     case "settings":
+      console.log("settings", node.content);
       addToScope(
         state.scope,
         newid().toString(),

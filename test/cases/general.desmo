@@ -1,0 +1,19 @@
+123;
+1 + 2;
+"note"
+(1, 2);
+[1, 2, 3, 4, 5];
+[1..9];
+
+y2 = x;
+show y = x @{ colorLatex: ds(rgb(69, 69, 69)), lineStyle: "DOTTED" }
+
+polygon((1, 1), (2, 2));
+
+fn dbl(x) {
+  x * 2
+}
+
+ns test {
+  inner = 321;
+}
