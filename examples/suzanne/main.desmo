@@ -1,0 +1,34 @@
+import script "./3d.js"
+
+settings @{ viewport: @{ xmin: -2, ymin: -2, xmax: 2, ymax: 2 } }
+
+test = four!();
+
+vx = verticesX!();
+vy = verticesY!();
+vz = verticesZ!();
+
+i1 = indices1!();
+i2 = indices2!();
+i3 = indices3!();
+
+fn project(x, y, z) {
+  (x / z, y / z)
+}
+
+ns camera {
+  x = 0;
+  y = 0;
+  z = -10;
+}
+
+ns view {
+  
+  x = vx - camera.x;
+  y = vy - camera.y;
+  z = vz - camera.z;
+}
+
+show projPoints = project(view.x, view.y, view.z) @{ hidden: true }
+
+polygon(projPoints[i1], projPoints[i2], projPoints[i3])

@@ -665,6 +665,11 @@ export function findIdentifierScopeItem(
 
           if (searchResult.result != "not-found") return searchResult;
         }
+
+        // couldn't find anything in any other file
+        // --> not found in this scope
+        // --> try in parent scope
+        break;
       }
     }
   }

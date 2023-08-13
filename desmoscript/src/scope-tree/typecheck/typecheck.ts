@@ -134,12 +134,22 @@ export function typecheckPoint(
   const err = consolidateTypeErrors([x, y]);
   if (err) return err;
 
-  if (x.type != "number")
-    return wrongTypeError(expr.x, ctx.unitName, "expected a number");
-  if (y.type != "number")
-    return wrongTypeError(expr.y, ctx.unitName, "expected a number");
+  if (x.type != "number" && (x.type != "list" || x.element.type != "number"))
+    return wrongTypeError(
+      expr.x,
+      ctx.unitName,
+      "expected a number or a list of numbers"
+    );
+  if (y.type != "number" && (x.type != "list" || x.element.type != "number"))
+    return wrongTypeError(
+      expr.y,
+      ctx.unitName,
+      "expected a number or a list of numbers"
+    );
 
-  return { type: "point" };
+  return x.type === "list" || y.type === "list"
+    ? { type: "list", element: { type: "point" } }
+    : { type: "point" };
 }
 
 export function addVarsToCtx(

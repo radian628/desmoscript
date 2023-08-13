@@ -5,7 +5,7 @@ import {
 } from "../../ast/ast.js";
 import { printTypeSig } from "../../stdlib/stdlib.js";
 import { indent, wrongTypeError } from "./type-errors.js";
-import { DSType, TypecheckContext } from "./typecheck.js";
+import { DSType, TypecheckContext, typeAsStr } from "./typecheck.js";
 
 export function isCompatible(src: DSType, dst: DSType[]) {
   for (const type of dst) {
@@ -51,6 +51,9 @@ export function typecheckBuiltinFn(
     call,
     ctx.unitName,
     "invalid function parameters; valid overloads are:\n" +
-      indent(printTypeSig(def.typeSignature), 2)
+      indent(printTypeSig(def.typeSignature), 2) +
+      "\n" +
+      "parameters supplied were:\n" +
+      paramTypes.map((e) => typeAsStr(e)).join("\n")
   );
 }
