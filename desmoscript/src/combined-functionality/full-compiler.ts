@@ -5,6 +5,7 @@ import {
   forEachAST,
   forEachASTAsync,
   getErrors,
+  writeASTDebug,
 } from "../ast/ast.js";
 import {
   CodegenContext,
@@ -42,6 +43,7 @@ import {
 } from "../macro/instantiate-macros.js";
 import { IOInterface, uint8ArrayToString } from "../io/io.js";
 import { ImportScriptsMap } from "./language-support-compiler.js";
+import { formatAST } from "../ast/fmt.js";
 
 export type CompilerOutput =
   | {
@@ -79,6 +81,8 @@ export function lexAndParse(
   const tokens = lex(src, filename, errors);
 
   const ast = parse(tokens, filename, errors, highlights);
+
+  //console.log("ast", writeASTDebug(ast));
 
   return ast;
 }

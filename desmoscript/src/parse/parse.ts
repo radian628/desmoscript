@@ -27,7 +27,6 @@ import {
   SettingsNode,
   MacroCallNode,
   ImportScriptNode,
-  ActionsNode,
 } from "../ast/ast.js";
 import { SyntaxHighlightingType } from "../combined-functionality/language-support-compiler.js";
 import {
@@ -394,12 +393,16 @@ export function parseMatch(ctx: ParseContext) {
     a.expectToken("{");
 
     // get branches
+    let hasFallback = false;
     let lhs: ASTExpr | undefined;
     while (!a.isNextToken("}")) {
-      lhs = a.expectExpression();
-      if (!a.isNextToken(":")) break;
+      lhs = a.expectExpression(1);
+      if (!a.isNextToken(":")) {
+        hasFallback = true;
+        break;
+      }
       a.expectToken(":");
-      const rhs = a.expectExpression();
+      const rhs = a.expectExpression(1);
       branches.push([lhs, rhs]);
       if (!a.isNextToken("}")) {
         a.expectToken(",");
@@ -408,7 +411,7 @@ export function parseMatch(ctx: ParseContext) {
 
     // get optional fallback
     let fallback: ASTExpr | undefined = undefined;
-    if (a.isNextToken("}") || a.isNextToken(",")) {
+    if (hasFallback) {
       fallback = lhs;
     }
 
@@ -531,19 +534,19 @@ export function parseListOrRange(
     // range with no step
   } else if (a.isNextToken("..")) {
     a.maybeNext();
-    const rhs = a.expectExpression();
+    const rhs = a.expectExpression(1);
     a.expectToken("]");
     return { type: "range", lhs: initElem, rhs };
   }
 
   a.expectToken(",");
 
-  const secondElement = a.expectExpression();
+  const secondElement = a.expectExpression(1);
 
   // range with step
   if (a.isNextToken("..")) {
     a.maybeNext();
-    const rhs = a.expectExpression();
+    const rhs = a.expectExpression(1);
     a.expectToken("]");
     return {
       type: "range" as const,
@@ -560,7 +563,7 @@ export function parseListOrRange(
     if (a.isNextToken("]")) break;
     a.expectToken(",");
     if (a.isNextToken("]")) break;
-    elements.push(a.expectExpression());
+    elements.push(a.expectExpression(1));
   }
 
   a.expectToken("]");
@@ -579,7 +582,7 @@ export function parseListcomp(a: NodeAssembler, body: ASTExpr) {
     const left = a.expectTokenType("ident").str;
     a.highlightLastToken("variable");
     a.expectToken("=");
-    const right = a.expectExpression();
+    const right = a.expectExpression(1);
     params.push([left, right]);
     if (a.isNextToken("]")) break;
     a.expectToken(",");
@@ -615,7 +618,7 @@ export function parseListOrListcomp(ctx: ParseContext) {
       return { elements: [], type: "list", typeAnnotation: type.str };
     }
 
-    const initExpr = a.expectExpression();
+    const initExpr = a.expectExpression(1);
 
     if (a.isNextToken(",") || a.isNextToken("]") || a.isNextToken("..")) {
       return parseListOrRange(a, initExpr);
@@ -642,12 +645,26 @@ export function parseParenthesizedOrPoint(ctx: ParseContext) {
   return ctx.node<ASTExpr>((a) => {
     a.expectToken("(");
 
-    const x = a.expectExpression();
+    const x = a.expectExpression(1);
 
     // if this is a parenthesized expression, end early
     if (a.isNextToken(")")) {
       a.maybeNext();
       return x;
+    }
+
+    // edge case: actions should use the commas as a separator
+    // instead of treating it as a point
+    if (x.type === "binop" && x.op === "->") {
+      a.expectToken(",");
+      const possibleActionList = {
+        type: "binop" as "binop",
+        lhs: x,
+        rhs: a.expectExpression(0),
+        op: ",",
+      };
+      a.expectToken(")");
+      return possibleActionList;
     }
 
     a.expectToken(
@@ -675,7 +692,7 @@ export function parseFunctionCall(ctx: ParseContext) {
 
     while (!a.isEnd()) {
       if (a.isNextToken(")")) break;
-      params.push(a.expectExpression());
+      params.push(a.expectExpression(1));
       if (a.isNextToken(")")) break;
       a.expectToken(",");
     }
@@ -751,9 +768,6 @@ export function parseInitExpr(
       let node2 = parseMacroCall(ctx);
       if (getErrors(node2).length == 0) return node2;
       a.setpos(pos);
-      let node3 = parseActions(ctx);
-      if (getErrors(node3).length == 0) return node3;
-      a.setpos(pos);
       return parseIdentifier(ctx);
     default:
       switch (initToken.str) {
@@ -779,18 +793,19 @@ export function parseInitExpr(
 }
 
 export const bindingPowers: Record<string, number> = {
-  "^": 4,
-  "*": 3,
-  "/": 3,
-  "+": 2,
-  "-": 2,
-  ">=": 5,
-  "<=": 5,
-  "==": 5,
-  ">": 5,
-  "<": 5,
-  "->": 6,
-  "[": 7,
+  "^": 5,
+  "*": 4,
+  "/": 4,
+  "+": 3,
+  "-": 3,
+  ">=": 6,
+  "<=": 6,
+  "==": 6,
+  ">": 6,
+  "<": 6,
+  "->": 2,
+  "[": 8,
+  ",": 1,
 };
 
 export const rightAssociative: Record<string, boolean> = {
@@ -1058,10 +1073,6 @@ export function parseStatement(ctx: ParseContext) {
       default:
         switch (nextToken.type) {
           case "ident":
-            const pos = a.getpos();
-            let node3 = parseActions(ctx);
-            if (getErrors(node3).length == 0) return node3;
-            a.setpos(pos);
             return parseAssignment(ctx);
           case "note":
             return parseNote(ctx);
@@ -1070,34 +1081,6 @@ export function parseStatement(ctx: ParseContext) {
             return err;
         }
     }
-  });
-}
-
-export function parseActions(ctx: ParseContext) {
-  return ctx.node<ActionsNode>((a) => {
-    const actions: ActionsNode["actions"] = [];
-
-    while (true) {
-      const name = parseIdentifier(ctx);
-      if (a.isNextToken(",")) {
-        actions.push(name);
-      } else {
-        a.expectToken("->");
-        const value = parseExpr(ctx, 0);
-        actions.push([name, value]);
-      }
-
-      if (a.isNextToken(",")) {
-        a.maybeNext();
-      } else {
-        break;
-      }
-    }
-
-    return {
-      actions,
-      type: "actions",
-    };
   });
 }
 

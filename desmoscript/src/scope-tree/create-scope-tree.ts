@@ -165,7 +165,6 @@ export function addScopesToAST(
   },
   ctx: ASTScopingContext
 ): Scoped<ASTNode> {
-  console.log("node", node);
   const child = <T extends ASTNode>(
     n: T,
     innerScope?: Scope,
@@ -187,6 +186,8 @@ export function addScopesToAST(
       ? state.parentNode.settings.id
       : undefined;
   };
+
+  let exprResult: Scoped<ASTExpr> | undefined;
 
   switch (node.type) {
     case "fndef": {
@@ -274,7 +275,7 @@ export function addScopesToAST(
         );
       }
 
-      return {
+      exprResult = {
         ...node,
         innerScope,
         enclosingScope: state.scope,
@@ -283,6 +284,7 @@ export function addScopesToAST(
           (p) => [p[0], child(p[1], state.scope)] as [string, Scoped<ASTExpr>]
         ),
       };
+      break;
     }
     case "block": {
       // having a block create a namespace is redundant
@@ -300,12 +302,13 @@ export function addScopesToAST(
               node.end
             );
 
-      return {
+      exprResult = {
         ...node,
         innerScope,
         enclosingScope: state.scope,
         body: node.body.map((e) => child(e, innerScope)),
       };
+      break;
     }
     case "assignment":
       addToScope(
@@ -404,7 +407,6 @@ export function addScopesToAST(
       iscript?.run({ scope: state.scope });
       break;
     case "settings":
-      console.log("settings", node.content);
       addToScope(
         state.scope,
         newid().toString(),
@@ -422,7 +424,7 @@ export function addScopesToAST(
       break;
     case "macrocall":
       if (node.result && !(node.result instanceof Promise)) {
-        return {
+        exprResult = {
           ...node,
           enclosingScope: state.scope,
           // don't do scope resolution on macro params
@@ -481,6 +483,9 @@ export function addScopesToAST(
       );
     }
   }
+
+  if (exprResult) return exprResult;
+
   return mapASTToAddScopes(
     {
       ...node,

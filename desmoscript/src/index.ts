@@ -21,10 +21,14 @@ export function getLinesAndCols(str: string): [number, number][] {
 export { lex } from "./parse/lex.js";
 export { parse } from "./parse/parse.js";
 export { typecheckScopeTree } from "./scope-tree/typecheck/typecheck.js";
-export { compileDesmoscript } from "./combined-functionality/full-compiler.js";
+export {
+  compileDesmoscript,
+  lexAndParse,
+} from "./combined-functionality/full-compiler.js";
 export { compileDesmoscriptForLanguageSupport } from "./combined-functionality/language-support-compiler.js";
 export { enableDebug } from "./debug/debug.js";
 export { formatError } from "./scope-tree/typecheck/type-errors.js";
+export { formatAST } from "./ast/fmt.js";
 // export { IOInterface } from "./io/io.js";
 
 export type DesmoCallback = (ctx: { scope: Scope }) => void;

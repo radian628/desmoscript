@@ -17,3 +17,11 @@ fn dbl(x) {
 ns test {
   inner = 321;
 }
+
+dblInner = test.inner * 2;
+
+[2 * N for N=[1..10]];
+
+{ x > 0: x, x < 0: -x, 0 };
+
+[1,3..9]

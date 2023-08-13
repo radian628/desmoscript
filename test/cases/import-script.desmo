@@ -1,0 +1,3 @@
+import script "./import-script.js"
+
+y = four!();

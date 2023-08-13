@@ -1,3 +1,0 @@
-fn libfunc(x) {
-    x * 3
-}

@@ -110,7 +110,7 @@ export function lex(
     }
 
     // match misc symbols
-    const symbol = stream.match([";", ":", ",", "..", "@"]);
+    const symbol = stream.match([";", ":", "..", "@"]);
     if (symbol) {
       appendMatch(symbol);
       continue;
@@ -152,6 +152,7 @@ export function lex(
       ".y",
       ".",
       "=",
+      ",",
     ]);
     if (op) {
       appendMatch(op, "op");

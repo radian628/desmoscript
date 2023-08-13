@@ -183,14 +183,6 @@ export function generateExprCode(
   const c = (e: Scoped<ASTExpr>) => generateExprCode(e, ctx);
 
   switch (e.type) {
-    case "actions":
-      return e.actions
-        .map((a) =>
-          Array.isArray(a)
-            ? `${c(a[0] as Scoped<ASTExpr>)}\\to ${c(a[1] as Scoped<ASTExpr>)}`
-            : c(a)
-        )
-        .join(",");
     case "binop":
       const l = c(e.lhs);
       const r = c(e.rhs);
@@ -215,6 +207,10 @@ export function generateExprCode(
           return `${l}\\le ${r}`;
         case "[":
           return `\\left(${l}\\right)\\left[${r}\\right]`;
+        case ",":
+          return `\\left(${l},${r}\\right)`;
+        case "->":
+          return `${l}\\to ${r}`;
         default:
           throw internalError(`UNIMPLEMENTED BINARY OP: ${e.op}`);
       }
@@ -239,7 +235,7 @@ export function generateExprCode(
     case "list":
       return `\\left[${e.elements.map((e) => c(e)).join(",")}\\right]`;
     case "listcomp":
-      return `\\left[${c(e.body)} \\operatorname{for} ${e.params
+      return `\\left[${c(e.body)}\\operatorname{for}${e.params
         .map(([v, p]) => {
           return `${getNameForIdentifier([v], e.innerScope, ctx)}=${c(p)}`;
         })
@@ -555,6 +551,12 @@ export function generateCodeForCompilationUnit(ctx: CodegenContext) {
 
 export function generateCode(ctx: CodegenContext) {
   generateCodeForCompilationUnit(ctx);
+
+  // console.log(
+  //   Array.from(
+  //     Array.from(ctx.units.values())[0].scopeTree.elements.values()
+  //   ).filter((e) => e.type === "expression")
+  // );
 
   if (ctx.options.allInOneFolderID) {
     ctx.state.expressions.list.splice(0, 0, {

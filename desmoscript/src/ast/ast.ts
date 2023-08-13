@@ -190,8 +190,7 @@ export type ASTExpr =
   | MatchNode
   | NoteNode
   | ErrorNode
-  | MacroCallNode
-  | ActionsNode;
+  | MacroCallNode;
 
 export type ASTStatement =
   | ImportScriptNode
@@ -204,8 +203,7 @@ export type ASTStatement =
   | NamespaceNode
   | ShowNode
   | SettingsNode
-  | MacroCallNode
-  | ActionsNode;
+  | MacroCallNode;
 
 export type ASTJson =
   | JsonObjectNode
@@ -309,7 +307,9 @@ export type BinaryOpNode = {
     | "["
     | "^"
     | "&&"
-    | "||";
+    | "||"
+    // action chain operator
+    | ",";
   lhs: ASTExpr;
   rhs: ASTExpr;
 } & LexingInfo;
@@ -341,16 +341,6 @@ export type MatchNode = {
   id: number;
   branches: [ASTExpr, ASTExpr][];
   fallback?: ASTExpr;
-} & LexingInfo;
-
-export type ActionsNode = {
-  type: "actions";
-  id: number;
-  actions: (
-    | [IdentifierNode | ErrorNode, ASTExpr]
-    | IdentifierNode
-    | ErrorNode
-  )[];
 } & LexingInfo;
 
 export type SettingsNode = {

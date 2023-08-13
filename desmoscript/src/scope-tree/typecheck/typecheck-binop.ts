@@ -107,6 +107,29 @@ export function consolidateTypeErrors(input: DSType[]): ErrorType | undefined {
   return err;
 }
 
+function typecheckAction(
+  expr: Scoped<BinaryOpNode>,
+  ctx: TypecheckContext,
+  a: DSType,
+  b: DSType
+): DSType {
+  // both types are the same
+  if (
+    a.type === b.type &&
+    (a.type !== "list" ||
+      a.element.type === (b as Exclude<DSType, DSPrimitiveType>).element.type)
+  )
+    return { type: "action" };
+
+  return wrongTypeError(
+    expr,
+    ctx.unitName,
+    `variable on the left-hand side of this action is a ${typeAsStr(
+      a
+    )}, but the right hand side is a ${typeAsStr(b)}`
+  );
+}
+
 export function typecheckBinop(
   expr: Scoped<BinaryOpNode>,
   ctx: TypecheckContext
@@ -151,8 +174,14 @@ export function typecheckBinop(
       break;
 
     case "->":
-      result = { type: "action" };
+      result = typecheckAction(expr, ctx, lhs, rhs);
       break;
+
+    case ",":
+      result =
+        lhs.type === "action" && rhs.type === "action"
+          ? { type: "action" }
+          : undefined;
   }
 
   if (!result)
