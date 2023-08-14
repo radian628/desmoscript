@@ -270,8 +270,13 @@ export function compileDesmoscriptForLanguageSupport(
     },
 
     async highlightSyntax(filename, handler2) {
+      console.log("GOT HERE!", filename);
+
       const ctx = await recompile(filename);
       const code = ctx.sourceCode.get(filename);
+
+      console.log("highlightSyntax", filename, ctx);
+
       if (!code) return;
 
       const handler = (

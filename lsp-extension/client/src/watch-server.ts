@@ -5,23 +5,28 @@ import * as desmoscript from "../../../desmoscript/src/";
 import { runWatchServer } from "../../../standalone-compiler/src/watch-server";
 
 import getPort, { portNumbers } from "get-port";
+import { URI } from "vscode-uri";
 
 export function setupDesmosWatchServer(
   context: ExtensionContext,
-  io: IOInterface,
-  formatPath: (str: string) => string
+  io: IOInterface
 ) {
   context.subscriptions.push(
     vscode.commands.registerCommand(
       "desmoscript.watch",
       async (providedFilename) => {
-        const filename = formatPath(
-          providedFilename ??
-            vscode.window.activeTextEditor.document.uri.toString()
-        );
+        console.log("TRYING TO RUN DESMO SERVER");
+
+        const filename = (
+          providedFilename ?? vscode.window.activeTextEditor.document.uri
+        ).toString();
+
+        console.log("server checkpoint 1");
 
         const host = "127.0.0.1";
         const port = await getPort({ port: portNumbers(3000, 3100) });
+
+        console.log("server checkpoint 2");
 
         const panel = vscode.window.createWebviewPanel(
           "desmoscript",
@@ -29,6 +34,8 @@ export function setupDesmosWatchServer(
           vscode.ViewColumn.One,
           { enableScripts: true, retainContextWhenHidden: true }
         );
+
+        console.log("server checkpoint 3");
 
         panel.webview.html = `<!DOCTYPE html>
       <html><head>
@@ -100,7 +107,11 @@ pre {
           }
         });
 
+        console.log("server checkpoint 4");
+
         const closeServer = await runWatchServer({
+          translateFilePath: (p) => URI.parse(p).fsPath,
+          io,
           options: {
             annotateExpressionsWithEquivalentDesmoscript,
           },

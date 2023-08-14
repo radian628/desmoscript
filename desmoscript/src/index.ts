@@ -29,7 +29,7 @@ export { compileDesmoscriptForLanguageSupport } from "./combined-functionality/l
 export { enableDebug } from "./debug/debug.js";
 export { formatError } from "./scope-tree/typecheck/type-errors.js";
 export { formatAST } from "./ast/fmt.js";
-// export { IOInterface } from "./io/io.js";
+export { IOInterface } from "./io/io.js";
 
 export type DesmoCallback = (ctx: { scope: Scope }) => void;
 export declare function desmo(callback: DesmoCallback): void;

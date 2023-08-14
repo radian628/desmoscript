@@ -23,8 +23,12 @@ export async function runWatchServer(params: {
   ) => void;
   onLoad: (host: string, port: number) => void;
   options: CodegenContext["options"];
+  io?: IOInterface;
+  translateFilePath?: (filepath: string) => string;
 }) {
-  const io: IOInterface = {
+  const translateFilePath = params.translateFilePath ?? ((s) => s);
+
+  const io: IOInterface = params.io ?? {
     watchFile: (str, onchange) => {
       const watcher = chokidar.watch(str, {
         awaitWriteFinish: {
@@ -66,12 +70,15 @@ export async function runWatchServer(params: {
     const endTime = Date.now();
     params.onCompile(output, io, endTime - startTime);
 
-    const watcher = chokidar.watch(Array.from(watchFiles.values()), {
-      awaitWriteFinish: {
-        pollInterval: 50,
-        stabilityThreshold: 1000,
-      },
-    });
+    const watcher = chokidar.watch(
+      Array.from(watchFiles.values()).map((f) => translateFilePath(f)),
+      {
+        awaitWriteFinish: {
+          pollInterval: 50,
+          stabilityThreshold: 1000,
+        },
+      }
+    );
     const recompile = (evtType: string) => (evt: any) => {
       watcher.close();
       compilerOutput = doCompile(watchFiles);

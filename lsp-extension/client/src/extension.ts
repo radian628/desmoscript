@@ -10,11 +10,11 @@ import {
 import * as desmoscript from "../../../desmoscript/src/index";
 
 import * as vscode from "vscode";
+import { URI } from "vscode-uri";
 
-export function setupSyntaxHighlighting(
+export function setupLanguageFeatures(
   context: ExtensionContext,
-  io: desmoscript.IOInterface,
-  formatPath: (path: string) => string
+  io: desmoscript.IOInterface
 ) {
   const tokenTypes = [
     "variable",
@@ -33,15 +33,15 @@ export function setupSyntaxHighlighting(
   ];
   const tokenModifiers = ["declaration", "documentation"];
   const legend = new SemanticTokensLegend(tokenTypes, tokenModifiers);
-  (async () => {
-    const desmoscriptCompiler =
-      desmoscript.compileDesmoscriptForLanguageSupport(io);
+  const desmoscriptCompiler =
+    desmoscript.compileDesmoscriptForLanguageSupport(io);
 
+  (async () => {
     // syntax highlighting
     const provider: DocumentSemanticTokensProvider = {
       async provideDocumentSemanticTokens(document) {
         const tokensBuilder = new SemanticTokensBuilder(legend);
-        const documentPath = formatPath(document.uri.toString());
+        const documentPath = document.uri.toString();
         desmoscriptCompiler.updateFile(documentPath, document.getText());
 
         try {
@@ -52,7 +52,6 @@ export function setupSyntaxHighlighting(
               const endpos = document.positionAt(end);
               if (startpos.line != endpos.line) return;
 
-              console.log("got here");
               tokensBuilder.push(new Range(startpos, endpos), type);
             }
           );
@@ -67,7 +66,6 @@ export function setupSyntaxHighlighting(
               " TRACE: " +
               err.stack
           );
-          //console.log("lemme guess this thing cant handle newlines", err);
         }
 
         try {
@@ -90,21 +88,203 @@ export function setupSyntaxHighlighting(
       )
     );
   })();
+
+  vscode.languages.registerColorProvider(
+    { language: "desmo" },
+    {
+      async provideColorPresentations(color, context, token) {
+        return [
+          new vscode.ColorPresentation(
+            `rgb(${Math.round(color.red * 256)}, ${Math.round(
+              color.green * 256
+            )}, ${Math.round(color.blue * 256)})`
+          ),
+        ];
+      },
+
+      async provideDocumentColors(document, token) {
+        const documentPath = document.uri.toString();
+        desmoscriptCompiler.updateFile(documentPath, document.getText());
+        const colors: vscode.ColorInformation[] = [];
+
+        await desmoscriptCompiler.getColors(
+          documentPath,
+          (start, end, color) => {
+            colors.push(
+              new vscode.ColorInformation(
+                new vscode.Range(
+                  document.positionAt(start),
+                  document.positionAt(end)
+                ),
+                new vscode.Color(
+                  color[0] / 256,
+                  color[1] / 256,
+                  color[2] / 256,
+                  1
+                )
+              )
+            );
+          }
+        );
+
+        return colors;
+      },
+    }
+  );
+
+  vscode.languages.registerDefinitionProvider(
+    { language: "desmo" },
+    {
+      async provideDefinition(document, position, token) {
+        const def = await desmoscriptCompiler.goToDefinition(
+          document.uri.toString(),
+          document.offsetAt(position)
+        );
+
+        if (!def) return [];
+
+        const dstDocURL = URI.parse(def.unit);
+        const dstDocument = await vscode.workspace.openTextDocument(dstDocURL);
+
+        return [
+          new vscode.Location(
+            dstDocURL,
+            new Range(
+              dstDocument.positionAt(def.start),
+              dstDocument.positionAt(def.end)
+            )
+          ),
+        ];
+      },
+    }
+  );
+
+  vscode.languages.registerHoverProvider(
+    { language: "desmo" },
+    {
+      async provideHover(document, position, token) {
+        try {
+          const hoverResult = await desmoscriptCompiler.onHover(
+            document.uri.toString(),
+            document.offsetAt(position)
+          );
+
+          if (!hoverResult) return;
+          new vscode.Hover({
+            language: "desmo",
+            value: hoverResult,
+          });
+        } catch (err) {
+          return new vscode.Hover({
+            language: "desmo",
+            value: `${err?.toString()} ${(err as any)?.stack}`,
+          });
+        }
+      },
+    }
+  );
+
+  const diagnosticCollection =
+    vscode.languages.createDiagnosticCollection("desmo");
+
+  const updateDiagnostics = async (change: {
+    document: vscode.TextDocument;
+  }) => {
+    if (change.document.languageId !== "desmo") return;
+
+    const diagnostics: vscode.Diagnostic[] = [];
+
+    await desmoscriptCompiler.getErrors(
+      change.document.uri.toString(),
+      (start, end, reason) => {
+        diagnostics.push({
+          severity: vscode.DiagnosticSeverity.Error,
+          range: new vscode.Range(
+            change.document.positionAt(start),
+            change.document.positionAt(end)
+          ),
+          message: reason,
+          source: "desmoscript",
+        });
+      }
+    );
+
+    diagnosticCollection.clear();
+    diagnosticCollection.set(change.document.uri, diagnostics);
+  };
+
+  vscode.workspace.onDidChangeTextDocument(updateDiagnostics);
+  vscode.workspace.onDidOpenTextDocument((doc) => {
+    updateDiagnostics({ document: doc });
+  });
+
+  vscode.languages.registerDocumentFormattingEditProvider(
+    {
+      language: "desmo",
+    },
+    {
+      async provideDocumentFormattingEdits(document, options, token) {
+        const filepath = document.uri.toString();
+
+        await desmoscriptCompiler.updateFile(filepath, document.getText());
+
+        const text = document.getText();
+
+        const start = document.positionAt(0);
+        const end = document.positionAt(text.length);
+
+        const fmtted = await desmoscriptCompiler.formatFile(filepath);
+
+        if (!fmtted) return [];
+
+        return [new vscode.TextEdit(new vscode.Range(start, end), fmtted)];
+      },
+    }
+  );
+
+  vscode.languages.registerCompletionItemProvider(
+    { language: "desmo" },
+    {
+      async provideCompletionItems(document, position, token, context) {
+        const items: vscode.CompletionItem[] = [];
+
+        try {
+          await desmoscriptCompiler.getAutocomplete(
+            document.uri.toString(),
+            document.offsetAt(position),
+            (label, type) => {
+              items.push({
+                label,
+                kind: {
+                  variable: vscode.CompletionItemKind.Variable,
+                  function: vscode.CompletionItemKind.Function,
+                  scope: vscode.CompletionItemKind.Module,
+                  macro: vscode.CompletionItemKind.Constructor,
+                }[type],
+              });
+            }
+          );
+        } catch (err) {
+          console.log("err during autocomplete", err);
+        }
+
+        return items;
+      },
+    }
+  );
 }
 
 export function setupDesmosOutputToJson(
   context: ExtensionContext,
-  io: desmoscript.IOInterface,
-  formatPath: (str: string) => string
+  io: desmoscript.IOInterface
 ) {
   context.subscriptions.push(
     vscode.commands.registerCommand(
       "desmoscript.outputToJson",
       async (providedFilename) => {
-        const filename = formatPath(
-          providedFilename ??
-            vscode.window.activeTextEditor.document.uri.toString()
-        );
+        const filename = (
+          providedFilename ?? vscode.window.activeTextEditor.document.uri
+        ).toString();
 
         const start = Date.now();
         const compilerOutput = await desmoscript.compileDesmoscript(filename, {
@@ -151,19 +331,17 @@ export function setupDesmosOutputToJson(
 
 export function setupDesmosPreview(
   context: ExtensionContext,
-  io: desmoscript.IOInterface,
-  formatPath: (str: string) => string
+  io: desmoscript.IOInterface
 ) {
   context.subscriptions.push(
     vscode.commands.registerCommand(
       "desmoscript.run",
       async (providedFilename) => {
         try {
-          const filename = formatPath(
-            providedFilename ??
-              vscode.window.activeTextEditor.document.uri.toString()
-          );
-          console.log("using filename", filename);
+          const filename = (
+            providedFilename ?? vscode.window.activeTextEditor.document.uri
+          ).toString();
+
           const panel = vscode.window.createWebviewPanel(
             "desmoscript",
             "Desmos: " + filename.split(/\/|\\/g).slice(-1)[0],
@@ -184,6 +362,7 @@ export function setupDesmosPreview(
         let calc = Desmos.GraphingCalculator(elt);
 
         window.addEventListener("message", event => {
+          console.log("RECEIVED MESSAGE", event.data);
           calc.setState(event.data);
         });
 

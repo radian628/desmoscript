@@ -72,6 +72,8 @@ export function desmosifyName(str: string) {
 }
 
 export function capitalizeFirst(str: string) {
+  if (str === "") return "";
+
   return str[0].toUpperCase() + str.slice(1);
 }
 
@@ -155,6 +157,9 @@ export function getNameForIdentifier(
     ctx.existingNames.add(proposedName);
     ctx.identifierNames.set(scopeItem.identifier.id, proposedName);
   };
+
+  console.log("scope name path", scopeNamePath, ctx.currentUnit);
+
   for (const identPathElem of scopeNamePath) {
     proposedName = capitalizeFirst(identPathElem) + proposedName;
     if (!ctx.existingNames.has(proposedName)) {
