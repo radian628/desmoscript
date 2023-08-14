@@ -358,13 +358,18 @@ export function setupDesmosPreview(
       <button style="position: absolute; bottom: 10px; right: 10px; padding: 20px;" id="recompile">Recompile</button>
       <script src="https://www.desmos.com/api/v1.9/calculator.js?apiKey=dcb31709b452b1cf9dc26972add0fda6"></script>
       <script>
+        window.addEventListener("message", event => {
+          console.log("RECEIVED MESSAGE", event.data);
+          calc?.setState(event.data);
+          receivedState = event.data;
+        });
+
+        let receivedState;
+        
         let elt = document.getElementById("calculator");
         let calc = Desmos.GraphingCalculator(elt);
 
-        window.addEventListener("message", event => {
-          console.log("RECEIVED MESSAGE", event.data);
-          calc.setState(event.data);
-        });
+        if (receivedState) calc.setState(receivedState);
 
         const vscode = acquireVsCodeApi();
 
