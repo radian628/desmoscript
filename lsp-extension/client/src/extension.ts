@@ -170,7 +170,7 @@ export function setupLanguageFeatures(
           );
 
           if (!hoverResult) return;
-          new vscode.Hover({
+          return new vscode.Hover({
             language: "desmo",
             value: hoverResult,
           });

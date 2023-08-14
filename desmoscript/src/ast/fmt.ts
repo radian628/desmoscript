@@ -1,5 +1,6 @@
 import { ASTNode, asExpr } from "./ast.js";
 import { getBindingPowerStr } from "../parse/parse.js";
+import { internalError } from "../compiler-errors.js";
 
 export type FmtCtx = {
   indent: number;
@@ -354,6 +355,12 @@ export function formatAST(n: ASTNode, c?: FmtCtx): string {
     }
 
     default:
-      return "UNIMPLEMENTED!";
+      return `Unable to format node of type ${
+        (n as any).type as string
+      }. Stringified node: ${JSON.stringify(n)}`;
   }
+}
+
+function unreachable() {
+  throw internalError("Unreachable.");
 }

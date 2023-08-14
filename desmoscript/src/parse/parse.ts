@@ -237,7 +237,7 @@ export function parse(
           tokenStream.setpos(oldpos);
           return parseExpr(ctx, 0);
         },
-        expectAny() {
+        expectAny(bindingPower) {
           let oldpos = tokenStream.getpos();
           let node = parseStatement(ctx);
           if (node.type != "error") return node;
@@ -245,7 +245,7 @@ export function parse(
           let json = parseJson(ctx);
           if (node.type != "error") return node;
           tokenStream.setpos(oldpos);
-          return parseExpr(ctx, 0);
+          return parseExpr(ctx, bindingPower ?? 0);
         },
         error(message) {
           return errnode(message);
@@ -362,7 +362,7 @@ export type NodeAssembler = {
     endOfInputErr?: string
   ) => Token;
   expectExpression: (bindingPower?: number) => ASTExpr;
-  expectAny: () => ASTNode;
+  expectAny: (bindingPower?: number) => ASTNode;
   expectJson: (isTopLevel?: boolean) => ASTJson;
   isNextToken: (str: string) => boolean;
   isNextTokenType: (str: Token["type"]) => boolean;
@@ -721,7 +721,7 @@ export function parseMacroCall(ctx: ParseContext) {
 
     while (true) {
       if (a.isNextToken(")")) break;
-      params.push(a.expectAny());
+      params.push(a.expectAny(1));
       if (a.isNextToken(")")) break;
       a.expectToken(",");
     }

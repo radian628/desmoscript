@@ -92,6 +92,8 @@ export type MacroAPI = {
   readFile: (filepath: string) => Promise<Uint8Array>;
   readStringFile: (filepath: string) => Promise<string>;
 
+  debug: (...args: any[]) => void;
+
   node: <T extends ASTNode>(node: Omit<T, "start" | "end" | "id">) => T;
 };
 
@@ -174,7 +176,14 @@ export function getMacroAPI(
       errors.push(
         macroError(
           "Debug output from macro:\n" +
-            args.map((arg) => inspect(arg)).join("\n"),
+            args
+              .map((arg) =>
+                (
+                  (// @ts-ignore
+                  inspect.default as typeof inspect) ?? inspect
+                )(arg)
+              )
+              .join("\n"),
           call,
           ctx.unit
         )

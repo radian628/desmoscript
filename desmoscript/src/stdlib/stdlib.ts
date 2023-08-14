@@ -449,8 +449,10 @@ export function addStdlibToScope(scope: Scope, ctx: ASTScopingContext) {
       id: newid(),
       unitName: "",
       macroOperation: async (node, a) => {
-        if (node.params.length != 4)
+        if (node.params.length != 4) {
+          a.debug("nodeparams", node.params);
           a.fatalError("Expected exactly 3 parameters.");
+        }
 
         const nsnameNode = node.params[0];
         const iterationsNode = node.params[1];

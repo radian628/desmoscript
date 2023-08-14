@@ -1,0 +1,19 @@
+import script "./3d.js"
+
+"In theory, we can get Suzanne in a single expression."
+"The way to do this is to use sums to bind reusable variables."
+"Unlike substitutions, these can be arbitrarily nested."
+
+ns prev {
+  n = 0;
+}
+
+loop!(looptest, 3, {
+      n = 1;
+    }, {
+      n = prev.n * 2;
+    });
+
+x = four!();
+
+settings @{ viewport: @{ xmin: -2, ymin: -2, xmax: 2, ymax: 2 } }
