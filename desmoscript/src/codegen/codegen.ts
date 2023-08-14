@@ -205,7 +205,7 @@ export function generateExprCode(
         case "<":
         case ">":
         case "==":
-          return `${l}${e.op}${r}`;
+          return `${l}${e.op == "==" ? "=" : e.op}${r}`;
         case ">=":
           return `${l}\\ge ${r}`;
         case "<=":

@@ -24,4 +24,10 @@ dblInner = test.inner * 2;
 
 { x > 0: x, x < 0: -x, 0 };
 
-[1,3..9]
+[1,3..9];
+
+ns test2 {
+  fn sum(a, b) {
+    a + b
+  }
+}
