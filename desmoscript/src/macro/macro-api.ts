@@ -15,7 +15,7 @@ import { lex } from "../parse/lex.js";
 import { parse } from "../parse/parse.js";
 import { InstantiateMacroContext } from "./instantiate-macros.js";
 
-import * as util from "util";
+import * as inspect from "object-inspect";
 
 export type MacroError = {
   reason: string | CompilerError[];
@@ -174,7 +174,7 @@ export function getMacroAPI(
       errors.push(
         macroError(
           "Debug output from macro:\n" +
-            args.map((arg) => util.inspect(arg)).join("\n"),
+            args.map((arg) => inspect(arg)).join("\n"),
           call,
           ctx.unit
         )

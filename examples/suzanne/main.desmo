@@ -23,7 +23,6 @@ ns camera {
 }
 
 ns view {
-  
   x = vx - camera.x;
   y = vy - camera.y;
   z = vz - camera.z;
@@ -31,4 +30,4 @@ ns view {
 
 show projPoints = project(view.x, view.y, view.z) @{ hidden: true }
 
-polygon(projPoints[i1], projPoints[i2], projPoints[i3])
+show polygon(projPoints[i1], projPoints[i2], projPoints[i3]) @{ colorLatex: ds(rgb(240, 184, 53)) }

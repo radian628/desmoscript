@@ -38,10 +38,6 @@ desmo(({ scope }) => {
       macroOperation: async (node, a) => {
         const file = await a.readStringFile("./suzanne.obj");
         const verts = getVertices(file, i);
-        // return {
-        //   type: "note",
-        //   content: JSON.stringify(verts),
-        // };
         return a.parseExpr(`[${verts.join(",")}]`);
       },
     });
