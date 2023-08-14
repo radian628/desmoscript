@@ -49,9 +49,7 @@ export function activate(context: ExtensionContext) {
       if (ev.data.type == "read-file") {
         worker.postMessage({
           type: "read-file",
-          data: (
-            await vscode.workspace.fs.readFile(URI.parse(ev.data.url))
-          ).toString(),
+          data: await vscode.workspace.fs.readFile(URI.parse(ev.data.url)),
           index: ev.data.index,
         });
       } else if (ev.data.type == "write-file") {

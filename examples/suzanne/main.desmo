@@ -3,7 +3,7 @@ import script "./3d.js"
 settings @{ viewport: @{ xmin: -2, ymin: -2, xmax: 2, ymax: 2 } }
 
 test = four!();
-
+ 
 vx = verticesX!();
 vy = verticesY!();
 vz = verticesZ!();
