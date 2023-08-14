@@ -255,7 +255,7 @@ const desmosFunctions: [string, BuiltinTypeSignature][] = [
       {
         type: "regular",
         params: [[listof({ type: "number" })], [listof({ type: "number" })]],
-        returns: { type: "number" },
+        returns: { type: "polygon" },
       },
     ],
   ],
