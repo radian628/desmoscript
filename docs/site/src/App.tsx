@@ -49,7 +49,7 @@ const App: Component = () => {
           quotes.
         </p>
         <ExampleFromAssets>notes</ExampleFromAssets>
-        <h3 id="text-notes-comments">Settings</h3>
+        <h3 id="settings">Settings</h3>
         <p>
           Change the graph settings with the <code>settings</code> keyword
           followed by a JSON literal (denoted by <code>@{"{}"}</code>). This
@@ -57,7 +57,7 @@ const App: Component = () => {
           property of the value returned by <code>Calc.getState()</code> in the
           developer console.
         </p>
-        <ExampleFromAssets>notes</ExampleFromAssets>
+        <ExampleFromAssets>settings</ExampleFromAssets>
 
         <h2 id="data-types">Data Types</h2>
         <h3 id="points">Points</h3>
@@ -102,7 +102,7 @@ const App: Component = () => {
           to be slower than simply updating a variable normally.
         </p>
         <ExampleFromAssets>actions</ExampleFromAssets>
-        <h4 id="actions">Conditional Actions</h4>
+        <h4 id="cond-actions">Conditional Actions</h4>
         <p>
           Actions can be placed in piecewises, allowing them to be updated
           conditionally.
