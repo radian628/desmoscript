@@ -1,4 +1,4 @@
-import script "./3d.js"
+import script "./3dTest.js"
 
 settings @{ viewport: @{ xmin: -2, ymin: -2, xmax: 2, ymax: 2 } }
 
