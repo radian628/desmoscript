@@ -138,15 +138,13 @@
     }
   },
   "scripts": {
-    "vscode:prepublish": "npm run esbuild-base-client-node -- --minify && npm run esbuild-base-server-node -- --minify && npm run esbuild-base-client-web -- --minify && npm run esbuild-base-server-web -- --minify",
+    "vscode:prepublish": "npm run esbuild-base-client-node -- --minify && npm run esbuild-base-client-web -- --minify",
     "compile": "npm run esbuild-base",
     "esbuild-base-client-node": "esbuild ./client/src/extension-node.ts --bundle --outfile=client/out/extension-node.js --external:vscode --format=cjs --platform=node",
-    "esbuild-base-server-node": "esbuild ./server/src/server-node.ts --bundle --outfile=server/out/server-node.js --external:vscode --format=cjs --platform=node",
     "esbuild-base-client-web": "esbuild ./client/src/extension-browser.ts --bundle --outfile=client/out/extension-browser.js --external:vscode --format=cjs --platform=browser",
-    "esbuild-base-server-web": "esbuild ./server/src/server-browser.ts --bundle --outfile=server/out/server-browser.js --external:vscode --platform=browser",
-    "watch": "concurrently \"npm run esbuild-base-client-node -- --sourcemap --watch\" \"npm run esbuild-base-server-node -- --sourcemap --watch\" \"npm run esbuild-base-client-web -- --sourcemap --watch\" \"npm run esbuild-base-server-web -- --sourcemap --watch\"",
+    "watch": "concurrently \"npm run esbuild-base-client-node -- --sourcemap --watch\" \"npm run esbuild-base-client-web -- --sourcemap --watch\" ",
     "lint": "eslint ./client/src ./server/src --ext .ts,.tsx",
-    "postinstall": "cd client && npm install && cd ../server && npm install && cd ..",
+    "postinstall": "cd client && npm install",
     "test": "sh ./scripts/e2e.sh",
     "test-web": "npm run watch && vscode-test-web --extensionDevelopmentPath=./",
     "run-web": "vscode-test-web --extensionDevelopmentPath=./"

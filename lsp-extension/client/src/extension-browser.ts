@@ -24,7 +24,6 @@ import {
   setupDesmosPreview,
   setupLanguageFeatures,
 } from "./extension";
-import { ioBrowser } from "./io-browser";
 import { ioVSCode } from "./io-vscode";
 
 desmoscript.enableDebug();
@@ -48,7 +47,3 @@ export function deactivate(): Thenable<void> | undefined {
   }
   return client.stop();
 }
-
-type TEST1 = { asdf: string } & { asdf: any };
-
-type TEST2 = TEST1["asdf"];
