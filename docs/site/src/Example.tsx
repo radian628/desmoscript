@@ -1,7 +1,7 @@
 import { DesmosGraph } from "./DesmosGraph";
 import { compileDesmoscript } from "../../../desmoscript/src";
 import { Show, createEffect, createSignal } from "solid-js";
-import { GraphState } from "../../../desmoscript/src/codegen/graphstate";
+import { GraphState } from "../../../desmoscript/dist/codegen/graphstate";
 import { DesmoscriptCodemirror } from "./DesmoscriptCodemirror";
 
 export function DesmoscriptExample(props: {

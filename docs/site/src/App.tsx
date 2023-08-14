@@ -49,6 +49,15 @@ const App: Component = () => {
           quotes.
         </p>
         <ExampleFromAssets>notes</ExampleFromAssets>
+        <h3 id="text-notes-comments">Settings</h3>
+        <p>
+          Change the graph settings with the <code>settings</code> keyword
+          followed by a JSON literal (denoted by <code>@{"{}"}</code>). This
+          follows almost exactly the same format as the <code>graph</code>{" "}
+          property of the value returned by <code>Calc.getState()</code> in the
+          developer console.
+        </p>
+        <ExampleFromAssets>notes</ExampleFromAssets>
 
         <h2 id="data-types">Data Types</h2>
         <h3 id="points">Points</h3>
@@ -98,7 +107,7 @@ const App: Component = () => {
           Actions can be placed in piecewises, allowing them to be updated
           conditionally.
         </p>
-
+        <ExampleFromAssets>cond-actions</ExampleFromAssets>
         <h2 id="display">Display</h2>
         <p>
           You can display expressions by appending them with a JSON-like data
@@ -120,6 +129,22 @@ const App: Component = () => {
           </em>
         </p>
         <ExampleFromAssets>show</ExampleFromAssets>
+
+        <h2 id="macros">Macros</h2>
+        <h3 id="subst-macros">Substitution Macros</h3>
+        <p>
+          Use the <code>subst!()</code> macro to create substitution macros.
+        </p>
+        <ExampleFromAssets>subst</ExampleFromAssets>
+        <h3 id="js-macros">JS Macros</h3>
+        <p>
+          You can also directly call JavaScript code from desmoscript, allowing
+          you to create macros that run arbitrary JavaScript, including
+          operations such as file I/O.{" "}
+          <a href="https://github.com/radian628/desmoscript/tree/main/examples/suzanne">
+            See here for an example.
+          </a>
+        </p>
       </main>
     </>
   );

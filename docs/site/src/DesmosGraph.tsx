@@ -1,5 +1,5 @@
 import { JSX } from "solid-js/jsx-runtime";
-import { GraphState } from "../../../desmoscript/src/codegen/graphstate";
+import { GraphState } from "../../../desmoscript/dist/codegen/graphstate";
 import { Merge } from "type-fest";
 import { Show, createEffect, createSignal } from "solid-js";
 import { fireOnceOnScreen } from "./onscreen";

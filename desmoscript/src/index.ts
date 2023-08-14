@@ -1,5 +1,4 @@
 import { CompilationUnit, Scope } from "./ast/ast.js";
-import { IOInterface } from "./io/io.js";
 
 export let placeholder = 0;
 
