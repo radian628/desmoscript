@@ -34,7 +34,7 @@ export {
 export { compileDesmoscriptForLanguageSupport } from "./combined-functionality/language-support-compiler.js";
 export { enableDebug } from "./debug/debug.js";
 export { formatError } from "./scope-tree/typecheck/type-errors.js";
-export { formatAST } from "./ast/fmt.js";
+export { formatAST, format } from "./ast/fmt.js";
 export { IOInterface } from "./io/io.js";
 
 export type DesmoCallback = (ctx: {

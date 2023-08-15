@@ -1,4 +1,4 @@
-import { ASTNode, asExpr } from "./ast.js";
+import { ASTNode, asExpr, getErrors } from "./ast.js";
 import { getBindingPowerStr } from "../parse/parse.js";
 import { internalError } from "../compiler-errors.js";
 
@@ -17,6 +17,13 @@ export function indent(n: number) {
 
 export function maxLineLength(str: string) {
   return str.split("\n").reduce((prev, curr) => Math.max(prev, curr.length), 0);
+}
+
+export function format(n: ASTNode, c?: FmtCtx): string | undefined {
+  const errs = getErrors(n);
+  if (errs.length > 0) return undefined;
+
+  return formatAST(n, c);
 }
 
 export function formatAST(n: ASTNode, c?: FmtCtx): string {

@@ -1,6 +1,6 @@
 import { formatAST, lex, parse } from "../desmoscript/dist";
 import { expect, test, describe } from "@jest/globals";
-import { FmtCtx } from "../desmoscript/dist/ast/fmt";
+import { FmtCtx, format } from "../desmoscript/dist/ast/fmt";
 
 function lexAndParseStr(str: string) {
   const errs = [];
@@ -14,12 +14,16 @@ function lexAndParseStr(str: string) {
   return parsed;
 }
 
-function testFormat(input: string, expected: string, formatSettings?: FmtCtx) {
+function testFormat(
+  input: string,
+  expected: string | undefined,
+  formatSettings?: FmtCtx
+) {
   describe(input, () => {
     const ast = lexAndParseStr(input);
 
     test("format", () => {
-      expect(formatAST(ast, formatSettings)).toEqual(expected);
+      expect(format(ast, formatSettings)).toEqual(expected);
     });
   });
 }
@@ -50,3 +54,6 @@ testFormat(
   { indent: 0, tabSize: 2, maxlen: 10, bindingPower: 0 }
 );
 testFormat("mod(3,6)", "mod(3, 6)\n");
+
+// don't attempt to format sequences containing parser errors
+testFormat("sin({D}", undefined);
