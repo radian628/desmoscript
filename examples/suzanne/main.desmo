@@ -32,4 +32,4 @@ show projPoints = project(view.x, view.y, view.z) @{ hidden: true }
 
 show polygon(projPoints[i1], projPoints[i2], projPoints[i3]) @{ colorLatex: ds(rgb(164, 122, 27)) }
 
-y = x + 1;
+y = x + 1 + ([] as number[])[1];

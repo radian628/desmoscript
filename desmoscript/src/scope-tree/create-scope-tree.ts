@@ -491,7 +491,8 @@ export function addScopesToAST(
       ...node,
       enclosingScope: state.scope,
     },
-    (childNode) => child(childNode)
+    // @ts-expect-error macrocall children shouldn't be scoped (no need)
+    (childNode) => (node.type === "macrocall" ? childNode : child(childNode))
   );
 }
 

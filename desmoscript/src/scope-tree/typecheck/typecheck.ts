@@ -312,7 +312,7 @@ export function typecheckList(
       throw internalError(
         "Expected a type annotation, as this is an empty list! This should be caught during parsing!"
       );
-    return { type: expr.typeAnnotation };
+    return { type: "list", element: { type: expr.typeAnnotation } };
   }
 
   const elemTypes = expr.elements.map((e) => typecheckExpr(e, ctx));
