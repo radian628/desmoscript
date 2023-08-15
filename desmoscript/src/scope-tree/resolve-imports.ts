@@ -73,13 +73,13 @@ export async function resolveFileImports(
             node.src
           );
           const iscriptSrc = await ctx.getFile(iscriptFullPath);
-          ctx.watchFiles.add(iscriptSrc);
+          ctx.watchFiles.add(iscriptFullPath);
           try {
-            const importScript = new Function("desmo", iscriptSrc);
-            importScript((run: () => { scope: Scope }) => {
-              ctx.importScripts.set(iscriptFullPath, {
-                run,
-              });
+            const importScript = await import(
+              `data:text/javascript,${encodeURIComponent(iscriptSrc)}`
+            );
+            ctx.importScripts.set(iscriptFullPath, {
+              run: importScript.default,
             });
           } catch (err) {
             ctx.errors.push({

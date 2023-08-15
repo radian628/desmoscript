@@ -1,4 +1,4 @@
-import script "./macroTest.js"
+import script "./macroTest.mjs"
 
 identity!({
       a = 1;

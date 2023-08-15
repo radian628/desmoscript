@@ -14,43 +14,36 @@ function getIndices(src, dim) {
     .map((e) => Number(e[dim + 1][0]));
 }
 
-desmo(({ scope }) => {
-  console.log("ran desmo script!", scope);
-  scope.elements.set("four", {
-    type: "macro",
-    id: -1,
-    unitName: "",
-    macroOperation: async (node, a) => {
-      return {
+export default function ({ scope, addMacro }) {
+  const dims = ["X", "Y", "Z"];
+
+  addMacro({
+    name: "four",
+    fn: (node, a) => {
+      return a.node({
         type: "number",
         number: 4,
-      };
+      });
     },
   });
 
-  const dims = ["X", "Y", "Z"];
-
   for (let i = 0; i < 3; i++) {
-    scope.elements.set("vertices" + dims[i], {
-      type: "macro",
-      id: -1 - i,
-      unitName: "",
-      macroOperation: async (node, a) => {
+    addMacro({
+      name: "vertices" + dims[i],
+      fn: async (node, a) => {
         const file = await a.readStringFile("./suzanne.obj");
         const verts = getVertices(file, i);
         return a.parseExpr(`[${verts.join(",")}]`);
       },
     });
 
-    scope.elements.set("indices" + (i + 1), {
-      type: "macro",
-      id: -10 - i,
-      unitName: "",
-      macroOperation: async (node, a) => {
+    addMacro({
+      name: "indices" + (i + 1),
+      fn: async (node, a) => {
         const file = await a.readStringFile("./suzanne.obj");
         const idxs = getIndices(file, i);
         return a.parseExpr(`[${idxs.join(",")}]`);
       },
     });
   }
-});
+}

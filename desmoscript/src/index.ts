@@ -1,4 +1,11 @@
-import { CompilationUnit, Scope } from "./ast/ast.js";
+import {
+  ASTNode,
+  CompilationUnit,
+  MacroCallNode,
+  Scope,
+  Scoped,
+} from "./ast/ast.js";
+import { MacroAPI } from "./macro/macro-api.js";
 
 export let placeholder = 0;
 
@@ -30,5 +37,11 @@ export { formatError } from "./scope-tree/typecheck/type-errors.js";
 export { formatAST } from "./ast/fmt.js";
 export { IOInterface } from "./io/io.js";
 
-export type DesmoCallback = (ctx: { scope: Scope }) => void;
+export type DesmoCallback = (ctx: {
+  scope: Scope;
+  addMacro: (opts: {
+    name: string;
+    fn: (node: Scoped<MacroCallNode>, a: MacroAPI) => Promise<Scoped<ASTNode>>;
+  }) => void;
+}) => void;
 export declare function desmo(callback: DesmoCallback): void;

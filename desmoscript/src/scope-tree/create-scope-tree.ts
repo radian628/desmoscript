@@ -404,7 +404,22 @@ export function addScopesToAST(
         });
       }
 
-      iscript?.run({ scope: state.scope });
+      iscript?.run({
+        scope: state.scope,
+        addMacro(opts) {
+          addToScope(
+            state.scope,
+            opts.name,
+            {
+              type: "macro",
+              macroOperation: opts.fn,
+              id: newid(),
+              unitName: ctx.unit,
+            },
+            ctx.errors
+          );
+        },
+      });
       break;
     case "settings":
       addToScope(
