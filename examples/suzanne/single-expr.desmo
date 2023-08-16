@@ -1,4 +1,4 @@
-import script "./3d.js"
+import script "./3dTest.mjs"
 
 "In theory, we can get Suzanne in a single expression."
 "The way to do this is to use sums to bind reusable variables."
@@ -13,6 +13,14 @@ loop!(looptest, 3, {
     }, {
       n = prev.n * 2;
     });
+
+loop!(looptest2, 5, {
+      n = 3;
+    }, {
+      n = prev.n + 1;
+    });
+
+result = looptest2.n * 69;
 
 x = four!();
 

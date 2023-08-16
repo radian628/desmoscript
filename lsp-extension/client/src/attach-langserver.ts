@@ -375,4 +375,37 @@ export async function attachLanguageServer(
       }
     )
   );
+
+  const diagnosticCollection =
+    vscode.languages.createDiagnosticCollection("desmo");
+
+  const updateDiagnostics = async (change: {
+    document: vscode.TextDocument;
+  }) => {
+    if (change.document.languageId !== "desmo") return;
+
+    const diagnostics: vscode.Diagnostic[] = [];
+
+    (
+      await desmoscriptCompiler.getErrors(change.document.uri.toString())
+    ).forEach(({ start, end, reason }) => {
+      diagnostics.push({
+        severity: vscode.DiagnosticSeverity.Error,
+        range: new vscode.Range(
+          change.document.positionAt(start),
+          change.document.positionAt(end)
+        ),
+        message: reason,
+        source: "desmoscript",
+      });
+    });
+
+    diagnosticCollection.clear();
+    diagnosticCollection.set(change.document.uri, diagnostics);
+  };
+
+  vscode.workspace.onDidChangeTextDocument(updateDiagnostics);
+  vscode.workspace.onDidOpenTextDocument((doc) => {
+    updateDiagnostics({ document: doc });
+  });
 }

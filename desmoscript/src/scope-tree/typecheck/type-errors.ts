@@ -144,10 +144,10 @@ export function wrap(input: string, maxWidth: number) {
   return input
     .split("\n")
     .map((line) => {
-      let indent = line.match(/^ */)?.[0].length ?? 0;
-      let lines = [];
+      const indent = line.match(/^ */)?.[0].length ?? 0;
+      const lines = [];
       let l = "";
-      let splitInput = line.split(" ");
+      const splitInput = line.split(" ");
       let i = 0;
       for (const str of splitInput) {
         l += str;
@@ -218,7 +218,7 @@ export function formatCodeFragment(
   const nextNewline = nextNewlinePos(unit.src, err.end, context);
 
   let gutterLineNo = unit.linesAndCols[lastNewline][0];
-  let gutterPad = Math.floor(Math.log10(gutterLineNo + 2)) + 1;
+  const gutterPad = Math.floor(Math.log10(gutterLineNo + 2)) + 1;
 
   const code = `\n${unit.src.slice(lastNewline, err.start)}${ctx.format(
     unit.src.slice(err.start, err.end),

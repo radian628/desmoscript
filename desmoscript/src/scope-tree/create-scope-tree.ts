@@ -32,32 +32,30 @@ export function mapASTToAddScopes<T extends ASTNode>(
 ): Scoped<ASTNode> {
   function map<U extends ASTNode>(n: U): U extends ASTNode ? Scoped<U> : U {
     // handle arrays within astnodes
-    //@ts-ignore
+    //@ts-expect-error bad
     if (Array.isArray(n)) return n.map((e) => map(e));
 
-    //@ts-ignore
     if (n && typeof n == "object" && typeof n.id == "number") {
       // handle current node
-      //@ts-ignore
+      //@ts-expect-error bad
       if (n !== node) {
-        //@ts-ignore
+        //@ts-expect-error bad
         return mapper(n);
       }
 
       // handle direct child nodes
       const node2 = n as unknown as ASTNode;
-      //@ts-ignore
+      //@ts-expect-error bad
       return Object.fromEntries(
         Object.entries(node2).map(([k, v]) => [k, map(v)])
       );
     }
 
     // handle all other properties
-    //@ts-ignore
+    //@ts-expect-error bad
     return n;
   }
 
-  //@ts-ignore
   return map(node);
 }
 
@@ -128,7 +126,7 @@ export function addToScope(
       start = existing.start;
       end = existing.end;
     }
-    let namespaceCollision: ScopeError = {
+    const namespaceCollision: ScopeError = {
       reason: `namespace collision`,
       type: "namespace-collision",
       start,
@@ -191,7 +189,7 @@ export function addScopesToAST(
 
   switch (node.type) {
     case "fndef": {
-      let innerScope = newScope(
+      const innerScope = newScope(
         state.scope,
         newid().toString(),
         ctx,
@@ -254,7 +252,7 @@ export function addScopesToAST(
       };
     }
     case "listcomp": {
-      let innerScope = newScope(
+      const innerScope = newScope(
         state.scope,
         "listcomp" + newid().toString(),
         ctx,
@@ -289,7 +287,7 @@ export function addScopesToAST(
     case "block": {
       // having a block create a namespace is redundant
       // if it's directly within a function definition or a namespace
-      let innerScope =
+      const innerScope =
         state.parentNode?.type == "fndef" ||
         state.parentNode?.type == "namespace" ||
         node.isRoot
@@ -346,7 +344,7 @@ export function addScopesToAST(
         ctx.errors
       );
       break;
-    case "import":
+    case "import": {
       const resolvedImport = ctx.resolveImport(node.src, ctx.unit);
       if (resolvedImport === undefined) {
         ctx.errors.push(
@@ -381,7 +379,8 @@ export function addScopesToAST(
         });
       }
       break;
-    case "import-script":
+    }
+    case "import-script": {
       const resolvedImport2 = ctx.getAbsolutePath(ctx.unit, node.src);
       if (!resolvedImport2) {
         ctx.errors.push({
@@ -421,6 +420,7 @@ export function addScopesToAST(
         },
       });
       break;
+    }
     case "settings":
       addToScope(
         state.scope,
@@ -609,7 +609,7 @@ export function findIdentifierScopeItem(
     let identifierScope = searchScope;
     for (let i = 0; i < identifierSegments.length; i++) {
       const segment = identifierSegments[i];
-      let possibleNextIdentifierScope = identifierScope.elements.get(segment);
+      const possibleNextIdentifierScope = identifierScope.elements.get(segment);
 
       // found a scope content in this file
       if (possibleNextIdentifierScope) {

@@ -134,8 +134,8 @@ export function typecheckBinop(
   expr: Scoped<BinaryOpNode>,
   ctx: TypecheckContext
 ): DSType {
-  let lhs = typecheckExpr(expr.lhs, ctx);
-  let rhs = typecheckExpr(expr.rhs, ctx);
+  const lhs = typecheckExpr(expr.lhs, ctx);
+  const rhs = typecheckExpr(expr.rhs, ctx);
 
   const err = consolidateTypeErrors([lhs, rhs]);
   if (err) return err;

@@ -14,11 +14,6 @@ import * as vscode from "vscode";
 import * as languageClient from "vscode-languageclient/node";
 
 import * as desmoscript from "../../../desmoscript/src/";
-import {
-  setupDesmosOutputToJson,
-  setupDesmosPreview,
-  setupLanguageFeatures,
-} from "./extension";
 import { URI } from "vscode-uri";
 import { setupDesmosWatchServer } from "./watch-server";
 import { ioVSCode } from "./io-vscode";
@@ -35,8 +30,6 @@ desmoscript.enableDebug();
 let client: languageClient.LanguageClient;
 
 export async function activate(context: ExtensionContext) {
-  vscode.window.showErrorMessage("THIS SHOULD DISPLAY");
-
   const serverPath = context.asAbsolutePath(
     path.join("client", "out", "server-node.js")
   );

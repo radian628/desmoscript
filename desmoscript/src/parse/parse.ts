@@ -1,3 +1,4 @@
+/* eslint-disable no-constant-condition */
 import {
   ASTExpr,
   ASTNode,
@@ -100,7 +101,7 @@ export function tokenStreamify(tokens: Token[]): TokenStream {
     stringpos: () => tokens[pos]?.start ?? tokens[tokens.length - 1].start ?? 0,
     stringposend: (offset?: number, considerWhitespace?: boolean) => {
       let remainingOffset = Math.abs(offset ?? 0);
-      let offsetSign = Math.sign(offset ?? 0);
+      const offsetSign = Math.sign(offset ?? 0);
       let posOffset = 0;
       while (remainingOffset > 0) {
         posOffset += offsetSign;
@@ -231,18 +232,18 @@ export function parse(
           return false;
         },
         expectExpressionOrStatement(err, endOfInputErr) {
-          let oldpos = tokenStream.getpos();
-          let node = parseStatement(ctx);
+          const oldpos = tokenStream.getpos();
+          const node = parseStatement(ctx);
           if (node.type != "error") return node;
           tokenStream.setpos(oldpos);
           return parseExpr(ctx, 0);
         },
         expectAny(bindingPower) {
-          let oldpos = tokenStream.getpos();
-          let node = parseStatement(ctx);
+          const oldpos = tokenStream.getpos();
+          const node = parseStatement(ctx);
           if (node.type != "error") return node;
           tokenStream.setpos(oldpos);
-          let json = parseJson(ctx);
+          const json = parseJson(ctx);
           if (node.type != "error") return node;
           tokenStream.setpos(oldpos);
           return parseExpr(ctx, bindingPower ?? 0);
@@ -251,8 +252,8 @@ export function parse(
           return errnode(message);
         },
         tokenError(message) {
-          let start = tokenStream.stringpos();
-          let end = tokenStream.stringposend();
+          const start = tokenStream.stringpos();
+          const end = tokenStream.stringposend();
           if (encounteredTokenErrors.has(start)) {
             tokenStream.next();
           }
@@ -265,7 +266,7 @@ export function parse(
           };
         },
         peek(considerWhitespace?: boolean) {
-          let token = tokenStream.peek(considerWhitespace);
+          const token = tokenStream.peek(considerWhitespace);
           if (!token) throw errnode("unexpected end of input");
           return token;
         },
@@ -339,7 +340,7 @@ export function parse(
     }
   };
 
-  let ctx: ParseContext = {
+  const ctx: ParseContext = {
     tokens: tokenStream,
     node: nodeAssembler,
   };
@@ -658,7 +659,7 @@ export function parseParenthesizedOrPoint(ctx: ParseContext) {
     if (x.type === "binop" && x.op === "->") {
       a.expectToken(",");
       const possibleActionList = {
-        type: "binop" as "binop",
+        type: "binop" as const,
         lhs: x,
         rhs: a.expectExpression(0),
         op: ",",
@@ -760,33 +761,36 @@ export function parseInitExpr(
       return parseNote(ctx);
     case "number":
       return parseNumber(ctx);
-    case "ident":
-      let pos = a.getpos();
-      let node = parseFunctionCall(ctx);
+    case "ident": {
+      const pos = a.getpos();
+      const node = parseFunctionCall(ctx);
       if (getErrors(node).length == 0) return node;
       a.setpos(pos);
-      let node2 = parseMacroCall(ctx);
+      const node2 = parseMacroCall(ctx);
       if (getErrors(node2).length == 0) return node2;
       a.setpos(pos);
       return parseIdentifier(ctx);
+    }
     default:
       switch (initToken.str) {
-        case "-":
-          let pos2 = a.getpos();
+        case "-": {
+          const pos2 = a.getpos();
           const num = parseNumber(ctx);
           if (getErrors(num).length === 0) return num;
           a.setpos(pos2);
           return parseUnaryOp(ctx);
+        }
         case "[":
           return parseListOrListcomp(ctx);
         case "(":
           return parseParenthesizedOrPoint(ctx);
-        case "{":
-          let pos3 = a.getpos();
-          let node2: ASTExpr = parseBlock(ctx);
+        case "{": {
+          const pos3 = a.getpos();
+          const node2: ASTExpr = parseBlock(ctx);
           if (getErrors(node2).length == 0) return node2;
           a.setpos(pos3);
           return parseMatch(ctx);
+        }
       }
       throw a.tokenError(`unexpected token '${initToken.str}'`);
   }
@@ -978,7 +982,7 @@ export function parseFunctionDef(ctx: ParseContext) {
 
     a.expectToken(")");
 
-    let oldpos = a.getpos();
+    const oldpos = a.getpos();
     let body: BlockNode | MatchNode | ErrorNode = parseBlock(ctx);
     if (body.type == "error") {
       a.setpos(oldpos);
@@ -1076,9 +1080,10 @@ export function parseStatement(ctx: ParseContext) {
             return parseAssignment(ctx);
           case "note":
             return parseNote(ctx);
-          default:
+          default: {
             const err = a.error("expected a statement");
             return err;
+          }
         }
     }
   });
@@ -1117,19 +1122,21 @@ export function parseJson(ctx: ParseContext, topLevel?: boolean) {
             a.maybeNext();
             a.highlightLastToken("macro");
             return { type: "json-boolean", data: false };
-          case "ds":
+          case "ds": {
             a.maybeNext();
             a.highlightLastToken("keyword");
             a.expectToken("(");
             const expr = a.expectExpression();
             a.expectToken(")");
             return { type: "json-inner-expr", expr };
+          }
         }
+      // eslint-disable-next-line no-fallthrough
       default:
         if (nextToken.str == "{") {
           a.expectToken("{");
 
-          let data: [string, ASTJson][] = [];
+          const data: [string, ASTJson][] = [];
 
           let first = true;
           while (true) {
@@ -1154,7 +1161,7 @@ export function parseJson(ctx: ParseContext, topLevel?: boolean) {
         if (nextToken.str == "[") {
           a.expectToken("[");
 
-          let elements: ASTJson[] = [];
+          const elements: ASTJson[] = [];
           while (true) {
             if (a.isNextToken("]")) break;
             elements.push(a.expectJson());

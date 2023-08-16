@@ -30,7 +30,7 @@ export function setupRPCCaller<T extends object>(
         // return a getter function that gets the resource remotely
         return (...args: any[]) => {
           return new Promise((resolve, reject) => {
-            let myID = id++;
+            const myID = id++;
             let settled = false;
 
             const unsub = channel.onReceive((msg) => {

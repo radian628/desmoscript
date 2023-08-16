@@ -11,6 +11,9 @@
   "types": "dist/index.d.ts",
   "devDependencies": {
     "@types/object-inspect": "^1.8.1",
+    "@typescript-eslint/eslint-plugin": "^6.4.0",
+    "@typescript-eslint/parser": "^6.4.0",
+    "eslint": "^8.47.0",
     "prettier": "^2.8.3",
     "typescript": "^4.9.4"
   },

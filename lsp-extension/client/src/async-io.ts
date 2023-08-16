@@ -1,4 +1,3 @@
-import { IOInterface } from "../../../desmoscript/dist";
 import * as vscode from "vscode";
 import { URI, Utils as uriUtils } from "vscode-uri";
 

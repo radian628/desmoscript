@@ -18,7 +18,7 @@ export function compareAST(a: ASTNode, b: ASTNode): ASTDifference[] {
       if (!Array.isArray(b)) return false;
       if (a.length != b.length) return false;
 
-      let diffs: ASTDifference[] = [];
+      const diffs: ASTDifference[] = [];
 
       for (let i = 0; i < a.length; i++) {
         const result = c(a[i], b[i]);
@@ -30,7 +30,7 @@ export function compareAST(a: ASTNode, b: ASTNode): ASTDifference[] {
     }
 
     if (typeof a == "object" && typeof a.id == "number") {
-      let diffs: ASTDifference[] = [];
+      const diffs: ASTDifference[] = [];
 
       const anode = a as ASTNode;
       if (typeof b != "object" || typeof b.id != "number")

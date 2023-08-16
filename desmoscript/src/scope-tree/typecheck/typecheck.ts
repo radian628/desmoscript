@@ -106,7 +106,7 @@ export function getASTNode<T extends ASTNode, U extends T["type"]>(
     throw internalError(
       `ast node map lookup failed: expected a node of type '${requiredType}' but got a '${node.type}' node`
     );
-  //@ts-ignore
+  //@ts-expect-error idk
   return node;
 }
 
@@ -319,7 +319,7 @@ export function typecheckList(
   const err = consolidateTypeErrors(elemTypes);
   if (err) return err;
 
-  let elemType: DSType = elemTypes[0];
+  const elemType: DSType = elemTypes[0];
 
   if (elemType.type == "list") {
     return wrongTypeError(
@@ -734,7 +734,7 @@ export function typecheckScopeTree(
         //   )
         // );
         break;
-      case "variable":
+      case "variable": {
         const node = getASTNode<AssignmentNode, "assignment">(
           ctx,
           item.node,
@@ -742,6 +742,7 @@ export function typecheckScopeTree(
         );
         types.push(typecheckExpr(node.rhs, ctx));
         break;
+      }
       case "expression":
         types.push(typecheckExpr(getASTExpr(ctx, item.expr), ctx));
         break;

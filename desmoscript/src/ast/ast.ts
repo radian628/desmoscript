@@ -474,7 +474,7 @@ export function writeASTDebug(n: any, indent?: number): string {
         return node.number.toString();
       case "note":
         return `"${node.content}"`;
-      default:
+      default: {
         const strs = [""];
         for (const [k, v] of Object.entries(node)) {
           if (k == "start") continue;
@@ -485,6 +485,7 @@ export function writeASTDebug(n: any, indent?: number): string {
         }
         strs.push("");
         return `(${node.type} ${strs.join("\n" + "".padStart(indent, " "))})`;
+      }
     }
   }
 
@@ -526,17 +527,15 @@ export function forEachAST<Ctx>(
   mapper: (node: ASTNode, ctx: Ctx) => Ctx
 ): void {
   function map<T>(n: T, myctx: Ctx): void {
-    //@ts-ignore
+    //@ts-expect-error not even gonna try
     if (Array.isArray(n)) return n.map((e) => map(e, myctx));
 
-    //@ts-ignore
+    //@ts-expect-error not even gonna try
     if (n && typeof n == "object" && typeof n.id == "number") {
       const node = n as unknown as ASTNode;
 
-      //@ts-ignore
       const innerctx = mapper(node, myctx);
 
-      //@ts-ignore
       Object.entries(node).forEach(([k, v]) => [k, map(v, innerctx)]);
     }
   }
@@ -550,17 +549,15 @@ export async function forEachASTAsync<Ctx>(
   mapper: (node: ASTNode, ctx: Ctx) => Promise<Ctx>
 ): Promise<void> {
   async function map<T>(n: T, myctx: Ctx): Promise<void> {
-    //@ts-ignore
+    //@ts-expect-error not even gonna try
     if (Array.isArray(n)) return await Promise.all(n.map((e) => map(e, myctx)));
 
-    //@ts-ignore
+    //@ts-expect-error not even gonna try
     if (n && typeof n == "object" && typeof n.id == "number") {
       const node = n as unknown as ASTNode;
 
-      //@ts-ignore
       const innerctx = await mapper(node, myctx);
 
-      //@ts-ignore
       await Promise.all(Object.entries(node).map(([k, v]) => map(v, innerctx)));
     }
   }

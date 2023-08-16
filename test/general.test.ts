@@ -23,18 +23,6 @@ function stateWith(exprs: any) {
 }
 
 export const ioNode: IOInterface = {
-  watchFile: (str, onchange) => {
-    const watcher = chokidar.watch(str, {
-      awaitWriteFinish: {
-        pollInterval: 50,
-        stabilityThreshold: 1000,
-      },
-    });
-    watcher.on("change", onchange);
-    watcher.on("delete", onchange);
-
-    return () => watcher.close();
-  },
   writeFile: (str, data) => fs.writeFile(str, data),
   readFile: async (str) => new Uint8Array((await fs.readFile(str)).buffer),
   resolvePath: path.resolve,
@@ -60,6 +48,7 @@ function testExpressionsList(filename: string, expected: any[]) {
     });
 
     test("No errors?", () => {
+      console.log("got here");
       expect(output.errors).toEqual([]);
       expect(output.type).toEqual("success");
     });
@@ -74,6 +63,7 @@ function testExpressionsList(filename: string, expected: any[]) {
     for (const e of expected) {
       const i2 = i;
       test(e.latex ?? e.type ?? JSON.stringify(e), () => {
+        console.log("got here", e.latex);
         expect((output as any)?.state?.expressions?.list?.[i2]).toMatchObject(
           e
         );
@@ -105,6 +95,10 @@ function testGraphState(filename: string, expected: any) {
 function noNewlines(str: string) {
   return str.replace(/\n/g, "");
 }
+
+test("y u no work", () => {
+  expect(1).toEqual(2);
+});
 
 testExpressionsList("anon-block.desmo", [
   {

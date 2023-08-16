@@ -15,7 +15,13 @@ import {
   ResultOk,
   assertNotUndefined,
 } from "../compiler-errors.js";
-import { DesmoCallback, lex, parse, typecheckScopeTree } from "../index.js";
+import {
+  DesmoCallback,
+  format,
+  lex,
+  parse,
+  typecheckScopeTree,
+} from "../index.js";
 import { resolveFileImports } from "../scope-tree/resolve-imports.js";
 import {
   CompileDesmoscriptSettings,
@@ -490,7 +496,9 @@ export function compileDesmoscriptForLanguageSupport(
       const unit = ctx.compilationUnits.get(filename);
       if (!unit) return undefined;
 
-      const fmtted = formatAST(unit.ast);
+      const fmtted = format(unit.ast);
+
+      if (!fmtted) return undefined;
 
       const flexed = lex(fmtted, unit.name, []);
 

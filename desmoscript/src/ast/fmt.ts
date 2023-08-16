@@ -56,7 +56,7 @@ export function formatAST(n: ASTNode, c?: FmtCtx): string {
     // binary operation rules:
     // if tree is less than maxlen, keep it all in a single line
     // if tree is greater than maxlen, split it up with ops at beginning
-    case "binop":
+    case "binop": {
       if (ctx.splitByLine === undefined) {
         let str = formatAST(n, ctxwith({ splitByLine: false }));
         if (str.length > ctx.maxlen) {
@@ -88,11 +88,17 @@ export function formatAST(n: ASTNode, c?: FmtCtx): string {
           );
         }
 
-        let l = formatAST(n.lhs, ctxwith({ bindingPower, splitByLine: true }));
-        let r = formatAST(n.rhs, ctxwith({ bindingPower, splitByLine: true }));
+        const l = formatAST(
+          n.lhs,
+          ctxwith({ bindingPower, splitByLine: true })
+        );
+        const r = formatAST(
+          n.rhs,
+          ctxwith({ bindingPower, splitByLine: true })
+        );
 
         // split by line
-        let str =
+        const str =
           n.op == "["
             ? `${l}[\n${r}\n]`
             : `${l}\n${indent(ctx.indent)}${n.op} ${r}`;
@@ -101,15 +107,15 @@ export function formatAST(n: ASTNode, c?: FmtCtx): string {
         if (bindingPower < ctx.bindingPower) return `(${str})`;
         return str;
       } else {
-        let l = formatAST(n.lhs, ctxwith({ bindingPower }));
-        let r = formatAST(n.rhs, ctxwith({ bindingPower }));
-        let str = n.op == "[" ? `${l}[${r}]` : `${l} ${n.op} ${r}`;
+        const l = formatAST(n.lhs, ctxwith({ bindingPower }));
+        const r = formatAST(n.rhs, ctxwith({ bindingPower }));
+        const str = n.op == "[" ? `${l}[${r}]` : `${l} ${n.op} ${r}`;
         if (bindingPower < ctx.bindingPower) return `(${str})`;
         return str;
       }
-
-    case "block":
-      let rootOffset = n.isRoot ? 0 : ctx.tabSize;
+    }
+    case "block": {
+      const rootOffset = n.isRoot ? 0 : ctx.tabSize;
       return `${ctx.dontIndentFirst ? "" : /*indent(ctx.indent)*/ ""}${
         n.isRoot ? "" : "{"
       }${n.isRoot ? "" : "\n"}${n.body
@@ -128,17 +134,17 @@ export function formatAST(n: ASTNode, c?: FmtCtx): string {
             "\n"
         )
         .join("")}${indent(ctx.indent)}${n.isRoot ? "" : "}"}`;
-
+    }
     case "error":
       // TODO: figure out how to deal with this properly
       return `##ERROR: ${n.reason}##`;
 
-    case "fncall":
+    case "fncall": {
       const fnname = formatAST(n.name);
       const fnparams = n.params.map((p) =>
         formatAST(p, ctxwith({ indent: ctx.indent + ctx.tabSize }))
       );
-      let str = `${fnname}(${fnparams.join(", ")})`;
+      const str = `${fnname}(${fnparams.join(", ")})`;
 
       // split function call by lines if too long
       if (maxLineLength(str) > ctx.maxlen) {
@@ -147,6 +153,7 @@ export function formatAST(n: ASTNode, c?: FmtCtx): string {
         )}\n${indent(ctx.indent)})`;
       }
       return str;
+    }
 
     case "fndef": {
       const fndefparams = n.params.join(", ");
@@ -266,7 +273,7 @@ export function formatAST(n: ASTNode, c?: FmtCtx): string {
       const fnparams = n.params.map((p) =>
         formatAST(p, ctxwith({ indent: ctx.indent + ctx.tabSize }))
       );
-      let str = `${fnname}!(${fnparams.join(", ")})`;
+      const str = `${fnname}!(${fnparams.join(", ")})`;
 
       // split function call by lines if too long
       if (maxLineLength(str) > ctx.maxlen) {
@@ -334,13 +341,13 @@ export function formatAST(n: ASTNode, c?: FmtCtx): string {
       return str;
     }
 
-    case "range":
+    case "range": {
       const nextIndent = ctxwith({ indent: ctx.indent + ctx.tabSize });
       const lhs = formatAST(n.lhs, nextIndent);
       const rhs = formatAST(n.rhs, nextIndent);
       if (n.step) return `[${lhs},${formatAST(n.step, nextIndent)}..${rhs}]`;
       return `[${lhs}..${rhs}]`;
-
+    }
     case "show":
       return `show ${formatAST(n.body, ctx)} ${formatAST(n.settings, ctx)}`;
 

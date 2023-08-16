@@ -82,8 +82,6 @@ export function lexAndParse(
 
   const ast = parse(tokens, filename, errors, highlights);
 
-  //console.log("ast", writeASTDebug(ast));
-
   return ast;
 }
 
@@ -256,8 +254,6 @@ export async function compileDesmoscript(
   entryPoint: string,
   settings: CompileDesmoscriptSettings
 ): Promise<CompilerOutput> {
-  console.log("compile desmoscript called!!");
-
   const imports = new Map<
     string,
     {
@@ -287,7 +283,6 @@ export async function compileDesmoscript(
     lexAndParse,
     errors,
     getFile: async (filepath) => {
-      console.log("getFile from full-compiler", filepath);
       if (settings.unsavedFiles.has(filepath)) {
         const unsavedFile = settings.unsavedFiles.get(filepath) as string;
         return unsavedFile;

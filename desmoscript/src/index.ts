@@ -7,7 +7,8 @@ import {
 } from "./ast/ast.js";
 import { MacroAPI } from "./macro/macro-api.js";
 
-export let placeholder = 0;
+// what is this? might remove
+export const placeholder = 0;
 
 export function getLinesAndCols(str: string): [number, number][] {
   const linesAndCols: [number, number][] = [];

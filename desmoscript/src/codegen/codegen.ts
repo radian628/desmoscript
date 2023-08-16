@@ -158,8 +158,6 @@ export function getNameForIdentifier(
     ctx.identifierNames.set(scopeItem.identifier.id, proposedName);
   };
 
-  console.log("scope name path", scopeNamePath, ctx.currentUnit);
-
   for (const identPathElem of scopeNamePath) {
     proposedName = capitalizeFirst(identPathElem) + proposedName;
     if (!ctx.existingNames.has(proposedName)) {

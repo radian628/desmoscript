@@ -32,7 +32,7 @@ export type InstantiateMacroContext = {
   resolveImport: (str: string, importer: string) => string;
   errors: CompilerError[];
   io: IOInterface;
-  watchFiles: Set<String>;
+  watchFiles: Set<string>;
   importScripts: ImportScriptsMap;
   getAbsolutePath: (cwdfile: string, path: string) => string;
 };
