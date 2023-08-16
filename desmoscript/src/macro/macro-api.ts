@@ -13,6 +13,7 @@ import { getLinesAndCols } from "../index.js";
 import { uint8ArrayToString } from "../io/io.js";
 import { lex } from "../parse/lex.js";
 import { parse } from "../parse/parse.js";
+import { wrongTypeError } from "../scope-tree/typecheck/type-errors.js";
 import { InstantiateMacroContext } from "./instantiate-macros.js";
 
 import * as inspect from "object-inspect";
@@ -20,6 +21,18 @@ import * as inspect from "object-inspect";
 export type MacroError = {
   reason: string | CompilerError[];
 };
+export function assertNodeType<
+  NodeType extends ASTNode["type"],
+  T extends ASTNode & { type: NodeType }
+>(unit: string, type: NodeType, node: ASTNode) {
+  if (node.type === type) return node as T;
+
+  throw wrongTypeError(
+    node,
+    unit,
+    `Expected a '${type}' node, but got a '${node.type}' node.`
+  );
+}
 
 export function macroError(
   reason: string | CompilerError,
@@ -73,6 +86,11 @@ export function mapASTChildren<ASTNode>(
   return { ...map(node), id: newid() };
 }
 
+export type MacroCodegenAPI = {
+  codegen: (node: Scoped<ASTExpr>) => string;
+  getNameForIdentifier: (path: string[], scope: Scope) => string;
+};
+
 export type MacroAPI = {
   // parse a string (this will be the main way macros are used)
   // because manually creating AST nodes is honestly more annoying
@@ -95,6 +113,14 @@ export type MacroAPI = {
   debug: (...args: any[]) => void;
 
   node: <T extends ASTNode>(node: Omit<T, "start" | "end" | "id">) => T;
+
+  assertNodeType: <
+    NodeType extends ASTNode["type"],
+    T extends ASTNode & { type: NodeType }
+  >(
+    type: NodeType,
+    node: ASTNode
+  ) => T;
 };
 
 export function getMacroAPI(
@@ -120,6 +146,8 @@ export function getMacroAPI(
   }
 
   return {
+    assertNodeType: (type, node) => assertNodeType(ctx.unit, type, node),
+
     //@ts-ignore
     node: (t) => {
       return {
@@ -178,10 +206,8 @@ export function getMacroAPI(
           "Debug output from macro:\n" +
             args
               .map((arg) =>
-                (
-                  // @ts-ignore
-                  (inspect.default as typeof inspect) ?? inspect
-                )(arg)
+                // @ts-ignore
+                ((inspect.default as typeof inspect) ?? inspect)(arg)
               )
               .join("\n"),
           call,

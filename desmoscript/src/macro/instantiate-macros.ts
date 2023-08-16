@@ -90,6 +90,8 @@ export function instantiateMacros(
 
     instantiated = true;
 
+    scopedNode.useInnerScope = scopeItem.identifier.useInnerScope;
+
     scopedNode.result = scopeItem.identifier.macroOperation(
       scopedNode,
       getMacroAPI(ctx.errors, scopedNode, ctx)
@@ -144,7 +146,9 @@ export async function resolveMacros(
         node.result as ASTNode,
         {
           parentNode,
-          scope: (node as Scoped<ASTNode>).enclosingScope,
+          scope: node.useInnerScope
+            ? (node as Scoped<MacroCallNode>).innerScope
+            : (node as Scoped<MacroCallNode>).enclosingScope,
         },
         {
           ...ctx,

@@ -248,6 +248,34 @@ export function generateExprCode(
       if (!result || result instanceof Promise)
         throw internalError("UNRESOLVED MACRO");
 
+      const macrocall = findIdentifierScopeItem(
+        ctx.units.get(ctx.currentUnit) as CompilationUnit,
+        e.enclosingScope,
+        e.name.segments,
+        { compilationUnits: ctx.units }
+      );
+
+      if (
+        macrocall.result === "found" &&
+        macrocall.identifier.type === "macro"
+      ) {
+        const macro = macrocall.identifier;
+        if (macro.customCodegen) {
+          try {
+            return macro.customCodegen(e, {
+              codegen(node) {
+                return c(node);
+              },
+              getNameForIdentifier(path, scope) {
+                return getNameForIdentifier(path, scope, ctx);
+              },
+            });
+          } catch {
+            return "customcodegenfailed!";
+          }
+        }
+      }
+
       const resultExpr = asExpr(result);
 
       if (resultExpr.success && resultExpr.data.type != "note") {
@@ -456,7 +484,8 @@ export function generateCodeForScopeTree(ctx: CodegenContext, scope: Scope) {
 
       // add scope to the expression list
       case "scope":
-        if (item.scope.elements.size == 0) break;
+        if (item.scope.elements.size == 0 || item.ignoreTypecheckAndCodegen)
+          break;
         const oldFolderState = ctx.folderState;
         const newFolderState = {
           id: newid().toString(),

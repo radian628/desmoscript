@@ -4,24 +4,17 @@ import script "./3dTest.mjs"
 "The way to do this is to use sums to bind reusable variables."
 "Unlike substitutions, these can be arbitrarily nested."
 
-ns prev {
-  n = 0;
-}
+monke = with!(
+    polygon((vx / vz, vy / vz)[i1], (vx / vz, vy / vz)[i2], (vx / vz, vy / vz)[i3]),
+    {
+        vx = verticesX!();
+        vy = verticesY!();
+        vz = verticesZ!() + 10;
+        i1 = indices1!();
+        i2 = indices2!();
+        i3 = indices3!();
+    }
+);
 
-loop!(looptest, 3, {
-      n = 1;
-    }, {
-      n = prev.n * 2;
-    });
-
-loop!(looptest2, 5, {
-      n = 3;
-    }, {
-      n = prev.n + 1;
-    });
-
-result = looptest2.n * 69;
-
-x = four!();
 
 settings @{ viewport: @{ xmin: -2, ymin: -2, xmax: 2, ymax: 2 } }

@@ -1,14 +1,19 @@
 import {
+  ASTExpr,
   ASTNode,
+  AssignmentNode,
   BlockNode,
   IdentifierNode,
+  ListNode,
   NamespaceNode,
   NoteNode,
   NumberNode,
   Scope,
+  ScopeContent,
+  Scoped,
   newid,
 } from "../ast/ast.js";
-import { mapASTChildren } from "../macro/macro-api.js";
+import { assertNodeType, mapASTChildren } from "../macro/macro-api.js";
 import {
   ASTScopingContext,
   addToScope,
@@ -16,7 +21,9 @@ import {
 import {
   DSPrimitiveType,
   DSType,
+  addVarsToCtx,
   typeAsStr,
+  typecheckExpr,
 } from "../scope-tree/typecheck/typecheck.js";
 
 const desmosVariables = ["x", "y", "t", "index", "theta"];
@@ -390,6 +397,141 @@ export function addStdlibToScope(scope: Scope, ctx: ASTScopingContext) {
         definedByDesmos: true,
         unitName: "",
         typeSignature: { type: "number" },
+      },
+      ctx.errors
+    );
+  }
+
+  // e.g. with!(body, definitions)
+  // with!(a + b, { a = 3; b = 4; })
+  addToScope(
+    scope,
+    "with",
+    {
+      type: "macro",
+      id: newid(),
+      useInnerScope: true,
+      unitName: "",
+      macroOperation: async (node, a) => {
+        const definitions = a.assertNodeType("block", node.params[1]);
+
+        for (const stmt of definitions.body) {
+          const assign = a.assertNodeType("assignment", stmt);
+          if (assign) {
+            node.innerScope.elements.set(assign.lhs, {
+              type: "builtin-variable",
+              id: newid(),
+              unitName: "",
+            });
+          }
+        }
+
+        return a.node<ListNode>({
+          type: "list",
+          elements: node.params as ASTExpr[],
+        });
+      },
+      customTypecheck(node, ctx) {
+        const elements = assertNodeType(
+          "",
+          "list",
+          node.result as ASTNode
+        ).elements;
+        const body = elements[0] as ASTExpr;
+
+        const definitions = assertNodeType("", "block", elements[1]);
+
+        const knownTypes = new Map<number, DSType>();
+
+        for (const stmt of definitions.body) {
+          const assign = assertNodeType("", "assignment", stmt);
+
+          const variable = node.innerScope.elements.get(assign.lhs);
+
+          knownTypes.set(
+            (variable as ScopeContent).id,
+            typecheckExpr(assign.rhs as Scoped<ASTExpr>, ctx)
+          );
+        }
+
+        return typecheckExpr(
+          body as Scoped<ASTExpr>,
+          addVarsToCtx(ctx, knownTypes)
+        );
+      },
+      customCodegen(node, a) {
+        const elements = assertNodeType(
+          "",
+          "list",
+          node.result as ASTNode
+        ).elements;
+        const body = elements[0] as Scoped<ASTExpr>;
+        const definitions = assertNodeType("", "block", elements[1]);
+        return `\\left(${a.codegen(body)}\\operatorname{with}${definitions.body
+          .map((expr) => {
+            const assign = assertNodeType(
+              "",
+              "assignment",
+              expr
+            ) as Scoped<AssignmentNode>;
+            return `${a.getNameForIdentifier(
+              [assign.lhs],
+              node.innerScope
+            )}=${a.codegen(assign.rhs)}`;
+          })
+          .join(",")}\\right)`;
+      },
+    },
+    ctx.errors
+  );
+
+  // sum!(var, lo, hi, body)
+  for (const opname of ["sum", "prod"]) {
+    addToScope(
+      scope,
+      opname,
+      {
+        type: "macro",
+        id: newid(),
+        useInnerScope: true,
+        unitName: "",
+        macroOperation: async (node, a) => {
+          node.innerScope.elements.set(
+            (node.params[0] as IdentifierNode).segments[0],
+            {
+              type: "builtin-variable",
+              id: newid(),
+              unitName: "",
+            }
+          );
+          return a.node<ListNode>({
+            type: "list",
+            elements: node.params as ASTExpr[],
+          });
+        },
+        customTypecheck(node, ctx) {
+          const elements = (node.result as Scoped<ListNode>).elements;
+          const varname = (elements[0] as IdentifierNode).segments[0];
+          const variable = node.innerScope.elements.get(varname);
+          const knownTypes = new Map<number, DSType>();
+
+          knownTypes.set(
+            (variable as ScopeContent).id,
+            typecheckExpr(elements[1] as Scoped<ASTExpr>, ctx)
+          );
+          return typecheckExpr(
+            elements[3] as Scoped<ASTExpr>,
+            addVarsToCtx(ctx, knownTypes)
+          );
+        },
+        customCodegen(node, a) {
+          const elements = (node.result as Scoped<ListNode>).elements;
+          const variable = a.codegen(elements[0] as Scoped<ASTExpr>);
+          const lo = a.codegen(elements[1] as Scoped<ASTExpr>);
+          const hi = a.codegen(elements[2] as Scoped<ASTExpr>);
+          const body = a.codegen(elements[3] as Scoped<ASTExpr>);
+          return `\\${opname}_{${variable}=${lo}}^{${hi}}\\left(${body}\\right)`;
+        },
       },
       ctx.errors
     );

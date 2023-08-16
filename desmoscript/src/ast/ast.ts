@@ -1,6 +1,6 @@
 import { Result, err, ok } from "../compiler-errors.js";
-import { MacroAPI } from "../macro/macro-api.js";
-import { DSType } from "../scope-tree/typecheck/typecheck.js";
+import { MacroAPI, MacroCodegenAPI } from "../macro/macro-api.js";
+import { DSType, TypecheckContext } from "../scope-tree/typecheck/typecheck.js";
 import { BuiltinTypeSignature } from "../stdlib/stdlib.js";
 
 export type CompilationUnit = {
@@ -27,6 +27,10 @@ export type ScopeContentBuiltinVariable = {
   id: number;
   definedByDesmos?: boolean; //e.g. t, x, y, index
   typeSignature?: DSType;
+  computedTypeSignature?: (
+    expr: Scoped<IdentifierNode>,
+    ctx: TypecheckContext
+  ) => DSType;
 };
 
 export type ScopeContentBuiltinFunction = {
@@ -68,6 +72,7 @@ export type ScopeContentScope = {
   unitName: string;
   id: number;
   isWithinFunction?: boolean;
+  ignoreTypecheckAndCodegen?: boolean;
 } & LexingInfo;
 
 export type ScopeContentSettings = {
@@ -92,10 +97,16 @@ export type ScopeContentMacro = {
   unitName: string;
   start?: undefined;
   end?: undefined;
+  useInnerScope?: boolean;
   macroOperation: (
     node: Scoped<MacroCallNode>,
     a: MacroAPI
   ) => Promise<ASTNode>;
+  customTypecheck?: (
+    node: Scoped<MacroCallNode>,
+    ctx: TypecheckContext
+  ) => DSType;
+  customCodegen?: (node: Scoped<MacroCallNode>, a: MacroCodegenAPI) => string;
 };
 
 export type ScopeContent =
@@ -161,7 +172,7 @@ type ScopeChildren<T> = T extends ASTNode
   : T;
 
 export type Scoped<T extends ASTNode> = T extends any
-  ? T["type"] extends "block" | "listcomp" | "fndef" | "namespace"
+  ? T["type"] extends "block" | "listcomp" | "fndef" | "namespace" | "macrocall"
     ? ScopeChildren<T> & InnerScoped
     : ScopeChildren<T> & EnclosingScoped
   : never;
@@ -171,6 +182,7 @@ export type ChildlessScoped<T extends ASTNode> = T["type"] extends
   | "listcomp"
   | "fndef"
   | "namespace"
+  | "macrocall"
   ? T & InnerScoped
   : T & EnclosingScoped;
 
@@ -417,6 +429,7 @@ export type MacroCallNode = {
   id: number;
   params: ASTNode[]; // you can pass literally anything into a macro as long as it parses
   result?: Promise<ASTNode> | ASTNode;
+  useInnerScope?: boolean;
   name: IdentifierNode;
 } & LexingInfo;
 

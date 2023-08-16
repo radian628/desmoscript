@@ -76,7 +76,8 @@ export function newScope(
   ctx: ASTScopingContext,
   start: number,
   end: number,
-  isWithinFunction?: boolean
+  isWithinFunction?: boolean,
+  ignoreTypecheckAndCodegen?: boolean
 ): Scope {
   const scope = {
     elements: new Map(),
@@ -98,6 +99,7 @@ export function newScope(
         start,
         end,
         isWithinFunction,
+        ignoreTypecheckAndCodegen,
       },
       ctx.errors
     );
@@ -437,9 +439,20 @@ export function addScopesToAST(
         ctx.errors
       );
       break;
-    case "macrocall":
+    case "macrocall": {
+      const innerScope = newScope(
+        state.scope,
+        "macro" + newid().toString(),
+        ctx,
+        node.start,
+        node.end,
+        undefined,
+        true
+      );
+
       if (node.result && !(node.result instanceof Promise)) {
         exprResult = {
+          innerScope,
           ...node,
           enclosingScope: state.scope,
           // don't do scope resolution on macro params
@@ -452,12 +465,22 @@ export function addScopesToAST(
             node.result,
             {
               parentNode: state.parentNode,
-              scope: state.scope,
+              scope: node.useInnerScope ? innerScope : state.scope,
             },
             ctx
           ),
         };
+      } else {
+        exprResult = {
+          innerScope,
+          ...node,
+          enclosingScope: state.scope,
+          params: node.params,
+          name: child(node.name),
+          result: node.result,
+        };
       }
+    }
   }
 
   if (

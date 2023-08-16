@@ -280,6 +280,8 @@ export function typecheckIdentifier(
     // builtin variables' types are provided by other expressions
     // (e.g. function calls or list comprehensions)
     // so knownTypes must contain them
+    if (identifierScopeItem.identifier.computedTypeSignature)
+      return identifierScopeItem.identifier.computedTypeSignature(expr, ctx);
     if (identifierScopeItem.identifier.typeSignature)
       return identifierScopeItem.identifier.typeSignature;
 
@@ -636,6 +638,27 @@ export function typecheckMacrocall(
   expr: Scoped<MacroCallNode>,
   ctx: TypecheckContext
 ) {
+  const lookup = findIdentifierScopeItem(
+    ctx.units.get(ctx.unitName) as CompilationUnit,
+    expr.enclosingScope,
+    expr.name.segments,
+    { compilationUnits: ctx.units }
+  );
+
+  if (lookup.result === "found" && lookup.identifier.type === "macro") {
+    if (lookup.identifier.customTypecheck) {
+      try {
+        return lookup.identifier.customTypecheck(expr, ctx);
+      } catch {
+        return wrongTypeError(
+          expr,
+          ctx.unitName,
+          "Custom typecheck encountered an exception."
+        );
+      }
+    }
+  }
+
   const result = expr.result;
   if (!result) return wrongTypeError(expr, ctx.unitName, `unresolved macro!`);
   if (result instanceof Promise)
@@ -747,7 +770,8 @@ export function typecheckScopeTree(
         types.push(typecheckExpr(getASTExpr(ctx, item.expr), ctx));
         break;
       case "scope":
-        if (!item.isWithinFunction) typecheckScopeTree(item.scope, ctx, types);
+        if (!item.isWithinFunction && !item.ignoreTypecheckAndCodegen)
+          typecheckScopeTree(item.scope, ctx, types);
         break;
       case "import":
         typecheckScopeTree(

@@ -97,7 +97,7 @@ export function notFoundError(
 }
 
 export function wrongTypeError(
-  expr: Scoped<ASTNode>,
+  expr: ASTNode,
   unit: string,
   reason: string
 ): ErrorType {
