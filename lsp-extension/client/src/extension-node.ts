@@ -35,6 +35,8 @@ desmoscript.enableDebug();
 let client: languageClient.LanguageClient;
 
 export async function activate(context: ExtensionContext) {
+  vscode.window.showErrorMessage("THIS SHOULD DISPLAY");
+
   const serverPath = context.asAbsolutePath(
     path.join("client", "out", "server-node.js")
   );

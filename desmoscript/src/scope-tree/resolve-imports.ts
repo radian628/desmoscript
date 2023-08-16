@@ -11,6 +11,11 @@ import { Highlights } from "../parse/parse.js";
 import { IOInterface } from "../io/io.js";
 import { ImportScriptsMap } from "../combined-functionality/language-support-compiler.js";
 
+export const untranspilableDynamicImport = new Function(
+  "src",
+  "return import(src);"
+);
+
 export async function resolveFileImports(
   filename: string,
   importer: string,
@@ -75,7 +80,7 @@ export async function resolveFileImports(
           const iscriptSrc = await ctx.getFile(iscriptFullPath);
           ctx.watchFiles.add(iscriptFullPath);
           try {
-            const importScript = await import(
+            const importScript = await untranspilableDynamicImport(
               `data:text/javascript,${encodeURIComponent(iscriptSrc)}`
             );
             ctx.importScripts.set(iscriptFullPath, {

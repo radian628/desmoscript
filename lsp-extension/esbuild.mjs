@@ -38,9 +38,30 @@ const browserCtx = await esbuild.context({
   outdir: "./client/out",
   external: ["vscode"],
   plugins: [buildNotify("Browser")],
+  sourcemap: true,
+  platform: "browser",
+  format: "cjs",
+  supported: {
+    "dynamic-import": true,
+  },
+  target: "es2020",
+});
+
+const browserCtxServer = await esbuild.context({
+  entryPoints: ["./client/src/server-browser.ts"],
+  bundle: true,
+  outdir: "./client/out",
+  plugins: [buildNotify("Browser Server")],
+  sourcemap: true,
+  platform: "browser",
+  format: "esm",
+  supported: {
+    "dynamic-import": true,
+  },
 });
 
 await nodeCtx.rebuild();
 await browserCtx.rebuild();
+await browserCtxServer.rebuild();
 
 process.exit(0);

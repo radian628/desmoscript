@@ -12,7 +12,7 @@ i3 = indices3!();
 
 fn project(x, y, z) {
   (x / z, y / z)
-}
+} 
 
 ns camera {
   x = 0;

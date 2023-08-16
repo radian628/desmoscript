@@ -11,10 +11,10 @@ import { runWatchServer } from "../../../standalone-compiler/src/watch-server";
 import { ioPathVSCode } from "./io-path-vscode";
 
 process.on("beforeExit", (code) => {
-  console.log("exit code: ", code);
+  // console.log("exit code: ", code);
 });
 process.on("unhandledRejection", (code) => {
-  console.log("unhandled rejection: ", code);
+  // console.log("unhandled rejection: ", code);
 });
 
 try {
@@ -23,32 +23,11 @@ try {
   );
 
   process.on("message", (msg) => {
-    console.log("langserver received", msg);
+    // console.log("langserver received", msg);
   });
 
   const io = {
-    resolvePath: (uri, ...args) => {
-      if (args[0]) {
-        // if the supplied path is absolute, just ignore the prev path
-        try {
-          const parsedArg0 = URI.parse(args[0], true);
-          return io.resolvePath(parsedArg0.toString(), ...args.slice(1));
-        } catch {
-          // no-op
-        }
-      }
-
-      const resolvedPath = uriUtils
-        .resolvePath(URI.parse(uri), ...args)
-        .toString();
-
-      return resolvedPath;
-    },
-    dirname: (str) => {
-      const directoryName = uriUtils.dirname(URI.parse(str)).toString();
-      return directoryName;
-    },
-    relativePath: (from, to) => to,
+    ...ioPathVSCode,
     readFile: asyncIO.readFile,
     writeFile: asyncIO.writeFile,
   };

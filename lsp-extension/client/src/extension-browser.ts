@@ -25,23 +25,44 @@ import {
   setupLanguageFeatures,
 } from "./extension";
 import { ioVSCode } from "./io-vscode";
-
-desmoscript.enableDebug();
+import { attachLanguageServer } from "./attach-langserver";
+import { LanguageSupportFeatures } from "../../../desmoscript/src/combined-functionality/language-support-compiler";
+import { makeBrowserChannelInMain } from "./browser-channel";
+import { asyncSubsetIOInterface } from "./async-io";
 
 let client: languageClient.LanguageClient;
+console.log("does console.log show up here?");
+
+// @ts-expect-error getting dynamic imports owrking
+globalThis.require = (src: string) => import(src);
 
 export function activate(context: ExtensionContext) {
-  vscode.window.showErrorMessage("THIS SHOULD DISPLAY FFS");
+  vscode.window.showErrorMessage("THIS SHOULD DISPLAY");
 
   console.log("does console.log show up here?");
 
-  setupLanguageFeatures(context, ioVSCode);
+  const serverPath = vscode.Uri.joinPath(
+    context.extensionUri,
+    "client/out/server-browser.js"
+  ).toString(true);
 
-  setupDesmosPreview(context, ioVSCode);
-  setupDesmosOutputToJson(context, ioVSCode);
+  const langserver = new Worker(serverPath);
+
+  desmoscript.setupRPCCallee(
+    makeBrowserChannelInMain("io", langserver),
+    asyncSubsetIOInterface
+  );
+
+  attachLanguageServer(
+    context,
+    desmoscript.setupRPCCaller<LanguageSupportFeatures>(
+      makeBrowserChannelInMain("desmo", langserver)
+    )
+  );
 }
 
 export function deactivate(): Thenable<void> | undefined {
+  console.log("deactivate?");
   if (!client) {
     return undefined;
   }
