@@ -1,9 +1,5 @@
 import script "./3dTest.mjs"
 
-"In theory, we can get Suzanne in a single expression."
-"The way to do this is to use sums to bind reusable variables."
-"Unlike substitutions, these can be arbitrarily nested."
-
 monke = with!(
     polygon((vx / vz, vy / vz)[i1], (vx / vz, vy / vz)[i2], (vx / vz, vy / vz)[i3]),
     {
