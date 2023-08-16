@@ -179,8 +179,8 @@ export function getMacroAPI(
             args
               .map((arg) =>
                 (
-                  (// @ts-ignore
-                  inspect.default as typeof inspect) ?? inspect
+                  // @ts-ignore
+                  (inspect.default as typeof inspect) ?? inspect
                 )(arg)
               )
               .join("\n"),

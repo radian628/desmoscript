@@ -6,27 +6,34 @@ import { runWatchServer } from "../../../standalone-compiler/src/watch-server";
 
 import getPort, { portNumbers } from "get-port";
 import { URI } from "vscode-uri";
+import {
+  WatchServerDefiner,
+  WatchServerInterface,
+} from "./watch-server-interface";
+import { ChildProcess } from "child_process";
+import { makeChannel } from "./channel-node";
+import { setupRPCCallee } from "../../../desmoscript/dist";
+import { ioPathVSCode } from "./io-path-vscode";
+import { RPCIfied } from "../../../desmoscript/dist/rpc/rpc";
+
+let serverId = 0;
 
 export function setupDesmosWatchServer(
   context: ExtensionContext,
-  io: IOInterface
+  serverDefiner: RPCIfied<WatchServerDefiner>,
+  serverProcess: ChildProcess
+  // io: IOInterface
 ) {
   context.subscriptions.push(
     vscode.commands.registerCommand(
       "desmoscript.watch",
       async (providedFilename) => {
-        console.log("TRYING TO RUN DESMO SERVER");
-
         const filename = (
           providedFilename ?? vscode.window.activeTextEditor.document.uri
         ).toString();
 
-        console.log("server checkpoint 1");
-
         const host = "127.0.0.1";
         const port = await getPort({ port: portNumbers(3000, 3100) });
-
-        console.log("server checkpoint 2");
 
         const panel = vscode.window.createWebviewPanel(
           "desmoscript",
@@ -34,8 +41,6 @@ export function setupDesmosWatchServer(
           vscode.ViewColumn.One,
           { enableScripts: true, retainContextWhenHidden: true }
         );
-
-        console.log("server checkpoint 3");
 
         panel.webview.html = `<!DOCTYPE html>
       <html><head>
@@ -107,11 +112,77 @@ pre {
           }
         });
 
-        console.log("server checkpoint 4");
+        const myID = "watch-server-" + (serverId++).toString();
 
-        const closeServer = await runWatchServer({
-          translateFilePath: (p) => URI.parse(p).fsPath,
-          io,
+        setupRPCCallee<WatchServerInterface>(
+          makeChannel(myID, serverProcess, serverProcess),
+          {
+            onCompileStart: () => {
+              panel.webview.postMessage({
+                type: "set-status",
+                data: "Compiling...",
+              });
+            },
+            onCompile: (output, duration) => {
+              let webviewMessage = "";
+
+              panel.webview.postMessage({
+                type: "set-error-messages",
+                data:
+                  "\0end\x01" +
+                  output.errors
+                    .map((err) =>
+                      desmoscript.formatError(
+                        {
+                          io: ioPathVSCode,
+                          entry: filename,
+                          sourceCode: output.sourceCode,
+                          maxWidth: 80,
+                          format: (str, { type }) => {
+                            return `\0${type}\x01${str}\0end\x01`;
+                          },
+                        },
+                        err
+                      )
+                    )
+                    .join("\n\n"),
+              });
+
+              if (output.type == "success") {
+                if (output.errors.length == 0) {
+                  vscode.window.showInformationMessage(
+                    `Successfully compiled '${filename}'.`
+                  );
+                  webviewMessage = "Compilation was successful!";
+                } else {
+                  vscode.window.showWarningMessage(
+                    `Successfully compiled '${filename}' with ${output.errors.length} errors.`
+                  );
+                  webviewMessage =
+                    "Code was generated, but there were errors in the current build.";
+                }
+              } else {
+                vscode.window.showErrorMessage(
+                  `Desmoscript compilation of '${filename}' failed.`
+                );
+                webviewMessage =
+                  "There were errors in the build, and code was not generated.";
+              }
+
+              panel.webview.postMessage({
+                type: "set-status",
+                data: `${webviewMessage} (took ${duration}ms)`,
+              });
+            },
+            onLoad(host, port) {
+              vscode.window.showInformationMessage(
+                `Successfully started desmoscript server at http://${host}:${port}`
+              );
+            },
+          }
+        );
+
+        await serverDefiner.defineWatchServer(myID, {
           options: {
             annotateExpressionsWithEquivalentDesmoscript,
           },
@@ -119,72 +190,84 @@ pre {
           port,
           host,
           errorContext: 2,
-          onCompileStart: () => {
-            panel.webview.postMessage({
-              type: "set-status",
-              data: "Compiling...",
-            });
-          },
-          onCompile: (output, io, duration) => {
-            let webviewMessage = "";
-
-            panel.webview.postMessage({
-              type: "set-error-messages",
-              data:
-                "\0end\x01" +
-                output.errors
-                  .map((err) =>
-                    desmoscript.formatError(
-                      {
-                        io,
-                        entry: filename,
-                        sourceCode: output.sourceCode,
-                        maxWidth: 80,
-                        format: (str, { type }) => {
-                          return `\0${type}\x01${str}\0end\x01`;
-                        },
-                      },
-                      err
-                    )
-                  )
-                  .join("\n\n"),
-            });
-
-            if (output.type == "success") {
-              if (output.errors.length == 0) {
-                vscode.window.showInformationMessage(
-                  `Successfully compiled '${filename}'.`
-                );
-                webviewMessage = "Compilation was successful!";
-              } else {
-                vscode.window.showWarningMessage(
-                  `Successfully compiled '${filename}' with ${output.errors.length} errors.`
-                );
-                webviewMessage =
-                  "Code was generated, but there were errors in the current build.";
-              }
-            } else {
-              vscode.window.showErrorMessage(
-                `Desmoscript compilation of '${filename}' failed.`
-              );
-              webviewMessage =
-                "There were errors in the build, and code was not generated.";
-            }
-
-            panel.webview.postMessage({
-              type: "set-status",
-              data: `${webviewMessage} (took ${duration}ms)`,
-            });
-          },
-          onLoad(host, port) {
-            vscode.window.showInformationMessage(
-              `Successfully started desmoscript server at http://${host}:${port}`
-            );
-          },
         });
 
+        // const closeServer = await runWatchServer({
+        //   translateFilePath: (p) => URI.parse(p).fsPath,
+        //   io,
+        //   options: {
+        //     annotateExpressionsWithEquivalentDesmoscript,
+        //   },
+        //   entryPoint: filename,
+        //   port,
+        //   host,
+        //   errorContext: 2,
+        //   onCompileStart: () => {
+        //     panel.webview.postMessage({
+        //       type: "set-status",
+        //       data: "Compiling...",
+        //     });
+        //   },
+        //   onCompile: (output, io, duration) => {
+        //     let webviewMessage = "";
+
+        //     panel.webview.postMessage({
+        //       type: "set-error-messages",
+        //       data:
+        //         "\0end\x01" +
+        //         output.errors
+        //           .map((err) =>
+        //             desmoscript.formatError(
+        //               {
+        //                 io,
+        //                 entry: filename,
+        //                 sourceCode: output.sourceCode,
+        //                 maxWidth: 80,
+        //                 format: (str, { type }) => {
+        //                   return `\0${type}\x01${str}\0end\x01`;
+        //                 },
+        //               },
+        //               err
+        //             )
+        //           )
+        //           .join("\n\n"),
+        //     });
+
+        //     if (output.type == "success") {
+        //       if (output.errors.length == 0) {
+        //         vscode.window.showInformationMessage(
+        //           `Successfully compiled '${filename}'.`
+        //         );
+        //         webviewMessage = "Compilation was successful!";
+        //       } else {
+        //         vscode.window.showWarningMessage(
+        //           `Successfully compiled '${filename}' with ${output.errors.length} errors.`
+        //         );
+        //         webviewMessage =
+        //           "Code was generated, but there were errors in the current build.";
+        //       }
+        //     } else {
+        //       vscode.window.showErrorMessage(
+        //         `Desmoscript compilation of '${filename}' failed.`
+        //       );
+        //       webviewMessage =
+        //         "There were errors in the build, and code was not generated.";
+        //     }
+
+        //     panel.webview.postMessage({
+        //       type: "set-status",
+        //       data: `${webviewMessage} (took ${duration}ms)`,
+        //     });
+        //   },
+        //   onLoad(host, port) {
+        //     vscode.window.showInformationMessage(
+        //       `Successfully started desmoscript server at http://${host}:${port}`
+        //     );
+        //   },
+        // });
+
         panel.onDidDispose(() => {
-          closeServer();
+          serverDefiner.deleteWatchServer(myID);
           vscode.window.showInformationMessage(`Closed desmoscript server`);
         });
       }

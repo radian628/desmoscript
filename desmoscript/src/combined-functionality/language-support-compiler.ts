@@ -18,6 +18,9 @@ import {
 import { DesmoCallback, lex, parse, typecheckScopeTree } from "../index.js";
 import { resolveFileImports } from "../scope-tree/resolve-imports.js";
 import {
+  CompileDesmoscriptSettings,
+  CompilerOutput,
+  compileDesmoscript,
   createASTLookupTableMultipleCompilationUnits,
   handleMacros,
   lexAndParse,
@@ -47,59 +50,66 @@ export type SyntaxHighlightingType =
   | "type"
   | "enumMember";
 
+type HighlightData = {
+  token: string;
+  start: number;
+  end: number;
+  type: SyntaxHighlightingType;
+};
+
+type Definition = {
+  name: string;
+  start: number;
+  end: number;
+  definitionStart: number;
+  definitionEnd: number;
+  definitionFile: string;
+};
+
+type Diagnostic = {
+  start: number;
+  end: number;
+  reason: string;
+};
+
+type ColorWidgetLocation = {
+  start: number;
+  end: number;
+  color: [number, number, number];
+};
+
+type AutocompleteOption = {
+  completedText: string;
+  type: "variable" | "function" | "scope" | "macro";
+};
+
 export type LanguageSupportFeatures = {
+  // added to make RPC easier to implement
+  compile: (
+    entryPoint: string,
+    options: Omit<CompileDesmoscriptSettings, "io">
+  ) => Promise<CompilerOutput>;
+
   // pass in a handler to highlight the syntax of everything in a given file
-  highlightSyntax: (
-    filename: string,
-    handler: (
-      token: string,
-      start: number,
-      end: number,
-      type: SyntaxHighlightingType
-    ) => void
-  ) => Promise<void>;
+  highlightSyntax: (filename: string) => Promise<HighlightData[]>;
 
   // pass in a handler to get definition info of everything in a file
   // for implemeting "go to definition" functionality
-  getDefinitions: (
-    filename: string,
-    handler: (
-      name: string,
-      start: number,
-      end: number,
-      definitionStart: number,
-      definitionEnd: number,
-      definitionFile: string
-    ) => void
-  ) => Promise<void>;
+  getDefinitions: (filename: string) => Promise<Definition[]>;
 
   goToDefinition(
     filename: string,
     position: number
   ): Promise<{ unit: string; start: number; end: number } | undefined>;
 
-  getErrors: (
-    filename: string,
-    handler: (start: number, end: number, reason: string) => void
-  ) => Promise<void>;
+  getErrors: (filename: string) => Promise<Diagnostic[]>;
 
-  getColors: (
-    filename: string,
-    handler: (
-      start: number,
-      end: number,
-      color: [number, number, number]
-    ) => void
-  ) => Promise<void>;
+  getColors: (filename: string) => Promise<ColorWidgetLocation[]>;
 
   getAutocomplete: (
     filename: string,
-    position: number,
-    handler: (
-      completedText: string,
-      type: "variable" | "function" | "scope" | "macro"
-    ) => void
-  ) => Promise<void>;
+    position: number
+  ) => Promise<AutocompleteOption[]>;
 
   formatFile(filename: string): Promise<string | undefined>;
 
@@ -107,6 +117,8 @@ export type LanguageSupportFeatures = {
 
   // for files being updated by vscode but haven't been saved
   updateFile: (filename: string, src: string) => void;
+
+  getOpenFilePaths: () => string[];
 };
 
 type RecompileResult = {
@@ -140,8 +152,6 @@ export function compileDesmoscriptForLanguageSupport(
   const unsavedFiles = new Map<string, string>();
 
   const watchFiles = new Set<string>();
-
-  let activeWatchers: (() => void)[] = [];
 
   async function recompile(entryPoint: string): Promise<RecompileResult> {
     if (cachedRecompilation) return cachedRecompilation;
@@ -214,20 +224,6 @@ export function compileDesmoscriptForLanguageSupport(
       getAbsolutePath
     );
 
-    for (const closeWatcher of activeWatchers) {
-      closeWatcher();
-    }
-
-    activeWatchers = [];
-
-    watchFiles.forEach((filename) => {
-      activeWatchers.push(
-        io.watchFile(filename, () => {
-          cachedRecompilation = undefined;
-        })
-      );
-    });
-
     const astNodes =
       createASTLookupTableMultipleCompilationUnits(compilationUnits);
 
@@ -264,12 +260,20 @@ export function compileDesmoscriptForLanguageSupport(
   let cachedRecompilation: RecompileResult | undefined;
 
   return {
+    getOpenFilePaths: () => Array.from(watchFiles),
+
+    compile: (entry, opts) =>
+      compileDesmoscript(entry, {
+        ...opts,
+        io,
+      }),
+
     updateFile(filename, src) {
       cachedRecompilation = undefined;
       unsavedFiles.set(filename, src);
     },
 
-    async highlightSyntax(filename, handler2) {
+    async highlightSyntax(filename) {
       console.log("GOT HERE!", filename);
 
       const ctx = await recompile(filename);
@@ -277,7 +281,9 @@ export function compileDesmoscriptForLanguageSupport(
 
       console.log("highlightSyntax", filename, ctx);
 
-      if (!code) return;
+      if (!code) return [];
+
+      const highlightData: HighlightData[] = [];
 
       const handler = (
         str: string,
@@ -289,22 +295,32 @@ export function compileDesmoscriptForLanguageSupport(
         const splitStr = str.split("\n");
         for (const substr of splitStr) {
           let end = start + substr.length;
-          handler2(substr, start, end, type);
+          highlightData.push({
+            start,
+            end,
+            type,
+            token: substr,
+          });
           start = end + 1;
         }
       };
 
-      if (!ctx.highlightsMap) return;
+      if (!ctx.highlightsMap) return highlightData;
       const highlights = ctx.highlightsMap.get(filename);
       if (highlights) {
         for (const hl of highlights) {
-          handler2(code.src.slice(hl.start, hl.end), hl.start, hl.end, hl.type);
+          highlightData.push({
+            start: hl.start,
+            end: hl.end,
+            type: hl.type,
+            token: code.src.slice(hl.start, hl.end),
+          });
         }
       }
 
-      if (!ctx.compilationUnits) return;
+      if (!ctx.compilationUnits) return highlightData;
       const unit = ctx.compilationUnits.get(filename);
-      if (!unit) return;
+      if (!unit) return highlightData;
 
       forEachAST(unit.ast, undefined, (node) => {
         if (!ctx.compilationUnits) return;
@@ -342,16 +358,20 @@ export function compileDesmoscriptForLanguageSupport(
           return;
         }
       });
+
+      return highlightData;
     },
 
-    async getDefinitions(filename, handler) {
+    async getDefinitions(filename) {
       const ctx = await recompile(filename);
-      if (!ctx.compilationUnits) return;
+      if (!ctx.compilationUnits) return [];
       const unit = ctx.compilationUnits.get(filename);
-      if (!unit) return;
+      if (!unit) return [];
+
+      const defs: Definition[] = [];
 
       forEachAST(unit.ast, undefined, (node) => {
-        if (!ctx.compilationUnits) return;
+        if (!ctx.compilationUnits) return [];
         if (node.type == "identifier") {
           const def = findIdentifierScopeItem(
             unit,
@@ -360,24 +380,26 @@ export function compileDesmoscriptForLanguageSupport(
             { compilationUnits: ctx.compilationUnits }
           );
 
-          if (def.result != "found") return;
+          if (def.result != "found") return [];
           if (
             def.identifier.type != "function" &&
             def.identifier.type != "variable"
           )
-            return;
+            return [];
 
-          handler(
-            node.segments.join("."),
-            node.start,
-            node.end,
-            def.identifier.start,
-            def.identifier.end,
-            def.identifier.unitName
-          );
+          defs.push({
+            name: node.segments.join("."),
+            start: node.start,
+            end: node.end,
+            definitionFile: def.identifier.unitName,
+            definitionStart: def.identifier.start,
+            definitionEnd: def.identifier.end,
+          });
         }
-        return;
+        return [];
       });
+
+      return defs;
     },
 
     async goToDefinition(filename, position) {
@@ -420,8 +442,14 @@ export function compileDesmoscriptForLanguageSupport(
       };
     },
 
-    async getErrors(filename, handler) {
+    async getErrors(filename) {
       const ctx = await recompile(filename);
+
+      const errs: Diagnostic[] = [];
+
+      const handler = (start: number, end: number, reason: string) => {
+        errs.push({ start, end, reason });
+      };
 
       for (const err of ctx.errors) {
         if (err.unit == filename) {
@@ -452,6 +480,8 @@ export function compileDesmoscriptForLanguageSupport(
           }
         }
       }
+
+      return errs;
     },
 
     async formatFile(filename) {
@@ -478,13 +508,15 @@ export function compileDesmoscriptForLanguageSupport(
       return fmtted;
     },
 
-    async getColors(filename, handler) {
+    async getColors(filename) {
       const ctx = await recompile(filename);
-      if (!ctx.compilationUnits) return;
+      if (!ctx.compilationUnits) return [];
       const unit = ctx.compilationUnits.get(filename);
-      if (!unit) return undefined;
+      if (!unit) return [];
 
       const ast = unit.ast;
+
+      const colors: ColorWidgetLocation[] = [];
 
       forEachAST(ast, undefined, (node) => {
         if (
@@ -494,20 +526,28 @@ export function compileDesmoscriptForLanguageSupport(
           node.params[1]?.type == "number" &&
           node.params[2]?.type == "number"
         ) {
-          handler(node.start, node.end, [
-            node.params[0].number,
-            node.params[1].number,
-            node.params[2].number,
-          ]);
+          colors.push({
+            start: node.start,
+            end: node.end,
+            color: [
+              node.params[0].number,
+              node.params[1].number,
+              node.params[2].number,
+            ],
+          });
         }
       });
+
+      return colors;
     },
 
-    async getAutocomplete(filename, position, handler) {
+    async getAutocomplete(filename, position) {
       const ctx = await recompile(filename);
-      if (!ctx.compilationUnits) return;
+      if (!ctx.compilationUnits) return [];
       const unit = ctx.compilationUnits.get(filename);
-      if (!unit) return undefined;
+      if (!unit) return [];
+
+      const suggestions: AutocompleteOption[] = [];
 
       const searchScope = findSmallestEnclosingScope(unit.scopeTree, position);
 
@@ -538,8 +578,8 @@ export function compileDesmoscriptForLanguageSupport(
           { compilationUnits: ctx.compilationUnits }
         );
 
-        if (scopeItem.result != "found") return;
-        if (scopeItem.identifier.type != "scope") return;
+        if (scopeItem.result != "found") return [];
+        if (scopeItem.identifier.type != "scope") return [];
 
         innerScope = scopeItem.identifier.scope;
       } else {
@@ -550,7 +590,8 @@ export function compileDesmoscriptForLanguageSupport(
         if (itemName.startsWith(lastSegment)) {
           const suggestion = itemName;
 
-          let completionType: Parameters<typeof handler>[1] = "variable";
+          let completionType: "variable" | "function" | "macro" | "scope" =
+            "variable";
           switch (item.type) {
             case "function":
             case "builtin-function":
@@ -561,9 +602,11 @@ export function compileDesmoscriptForLanguageSupport(
               completionType = "scope";
           }
 
-          handler(suggestion, completionType);
+          suggestions.push({ completedText: suggestion, type: completionType });
         }
       }
+
+      return suggestions;
     },
 
     async onHover(filename, position) {

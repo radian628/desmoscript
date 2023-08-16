@@ -9,7 +9,7 @@ import {
 import { CodegenError } from "../../codegen/codegen.js";
 import { CompilerError, internalError } from "../../compiler-errors.js";
 import { debugPrint } from "../../debug/debug.js";
-import { IOInterface } from "../../io/io.js";
+import { IOInterface, IOPathInterface } from "../../io/io.js";
 import { DSPrimitiveType, ErrorType } from "./typecheck.js";
 
 export type TypeError =
@@ -196,7 +196,7 @@ export type ErrorFormattingContext = {
   ) => string;
   hideSourceCode?: boolean;
   sourceCodeErrorContext?: number;
-  io: IOInterface;
+  io: IOPathInterface;
 };
 
 export function formatCodeFragment(

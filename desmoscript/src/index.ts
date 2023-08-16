@@ -36,6 +36,7 @@ export { enableDebug } from "./debug/debug.js";
 export { formatError } from "./scope-tree/typecheck/type-errors.js";
 export { formatAST, format } from "./ast/fmt.js";
 export { IOInterface } from "./io/io.js";
+export { setupRPCCaller, setupRPCCallee } from "./rpc/rpc.js";
 
 export type DesmoCallback = (ctx: {
   scope: Scope;
