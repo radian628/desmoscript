@@ -6,6 +6,7 @@ import {
   Scoped,
 } from "./ast/ast.js";
 import { MacroAPI } from "./macro/macro-api.js";
+import { DSType, TypecheckContext } from "./scope-tree/typecheck/typecheck.js";
 
 // what is this? might remove
 export const placeholder = 0;
@@ -44,6 +45,11 @@ export type DesmoCallback = (ctx: {
   addMacro: (opts: {
     name: string;
     fn: (node: Scoped<MacroCallNode>, a: MacroAPI) => Promise<Scoped<ASTNode>>;
+  }) => void;
+  addLatexMacro: (opts: {
+    name: string;
+    fn: (node: Scoped<MacroCallNode>, a: MacroAPI) => Promise<string>;
+    type: (node: Scoped<MacroCallNode>, ctx: TypecheckContext) => DSType;
   }) => void;
 }) => void;
 export declare function desmo(callback: DesmoCallback): void;

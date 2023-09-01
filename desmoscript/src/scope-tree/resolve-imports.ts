@@ -16,6 +16,12 @@ export const untranspilableDynamicImport = new Function(
   "return import(src);"
 );
 
+export function evalModule(src: string) {
+  return untranspilableDynamicImport(
+    `data:text/javascript,${encodeURIComponent(src)}`
+  );
+}
+
 export async function resolveFileImports(
   filename: string,
   importer: string,
@@ -80,9 +86,7 @@ export async function resolveFileImports(
           const iscriptSrc = await ctx.getFile(iscriptFullPath);
           ctx.watchFiles.add(iscriptFullPath);
           try {
-            const importScript = await untranspilableDynamicImport(
-              `data:text/javascript,${encodeURIComponent(iscriptSrc)}`
-            );
+            const importScript = await evalModule(iscriptSrc);
             ctx.importScripts.set(iscriptFullPath, {
               run: importScript.default,
             });

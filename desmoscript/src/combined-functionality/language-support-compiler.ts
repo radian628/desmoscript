@@ -280,12 +280,8 @@ export function compileDesmoscriptForLanguageSupport(
     },
 
     async highlightSyntax(filename) {
-      console.log("GOT HERE!", filename);
-
       const ctx = await recompile(filename);
       const code = ctx.sourceCode.get(filename);
-
-      console.log("highlightSyntax", filename, ctx);
 
       if (!code) return [];
 
@@ -300,7 +296,7 @@ export function compileDesmoscriptForLanguageSupport(
         if (start == end) return;
         const splitStr = str.split("\n");
         for (const substr of splitStr) {
-          let end = start + substr.length;
+          const end = start + substr.length;
           highlightData.push({
             start,
             end,
@@ -561,12 +557,12 @@ export function compileDesmoscriptForLanguageSupport(
 
       let searchString = "";
       let pos = position - 1;
-      while (unit.src[pos] && unit.src[pos].match(/[a-zA-Z_0-9\.]/g)) {
+      while (unit.src[pos] && unit.src[pos].match(/[a-zA-Z_0-9.]/g)) {
         searchString = unit.src[pos] + searchString;
         pos--;
       }
       pos = position;
-      while (unit.src[pos] && unit.src[pos].match(/[a-zA-Z_0-9\.]/g)) {
+      while (unit.src[pos] && unit.src[pos].match(/[a-zA-Z_0-9.]/g)) {
         searchString += unit.src[pos];
         pos++;
       }
@@ -604,10 +600,13 @@ export function compileDesmoscriptForLanguageSupport(
             case "function":
             case "builtin-function":
               completionType = "function";
+              break;
             case "macro":
               completionType = "macro";
+              break;
             case "scope":
               completionType = "scope";
+              break;
           }
 
           suggestions.push({ completedText: suggestion, type: completionType });

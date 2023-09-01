@@ -13,6 +13,7 @@ import { getLinesAndCols } from "../index.js";
 import { uint8ArrayToString } from "../io/io.js";
 import { lex } from "../parse/lex.js";
 import { parse } from "../parse/parse.js";
+import { untranspilableDynamicImport } from "../scope-tree/resolve-imports.js";
 import { wrongTypeError } from "../scope-tree/typecheck/type-errors.js";
 import { InstantiateMacroContext } from "./instantiate-macros.js";
 
@@ -56,33 +57,26 @@ export function mapASTChildren<ASTNode>(
 ): ASTNode {
   function map(n: any): any {
     // handle arrays within astnodes
-    //@ts-ignore
     if (Array.isArray(n)) return n.map((e) => map(e));
 
-    //@ts-ignore
     if (n && typeof n == "object" && typeof n.id == "number") {
       // handle current node
-      //@ts-ignore
       if (n !== node) {
-        //@ts-ignore
         return mapper(n);
       }
 
       // handle direct child nodes
       const node2 = n as unknown as ASTNode;
-      //@ts-ignore
       return Object.fromEntries(
-        //@ts-ignore
+        //@ts-expect-error no.
         Object.entries(node2).map(([k, v]) => [k, map(v)])
       );
     }
 
     // handle all other properties
-    //@ts-ignore
     return n;
   }
 
-  //@ts-ignore
   return { ...map(node), id: newid() };
 }
 
@@ -145,10 +139,16 @@ export function getMacroAPI(
     return ctx.io.resolvePath(ctx.io.dirname(ctx.unit), path);
   }
 
+  const readStringFile = async (filepath: string) => {
+    const abspath = getAbsolutePathRelativeToThisFile(filepath);
+    ctx.watchFiles.add(abspath);
+    return uint8ArrayToString(await ctx.io.readFile(abspath));
+  };
+
   return {
     assertNodeType: (type, node) => assertNodeType(ctx.unit, type, node),
 
-    //@ts-ignore
+    //@ts-expect-error silly type inference
     node: (t) => {
       return {
         ...t,
@@ -206,7 +206,7 @@ export function getMacroAPI(
           "Debug output from macro:\n" +
             args
               .map((arg) =>
-                // @ts-ignore
+                //@ts-expect-error dumb stupid esbuild bug
                 ((inspect.default as typeof inspect) ?? inspect)(arg)
               )
               .join("\n"),
@@ -222,10 +222,10 @@ export function getMacroAPI(
       return ctx.io.readFile(abspath);
     },
 
-    readStringFile: async (filepath: string) => {
-      const abspath = getAbsolutePathRelativeToThisFile(filepath);
-      ctx.watchFiles.add(abspath);
-      return uint8ArrayToString(await ctx.io.readFile(abspath));
+    readStringFile,
+
+    import: async (filepath: string) => {
+      return untranspilableDynamicImport(await readStringFile(filepath));
     },
   };
 }

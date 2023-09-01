@@ -15,6 +15,7 @@ import {
   Scoped,
   newid,
   asExpr,
+  NoteNode,
 } from "../ast/ast.js";
 import {
   CompilerError,
@@ -404,23 +405,59 @@ export function addScopesToAST(
           unit: ctx.unit,
         });
       }
-
-      iscript?.run({
-        scope: state.scope,
-        addMacro(opts) {
-          addToScope(
-            state.scope,
-            opts.name,
-            {
-              type: "macro",
-              macroOperation: opts.fn,
-              id: newid(),
-              unitName: ctx.unit,
-            },
-            ctx.errors
-          );
-        },
-      });
+      try {
+        iscript?.run({
+          scope: state.scope,
+          addMacro(opts) {
+            addToScope(
+              state.scope,
+              opts.name,
+              {
+                type: "macro",
+                macroOperation: opts.fn,
+                id: newid(),
+                unitName: ctx.unit,
+              },
+              ctx.errors
+            );
+          },
+          addLatexMacro(opts) {
+            addToScope(
+              state.scope,
+              opts.name,
+              {
+                type: "macro",
+                async macroOperation(node, a) {
+                  return a.node<NoteNode>({
+                    type: "note",
+                    content: await opts.fn(node, a),
+                  });
+                },
+                customTypecheck(node, ctx) {
+                  return opts.type(node, ctx);
+                },
+                customCodegen(node, a) {
+                  return (node.result as NoteNode).content;
+                },
+                id: newid(),
+                unitName: ctx.unit,
+              },
+              ctx.errors
+            );
+          },
+        });
+      } catch (err) {
+        ctx.errors.push({
+          type: "general",
+          start: node.start,
+          end: node.end,
+          reason: `Import script '${resolvedImport2}' failed to run due to: ${JSON.stringify(
+            err,
+            Object.getOwnPropertyNames(err)
+          )}`,
+          unit: ctx.unit,
+        });
+      }
       break;
     }
     case "settings":
