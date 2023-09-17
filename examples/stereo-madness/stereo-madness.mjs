@@ -7,7 +7,7 @@ export default function ({ scope, addMacro, addLatexMacro }) {
     type: () => ({ type: "list", element: { type: "number" } }),
   });
 
-  addMacro({
+  addLatexMacro({
     name: "getLevel",
     fn: async (node, a) => {
       const file = JSON.parse(await a.readStringFile("./level.json"));
@@ -15,18 +15,19 @@ export default function ({ scope, addMacro, addLatexMacro }) {
       const arg1 = node.params[0]?.content;
       const arg2 = node.params[1]?.content;
 
-      return a.parseExpr(`[
+      return `\\left[
         ${file?.data
           ?.map((e) => {
             if (arg1 && arg2) {
-              return `(${e[arg1]}, ${e[arg2]})`;
+              return `\\left(${e[arg1]}, ${e[arg2]}\\right)`;
             } else if (arg1) {
               return e[arg1];
             }
           })
           .join(",")}
-      ]`);
+      \\right]`;
     },
+    type: () => ({ type: "list", element: { type: "number" } }),
   });
 
   function noScientific(n) {
@@ -34,20 +35,23 @@ export default function ({ scope, addMacro, addLatexMacro }) {
   }
 
   function toPoint(x, y) {
-    return `(${noScientific(x)}, ${noScientific(y)})`;
+    return `\\left(${noScientific(x)}, ${noScientific(y)}\\right)`;
   }
 
   function drawPath(points) {
     return (obj) => {
       const r = ((obj.r ?? 0) / 180) * Math.PI;
-      const renderPoint = (pt) =>
-        toPoint(
-          pt[0] * Math.cos(r) - pt[1] * Math.sin(r) + obj.x,
-          pt[0] * Math.sin(r) + pt[1] * Math.cos(r) + obj.y
+      const renderPoint = (pt) => {
+        const x = pt[0] * (obj.flipx ? -1 : 1);
+        const y = pt[1] * (obj.flipy ? -1 : 1);
+        return toPoint(
+          x * Math.cos(r) - y * Math.sin(r) + obj.x,
+          x * Math.sin(r) + y * Math.cos(r) + obj.y
         );
+      };
       const path = `${points.map(renderPoint)},${renderPoint(
         points[0]
-      )},(0/0, 0/0)`;
+      )},\\left(0/0, 0/0\\right)`;
 
       return path;
     };
@@ -90,7 +94,25 @@ export default function ({ scope, addMacro, addLatexMacro }) {
     ]),
 
     // spike decorations
-    18: drawPath(spikeDecoration(1)),
+    18: drawPath([
+      [-45, -15],
+      [-39.7, -1.4],
+      [-36, -10],
+      [-29.4, 3.1],
+      [-25.2, -4.2],
+      [-19.4, 13.7],
+      [-11.9, -6.9],
+      [-9.2, -1.6],
+      [-6.3, -8.6],
+      [1.2, 2.6],
+      [9.7, -9.5],
+      [16.7, 10],
+      [23.6, -10.6],
+      [30.7, 3],
+      [37.7, -10.7],
+      [40.7, -3.8],
+      [45.3, -14.7],
+    ]),
     19: drawPath(spikeDecoration(0.8)),
     20: drawPath(spikeDecoration(0.5)),
     21: drawPath(spikeDecoration(0.3)),
@@ -129,16 +151,27 @@ export default function ({ scope, addMacro, addLatexMacro }) {
     ]),
     // lots of tiny rock looking spike thingies (TODO: figure out the actual vertices here)
     9: drawPath([
-      [-15, -3],
-      ...new Array(11)
-        .fill(0)
-        .map((_, i) => [(i * 30) / 10 - 15, Math.random() * 6 + 1]),
-      [15, -3],
+      [-15, -5],
+      [-15, 1.5],
+      [-11.6, 5.3],
+      [-9.6, 3],
+      [-7.4, 8],
+      [-5.28, 2.73],
+      [-1.26, 10.14],
+      [2.1, 3.52],
+      [5.07, 6.7],
+      [8.27, 2.9],
+      [10, 6],
+      [11.65, 2.9],
+      [12.9, 4.48],
+      [15.04, 1.6],
+      [15.08, -4.7],
     ]),
   };
 
-  addMacro({
+  addLatexMacro({
     name: "getLevelPolygons",
+    type: () => ({ type: "list", element: { type: "polygon" } }),
     fn: async (node, a) => {
       const level = JSON.parse(await a.readStringFile("./level.json"));
 
@@ -161,25 +194,27 @@ export default function ({ scope, addMacro, addLatexMacro }) {
         screen.push(o);
       }
 
-      return a.parseExpr(`[
+      return `\\left[
         ${screens.map((screen) => {
           if (!screen) {
-            return `polygon()`;
+            return `\\operatorname{polygon}\\left(\\right)`;
           }
 
-          return `polygon(${screen.map((obj) => {
+          return `\\operatorname{polygon}\\left(${screen.map((obj) => {
             const renderer = objectRenderers[obj.id];
 
             if (renderer) return renderer(obj);
 
-            return `(${obj.x - 15},${obj.y - 15}),(${obj.x + 15},${
-              obj.y - 15
-            }),(${obj.x + 15},${obj.y + 15}),(${obj.x - 15},${
+            return `\\left(${obj.x - 15},${obj.y - 15}\\right),\\left(${
+              obj.x + 15
+            },${obj.y - 15}\\right),\\left(${obj.x + 15},${
               obj.y + 15
-            }),(0/0,0/0)`;
-          })})`;
+            }\\right),\\left(${obj.x - 15},${
+              obj.y + 15
+            }\\right),\\left(0/0,0/0\\right)`;
+          })}\\right)`;
         })}
-      ]`);
+      \\right]`;
     },
   });
 }

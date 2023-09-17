@@ -1,10 +1,10 @@
 import script "./stereo-madness.mjs"
 
-show positions = getLevel!("x", "y") @{ pointSize: ds(3), hidden: true, showLabel: true, label: "${I_ds}" }
-ids = getLevel!("id");
-
 ns bulkData {
   screens = getLevelPolygons!();
+  
+  show positions = getLevel!("x", "y") @{ pointSize: ds(3), hidden: true, showLabel: true, label: "${I_ds}" }
+  ids = getLevel!("id");
 }
 
 t123 = latexMacroTest!();
